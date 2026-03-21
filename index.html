@@ -33,7 +33,7 @@
       align-items: center;
       flex-wrap: wrap;
     }
-    #reportsButton, #receiptsButton, #mySalesToggle {
+    #reportsButton, #mySalesButton, #receiptsButton {
       background: #3b82f6;
       border: none;
       border-radius: 40px;
@@ -43,17 +43,11 @@
       color: white;
       cursor: pointer;
     }
-    #mySalesToggle {
-      background: #8b5cf6;
-      transition: 0.1s;
-    }
-    #mySalesToggle.active {
-      background: #2c7a4b;
-    }
+    #mySalesButton { background: #8b5cf6; }
     #receiptsButton { background: #8b5cf6; }
     #reportsButton:hover { background: #2563eb; }
+    #mySalesButton:hover { background: #7c3aed; }
     #receiptsButton:hover { background: #7c3aed; }
-    #mySalesToggle:hover { opacity: 0.9; }
     #connectPrinterButton {
       background: #1e293b;
       border: none;
@@ -257,9 +251,11 @@
   <div class="pos-header">
     <h1>🛍️ POS System</h1>
     <div class="header-buttons">
-      <div id="reportsButtonContainer" style="display: none;">
+      <div id="adminReportContainer" style="display: none;">
         <button id="reportsButton">📊 Reports</button>
-        <button id="mySalesToggle">👤 My Sales</button>
+      </div>
+      <div id="nonAdminReportContainer" style="display: none;">
+        <button id="mySalesButton">📊 My Sales</button>
       </div>
       <button id="receiptsButton">📜 Receipts</button>
       <button id="connectPrinterButton">🖨️ Connect Printer</button>
@@ -306,49 +302,85 @@
   </div>
 </div>
 
-<!-- Report Modal -->
-<div id="reportModal" class="modal-overlay">
+<!-- Admin Report Modal (with employee filter) -->
+<div id="adminReportModal" class="modal-overlay">
   <div class="modal-container">
     <div class="modal-title">📊 Sales Report</div>
     <div class="report-filters">
       <div class="filter-group">
         <label>Store</label>
-        <select id="reportStoreSelect"><option value="all">All Stores</option></select>
+        <select id="adminReportStoreSelect"><option value="all">All Stores</option></select>
       </div>
-      <!-- Employee filter hidden for non-admins or when "My Sales" is active -->
-      <div id="reportEmployeeFilter" class="filter-group" style="display: none;">
+      <div class="filter-group">
         <label>Employee</label>
-        <select id="reportEmployeeSelect"><option value="all">All Employees</option></select>
+        <select id="adminReportEmployeeSelect"><option value="all">All Employees</option></select>
       </div>
       <div class="filter-group">
         <label>Date Range</label>
-        <select id="reportDateRangeSelect">
+        <select id="adminReportDateRangeSelect">
           <option value="today">Today</option>
           <option value="week">This Week</option>
           <option value="month">This Month</option>
           <option value="custom">Custom</option>
         </select>
       </div>
-      <div id="reportCustomDateRange" style="display: none;" class="date-range">
-        <input type="date" id="reportFromDate">
-        <input type="date" id="reportToDate">
+      <div id="adminReportCustomDateRange" style="display: none;" class="date-range">
+        <input type="date" id="adminReportFromDate">
+        <input type="date" id="adminReportToDate">
       </div>
     </div>
     <div class="report-stats">
-      <div class="stat-item">Total Sales: <span id="reportTotalSales" class="stat-value">RM 0.00</span></div>
-      <div class="stat-item breakdown">💵 Cash: <span id="reportCashTotal" class="stat-value">RM 0.00</span></div>
-      <div class="stat-item breakdown">💳 Card: <span id="reportCardTotal" class="stat-value">RM 0.00</span></div>
-      <div class="stat-item breakdown">📱 Other: <span id="reportOtherTotal" class="stat-value">RM 0.00</span></div>
-      <div class="stat-item">Transactions: <span id="reportTransactionCount" class="stat-value">0</span></div>
-      <div class="stat-item">Items Sold: <span id="reportTotalItems" class="stat-value">0</span></div>
+      <div class="stat-item">Total Sales: <span id="adminReportTotalSales" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item breakdown">💵 Cash: <span id="adminReportCashTotal" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item breakdown">💳 Card: <span id="adminReportCardTotal" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item breakdown">📱 Other: <span id="adminReportOtherTotal" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item">Transactions: <span id="adminReportTransactionCount" class="stat-value">0</span></div>
+      <div class="stat-item">Items Sold: <span id="adminReportTotalItems" class="stat-value">0</span></div>
     </div>
     <div class="modal-buttons">
-      <button id="closeReportBtn" class="modal-btn modal-btn-secondary">Close</button>
+      <button id="closeAdminReportBtn" class="modal-btn modal-btn-secondary">Close</button>
     </div>
   </div>
 </div>
 
-<!-- Receipts Modal -->
+<!-- Non‑admin "My Sales" Report Modal (no employee filter) -->
+<div id="mySalesReportModal" class="modal-overlay">
+  <div class="modal-container">
+    <div class="modal-title">📊 My Sales</div>
+    <div class="report-filters">
+      <div class="filter-group">
+        <label>Store</label>
+        <select id="mySalesReportStoreSelect"><option value="all">All Stores</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Date Range</label>
+        <select id="mySalesReportDateRangeSelect">
+          <option value="today">Today</option>
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div id="mySalesReportCustomDateRange" style="display: none;" class="date-range">
+        <input type="date" id="mySalesReportFromDate">
+        <input type="date" id="mySalesReportToDate">
+      </div>
+    </div>
+    <div class="report-stats">
+      <div class="stat-item">Total Sales: <span id="mySalesReportTotalSales" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item breakdown">💵 Cash: <span id="mySalesReportCashTotal" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item breakdown">💳 Card: <span id="mySalesReportCardTotal" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item breakdown">📱 Other: <span id="mySalesReportOtherTotal" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item">Transactions: <span id="mySalesReportTransactionCount" class="stat-value">0</span></div>
+      <div class="stat-item">Items Sold: <span id="mySalesReportTotalItems" class="stat-value">0</span></div>
+    </div>
+    <div class="modal-buttons">
+      <button id="closeMySalesReportBtn" class="modal-btn modal-btn-secondary">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Receipts Modal (unchanged) -->
 <div id="receiptsModal" class="modal-overlay">
   <div class="modal-container">
     <div class="modal-title">📜 Receipt History</div>
@@ -357,7 +389,6 @@
         <label>Store</label>
         <select id="receiptsStoreSelect"><option value="all">All Stores</option></select>
       </div>
-      <!-- Employee filter hidden for non-admins or when "My Sales" is active -->
       <div id="receiptsEmployeeFilter" class="filter-group" style="display: none;">
         <label>Employee</label>
         <select id="receiptsEmployeeSelect"><option value="all">All Employees</option></select>
@@ -399,7 +430,6 @@
   let cart = [];
   let currentStore = "queens";
   let currentEmployee = null;
-  let mySalesActive = false; // only used if admin
 
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -485,20 +515,13 @@
           if (storeOpt) storeSelect.value = currentEmployee.store;
           currentStore = storeSelect.value;
         }
-        // Set up admin UI
         const isAdmin = currentEmployee.isAdmin;
-        const reportsContainer = document.getElementById('reportsButtonContainer');
         if (isAdmin) {
-          reportsContainer.style.display = 'flex';
-          // mySalesToggle initial state
-          mySalesActive = false;
-          const toggleBtn = document.getElementById('mySalesToggle');
-          toggleBtn.classList.remove('active');
-          toggleBtn.innerText = '👤 My Sales';
+          document.getElementById('adminReportContainer').style.display = 'block';
+          document.getElementById('nonAdminReportContainer').style.display = 'none';
         } else {
-          reportsContainer.style.display = 'none';
-          // For non-admins, they always see only their own sales in receipts and reports (if they could see reports)
-          // But since reports button is hidden, they only have receipts – we'll filter by employee always.
+          document.getElementById('adminReportContainer').style.display = 'none';
+          document.getElementById('nonAdminReportContainer').style.display = 'block';
         }
         await fetchProductsFromSheet();
         updateCartUI();
@@ -594,7 +617,7 @@
     }
   }
 
-  async function fetchSalesReport(store, employeeId, from, to) {
+  async function fetchSalesReport(store, employeeId, from, to, reportType = 'admin') {
     showLoading('Loading report...');
     try {
       let url = `${APPS_SCRIPT_URL}?action=getSalesReport&store=${store}&employeeId=${employeeId}`;
@@ -603,12 +626,21 @@
       const response = await fetch(url);
       const result = await response.json();
       if (result.success) {
-        document.getElementById('reportTotalSales').innerText = `RM ${result.totalSales.toFixed(2)}`;
-        document.getElementById('reportCashTotal').innerText = `RM ${result.cashTotal.toFixed(2)}`;
-        document.getElementById('reportCardTotal').innerText = `RM ${result.cardTotal.toFixed(2)}`;
-        document.getElementById('reportOtherTotal').innerText = `RM ${result.otherTotal.toFixed(2)}`;
-        document.getElementById('reportTransactionCount').innerText = result.transactionCount;
-        document.getElementById('reportTotalItems').innerText = result.totalItems;
+        if (reportType === 'admin') {
+          document.getElementById('adminReportTotalSales').innerText = `RM ${result.totalSales.toFixed(2)}`;
+          document.getElementById('adminReportCashTotal').innerText = `RM ${result.cashTotal.toFixed(2)}`;
+          document.getElementById('adminReportCardTotal').innerText = `RM ${result.cardTotal.toFixed(2)}`;
+          document.getElementById('adminReportOtherTotal').innerText = `RM ${result.otherTotal.toFixed(2)}`;
+          document.getElementById('adminReportTransactionCount').innerText = result.transactionCount;
+          document.getElementById('adminReportTotalItems').innerText = result.totalItems;
+        } else {
+          document.getElementById('mySalesReportTotalSales').innerText = `RM ${result.totalSales.toFixed(2)}`;
+          document.getElementById('mySalesReportCashTotal').innerText = `RM ${result.cashTotal.toFixed(2)}`;
+          document.getElementById('mySalesReportCardTotal').innerText = `RM ${result.cardTotal.toFixed(2)}`;
+          document.getElementById('mySalesReportOtherTotal').innerText = `RM ${result.otherTotal.toFixed(2)}`;
+          document.getElementById('mySalesReportTransactionCount').innerText = result.transactionCount;
+          document.getElementById('mySalesReportTotalItems').innerText = result.totalItems;
+        }
       } else {
         throw new Error('Report data error');
       }
@@ -884,17 +916,11 @@
 
   function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){ if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; return m;}); }
 
-  // Report auto-generation
-  function updateReport() {
-    const store = document.getElementById('reportStoreSelect').value;
-    // Determine employee filter:
-    // If admin and mySalesActive is true, use currentEmployee.id; otherwise use 'all'
-    // If not admin, this function is never called because button hidden.
-    let employeeId = 'all';
-    if (currentEmployee && currentEmployee.isAdmin && mySalesActive) {
-      employeeId = currentEmployee.id;
-    }
-    const range = document.getElementById('reportDateRangeSelect').value;
+  // Report generation functions
+  function updateAdminReport() {
+    const store = document.getElementById('adminReportStoreSelect').value;
+    const employeeId = document.getElementById('adminReportEmployeeSelect').value;
+    const range = document.getElementById('adminReportDateRangeSelect').value;
     let from = null, to = null;
     const today = new Date();
     today.setHours(0,0,0,0);
@@ -912,23 +938,51 @@
       from = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
       to = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
     } else if (range === 'custom') {
-      from = document.getElementById('reportFromDate').value;
-      to = document.getElementById('reportToDate').value;
+      from = document.getElementById('adminReportFromDate').value;
+      to = document.getElementById('adminReportToDate').value;
       if (!from || !to) return;
     }
-    fetchSalesReport(store, employeeId, from, to);
+    fetchSalesReport(store, employeeId, from, to, 'admin');
+  }
+
+  function updateMySalesReport() {
+    const store = document.getElementById('mySalesReportStoreSelect').value;
+    const employeeId = currentEmployee.id; // always the logged-in employee
+    const range = document.getElementById('mySalesReportDateRangeSelect').value;
+    let from = null, to = null;
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    if (range === 'today') {
+      from = today.toISOString().split('T')[0];
+      to = new Date(today).toISOString().split('T')[0];
+    } else if (range === 'week') {
+      const start = new Date(today);
+      start.setDate(today.getDate() - today.getDay());
+      from = start.toISOString().split('T')[0];
+      const end = new Date(today);
+      end.setDate(today.getDate() + (6 - today.getDay()));
+      to = end.toISOString().split('T')[0];
+    } else if (range === 'month') {
+      from = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+      to = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+    } else if (range === 'custom') {
+      from = document.getElementById('mySalesReportFromDate').value;
+      to = document.getElementById('mySalesReportToDate').value;
+      if (!from || !to) return;
+    }
+    fetchSalesReport(store, employeeId, from, to, 'nonAdmin');
   }
 
   function updateReceipts() {
     const store = document.getElementById('receiptsStoreSelect').value;
-    // Determine employee filter:
-    // For admin: if mySalesActive is true, use currentEmployee.id; else use 'all'
-    // For non-admin: always use currentEmployee.id
     let employeeId = 'all';
     if (currentEmployee) {
-      if (currentEmployee.isAdmin && mySalesActive) {
-        employeeId = currentEmployee.id;
-      } else if (!currentEmployee.isAdmin) {
+      if (currentEmployee.isAdmin) {
+        // admin: use the selected employee from dropdown if visible
+        const selectedEmp = document.getElementById('receiptsEmployeeSelect').value;
+        employeeId = selectedEmp === 'all' ? 'all' : selectedEmp;
+      } else {
+        // non-admin: always their own
         employeeId = currentEmployee.id;
       }
     }
@@ -958,15 +1012,14 @@
     fetchReceipts(store, employeeId, from, to, search);
   }
 
-  // Populate employee dropdowns (only needed for admin view)
+  // Populate employee dropdowns (only for admin)
   async function populateEmployeeSelects() {
     if (!currentEmployee || !currentEmployee.isAdmin) return;
     const employees = await fetchEmployees();
-    const reportSelect = document.getElementById('reportEmployeeSelect');
-    const receiptsSelect = document.getElementById('receiptsEmployeeSelect');
-    // Clear and repopulate
-    reportSelect.innerHTML = '<option value="all">All Employees</option>';
-    receiptsSelect.innerHTML = '<option value="all">All Employees</option>';
+    const adminReportEmpSelect = document.getElementById('adminReportEmployeeSelect');
+    const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
+    adminReportEmpSelect.innerHTML = '<option value="all">All Employees</option>';
+    receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
     employees.forEach(emp => {
       const opt1 = document.createElement('option');
       opt1.value = emp.id;
@@ -974,79 +1027,70 @@
       const opt2 = document.createElement('option');
       opt2.value = emp.id;
       opt2.textContent = `${emp.name} (ID: ${emp.id})`;
-      reportSelect.appendChild(opt1);
-      receiptsSelect.appendChild(opt2);
+      adminReportEmpSelect.appendChild(opt1);
+      receiptsEmpSelect.appendChild(opt2);
     });
-    // Show/hide employee filter based on mySalesActive
-    const showFilter = !mySalesActive;
-    document.getElementById('reportEmployeeFilter').style.display = showFilter ? 'flex' : 'none';
-    document.getElementById('receiptsEmployeeFilter').style.display = showFilter ? 'flex' : 'none';
+    // For receipts, show employee filter only for admin
+    document.getElementById('receiptsEmployeeFilter').style.display = currentEmployee.isAdmin ? 'flex' : 'none';
   }
 
-  // Populate store dropdowns
   function populateStoreSelects() {
     const stores = Array.from(storeSelect.options).map(opt => ({ value: opt.value, text: opt.text }));
-    const reportStore = document.getElementById('reportStoreSelect');
+    const adminReportStore = document.getElementById('adminReportStoreSelect');
+    const mySalesReportStore = document.getElementById('mySalesReportStoreSelect');
     const receiptsStore = document.getElementById('receiptsStoreSelect');
-    reportStore.innerHTML = '<option value="all">All Stores</option>';
+    adminReportStore.innerHTML = '<option value="all">All Stores</option>';
+    mySalesReportStore.innerHTML = '<option value="all">All Stores</option>';
     receiptsStore.innerHTML = '<option value="all">All Stores</option>';
     stores.forEach(s => {
       const opt1 = document.createElement('option'); opt1.value = s.value; opt1.textContent = s.text;
       const opt2 = document.createElement('option'); opt2.value = s.value; opt2.textContent = s.text;
-      reportStore.appendChild(opt1);
-      receiptsStore.appendChild(opt2);
+      const opt3 = document.createElement('option'); opt3.value = s.value; opt3.textContent = s.text;
+      adminReportStore.appendChild(opt1);
+      mySalesReportStore.appendChild(opt2);
+      receiptsStore.appendChild(opt3);
     });
   }
-
-  // My Sales toggle for admins
-  const mySalesToggle = document.getElementById('mySalesToggle');
-  mySalesToggle.addEventListener('click', () => {
-    if (!currentEmployee || !currentEmployee.isAdmin) return;
-    mySalesActive = !mySalesActive;
-    if (mySalesActive) {
-      mySalesToggle.classList.add('active');
-      mySalesToggle.innerText = '👤 My Sales (Active)';
-    } else {
-      mySalesToggle.classList.remove('active');
-      mySalesToggle.innerText = '👤 My Sales';
-    }
-    // When toggle changes, refresh both report and receipts if open
-    if (document.getElementById('reportModal').style.display === 'flex') {
-      updateReport();
-    }
-    if (document.getElementById('receiptsModal').style.display === 'flex') {
-      updateReceipts();
-    }
-    // Also update the visibility of employee filter dropdowns
-    const showFilter = !mySalesActive;
-    document.getElementById('reportEmployeeFilter').style.display = showFilter ? 'flex' : 'none';
-    document.getElementById('receiptsEmployeeFilter').style.display = showFilter ? 'flex' : 'none';
-  });
 
   // Event listeners for modals
   document.getElementById('reportsButton').addEventListener('click', async () => {
     if (!currentEmployee || !currentEmployee.isAdmin) return;
     await populateEmployeeSelects();
     populateStoreSelects();
-    document.getElementById('reportModal').style.display = 'flex';
-    updateReport();
+    document.getElementById('adminReportModal').style.display = 'flex';
+    updateAdminReport();
   });
-  document.getElementById('closeReportBtn').addEventListener('click', () => {
-    document.getElementById('reportModal').style.display = 'none';
+  document.getElementById('closeAdminReportBtn').addEventListener('click', () => {
+    document.getElementById('adminReportModal').style.display = 'none';
   });
-  document.getElementById('reportStoreSelect').addEventListener('change', updateReport);
-  document.getElementById('reportEmployeeSelect').addEventListener('change', updateReport);
-  document.getElementById('reportDateRangeSelect').addEventListener('change', (e) => {
-    document.getElementById('reportCustomDateRange').style.display = e.target.value === 'custom' ? 'flex' : 'none';
-    updateReport();
+  document.getElementById('adminReportStoreSelect').addEventListener('change', updateAdminReport);
+  document.getElementById('adminReportEmployeeSelect').addEventListener('change', updateAdminReport);
+  document.getElementById('adminReportDateRangeSelect').addEventListener('change', (e) => {
+    document.getElementById('adminReportCustomDateRange').style.display = e.target.value === 'custom' ? 'flex' : 'none';
+    updateAdminReport();
   });
-  document.getElementById('reportFromDate').addEventListener('change', updateReport);
-  document.getElementById('reportToDate').addEventListener('change', updateReport);
+  document.getElementById('adminReportFromDate').addEventListener('change', updateAdminReport);
+  document.getElementById('adminReportToDate').addEventListener('change', updateAdminReport);
+
+  document.getElementById('mySalesButton').addEventListener('click', async () => {
+    if (!currentEmployee) return;
+    populateStoreSelects();
+    document.getElementById('mySalesReportModal').style.display = 'flex';
+    updateMySalesReport();
+  });
+  document.getElementById('closeMySalesReportBtn').addEventListener('click', () => {
+    document.getElementById('mySalesReportModal').style.display = 'none';
+  });
+  document.getElementById('mySalesReportStoreSelect').addEventListener('change', updateMySalesReport);
+  document.getElementById('mySalesReportDateRangeSelect').addEventListener('change', (e) => {
+    document.getElementById('mySalesReportCustomDateRange').style.display = e.target.value === 'custom' ? 'flex' : 'none';
+    updateMySalesReport();
+  });
+  document.getElementById('mySalesReportFromDate').addEventListener('change', updateMySalesReport);
+  document.getElementById('mySalesReportToDate').addEventListener('change', updateMySalesReport);
 
   document.getElementById('receiptsButton').addEventListener('click', async () => {
-    if (currentEmployee && currentEmployee.isAdmin) {
-      await populateEmployeeSelects();
-    }
+    if (currentEmployee && currentEmployee.isAdmin) await populateEmployeeSelects();
     populateStoreSelects();
     document.getElementById('receiptsModal').style.display = 'flex';
     updateReceipts();
@@ -1071,7 +1115,6 @@
     clearCart();
   });
 
-  // Other buttons
   document.getElementById('checkoutBtn').addEventListener('click', checkout);
   document.getElementById('clearCartBtn').addEventListener('click', clearCart);
   document.getElementById('refreshProductsBtn').addEventListener('click', () => fetchProductsFromSheet());
@@ -1246,8 +1289,6 @@
       printReceipt: printReceipt
     };
   })();
-
-  // Initial load – wait for login
 </script>
 </body>
 </html>
