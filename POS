@@ -414,7 +414,7 @@
 <script>
   // ======================= CONFIGURATION =======================
   // 🔁 REPLACE WITH YOUR GOOGLE APPS SCRIPT WEB APP URL
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/REPLACE_ME/exec";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwysRzcWu6xm67lrH1llh-BaxVgJtZlgomBe924ZWJBgVsf7JB7z6Xz6lrbi3fOtyuXow/exec THIS MY GOGLE APP SCRIPT";
 
   // ======================= GLOBAL STATE =======================
   let products = [];
