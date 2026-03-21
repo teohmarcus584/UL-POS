@@ -352,11 +352,12 @@
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw20etehrSIhkT1SIRY7eg7FG3ZD21scAcHzTEi1vqsPPUSZJaqNf3bMULnnp3d_U8/exec"; // Replace with your web app URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxFrf1cLDXZRvy5XCyJFarV-R_-CGBW8pgEykHJOzjftclhnUGT_MTaJJDQ6kEVzQMOAw/exec"; // Replace with your web app URL
   let products = [];
   let cart = [];
   let currentStore = "queens";
   let currentEmployee = null;
+  let employeesList = []; // store fetched employees for dropdowns
 
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -366,7 +367,7 @@
   const categorySelect = document.getElementById('categorySelect');
   const storeSelect = document.getElementById('storeSelect');
 
-  // Modal helpers
+  // Modal helpers (unchanged)
   function showAlertModal(title, message) {
     return new Promise((resolve) => {
       const overlay = document.getElementById('alertModal');
@@ -442,6 +443,8 @@
           if (storeOpt) storeSelect.value = currentEmployee.store;
           currentStore = storeSelect.value;
         }
+        // Load employees for dropdowns
+        await loadEmployees();
         await fetchProductsFromSheet();
         updateCartUI();
         return true;
@@ -455,6 +458,35 @@
       return false;
     } finally {
       hideLoading();
+    }
+  }
+
+  async function loadEmployees() {
+    try {
+      const url = `${APPS_SCRIPT_URL}?action=getEmployees`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success && Array.isArray(result.employees)) {
+        employeesList = result.employees;
+        // Populate employee selects in modals
+        const reportSelect = document.getElementById('reportEmployeeSelect');
+        const receiptsSelect = document.getElementById('receiptsEmployeeSelect');
+        reportSelect.innerHTML = '<option value="all">All Employees</option>';
+        receiptsSelect.innerHTML = '<option value="all">All Employees</option>';
+        employeesList.forEach(emp => {
+          const optionText = `${emp.name} (${emp.id})`;
+          const opt1 = document.createElement('option');
+          opt1.value = emp.id;
+          opt1.textContent = optionText;
+          const opt2 = document.createElement('option');
+          opt2.value = emp.id;
+          opt2.textContent = optionText;
+          reportSelect.appendChild(opt1);
+          receiptsSelect.appendChild(opt2);
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load employees:', err);
     }
   }
 
@@ -614,7 +646,7 @@
     else await showAlertModal('Error', 'Print failed.');
   }
 
-  // Cart functions
+  // Cart functions (unchanged)
   function updateCartUI() {
     if (!cartContainer) return;
     if (cart.length === 0) {
@@ -867,23 +899,6 @@
     fetchReceipts(store, employeeId, from, to, search);
   }
 
-  // Populate employee selects (static for now – you can improve by fetching from sheet)
-  function initEmployeeSelects() {
-    // For demo, add some employee IDs. In production, fetch from Employees sheet.
-    const employees = ['1', '2', '3'];
-    const reportSelect = document.getElementById('reportEmployeeSelect');
-    const receiptsSelect = document.getElementById('receiptsEmployeeSelect');
-    reportSelect.innerHTML = '<option value="all">All Employees</option>';
-    receiptsSelect.innerHTML = '<option value="all">All Employees</option>';
-    employees.forEach(emp => {
-      const opt1 = document.createElement('option'); opt1.value = emp; opt1.textContent = `Employee ${emp}`;
-      const opt2 = document.createElement('option'); opt2.value = emp; opt2.textContent = `Employee ${emp}`;
-      reportSelect.appendChild(opt1);
-      receiptsSelect.appendChild(opt2);
-    });
-  }
-  initEmployeeSelects();
-
   // Populate store dropdowns
   function populateStoreSelects() {
     const stores = Array.from(storeSelect.options).map(opt => ({ value: opt.value, text: opt.text }));
@@ -898,7 +913,6 @@
       receiptsStore.appendChild(opt2);
     });
   }
-  populateStoreSelects();
 
   // Event listeners for modals
   document.getElementById('reportsButton').addEventListener('click', () => {
@@ -1100,6 +1114,7 @@
   })();
 
   // Initial load – wait for login
+  populateStoreSelects();
 </script>
 </body>
 </html>
