@@ -160,6 +160,15 @@
     .stat-value { font-weight: 700; color: #2c7a4b; }
     .breakdown { font-size: 1rem; color: #334155; border-top: 1px dashed #e2e8f0; padding-top: 6px; margin-top: 6px; }
 
+    /* Charts */
+    .chart-container {
+      background: white;
+      border-radius: 20px;
+      padding: 12px;
+      margin-top: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
     /* Receipt list */
     .receipts-list {
       max-height: 60vh; overflow-y: auto;
@@ -220,6 +229,7 @@
     .keypad-btn.clear { background: #ef4444; color: white; }
     .keypad-btn.enter { background: #2c7a4b; color: white; }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -302,7 +312,7 @@
   </div>
 </div>
 
-<!-- Admin Report Modal (with employee filter) -->
+<!-- Admin Report Modal -->
 <div id="adminReportModal" class="modal-overlay">
   <div class="modal-container">
     <div class="modal-title">📊 Sales Report</div>
@@ -337,13 +347,19 @@
       <div class="stat-item">Transactions: <span id="adminReportTransactionCount" class="stat-value">0</span></div>
       <div class="stat-item">Items Sold: <span id="adminReportTotalItems" class="stat-value">0</span></div>
     </div>
+    <div class="chart-container">
+      <canvas id="storeChart" width="400" height="200"></canvas>
+    </div>
+    <div class="chart-container">
+      <canvas id="dayChart" width="400" height="200"></canvas>
+    </div>
     <div class="modal-buttons">
       <button id="closeAdminReportBtn" class="modal-btn modal-btn-secondary">Close</button>
     </div>
   </div>
 </div>
 
-<!-- Non‑admin "My Sales" Report Modal (no employee filter) -->
+<!-- Non‑admin "My Sales" Report Modal -->
 <div id="mySalesReportModal" class="modal-overlay">
   <div class="modal-container">
     <div class="modal-title">📊 My Sales</div>
@@ -389,7 +405,6 @@
         <label>Store</label>
         <select id="receiptsStoreSelect"><option value="all">All Stores</option></select>
       </div>
-      <!-- Employee filter only shown for admin -->
       <div id="receiptsEmployeeFilter" class="filter-group" style="display: none;">
         <label>Employee</label>
         <select id="receiptsEmployeeSelect"><option value="all">All Employees</option></select>
@@ -426,11 +441,13 @@
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZmDrBZrC5SG_2_NNuuGbleqQfyFAM8W47_nbzYER-rdb31wuqm0i02grFmlcfruk1/exec"; // Replace with your web app URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQKzcX7o-4bOqjY2fmoeC1Q7eQ_fiE1YCWv5nHk9mGEj0IRqEQ7Vn73vCaNfeb06iMTg/exec"; // Replace with your web app URL
   let products = [];
   let cart = [];
   let currentStore = "queens";
   let currentEmployee = null;
+  let storeChart = null;
+  let dayChart = null;
 
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -440,7 +457,7 @@
   const categorySelect = document.getElementById('categorySelect');
   const storeSelect = document.getElementById('storeSelect');
 
-  // Modal helpers (unchanged)
+  // Modal helpers
   function showAlertModal(title, message) {
     return new Promise((resolve) => {
       const overlay = document.getElementById('alertModal');
@@ -653,6 +670,64 @@
     }
   }
 
+  async function fetchSalesChartData(store, employeeId, from, to) {
+    try {
+      let url = `${APPS_SCRIPT_URL}?action=getSalesChartData&store=${store}&employeeId=${employeeId}`;
+      if (from) url += `&from=${encodeURIComponent(from)}`;
+      if (to) url += `&to=${encodeURIComponent(to)}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        if (storeChart) storeChart.destroy();
+        if (dayChart) dayChart.destroy();
+
+        const storeCtx = document.getElementById('storeChart').getContext('2d');
+        storeChart = new Chart(storeCtx, {
+          type: 'bar',
+          data: {
+            labels: result.salesByStore.labels,
+            datasets: [{
+              label: 'Sales (RM)',
+              data: result.salesByStore.data,
+              backgroundColor: 'rgba(54, 162, 235, 0.6)',
+              borderColor: 'rgba(54, 162, 235, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } }
+          }
+        });
+
+        const dayCtx = document.getElementById('dayChart').getContext('2d');
+        dayChart = new Chart(dayCtx, {
+          type: 'bar',
+          data: {
+            labels: result.salesByDay.labels,
+            datasets: [{
+              label: 'Sales (RM)',
+              data: result.salesByDay.data,
+              backgroundColor: 'rgba(75, 192, 192, 0.6)',
+              borderColor: 'rgba(75, 192, 192, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } }
+          }
+        });
+      } else {
+        console.warn('Chart data error');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   async function fetchReceipts(store, employeeId, from, to, search) {
     showLoading('Loading receipts...');
     try {
@@ -722,7 +797,7 @@
     else await showAlertModal('Error', 'Print failed.');
   }
 
-  // Cart functions (unchanged)
+  // Cart functions
   function updateCartUI() {
     if (!cartContainer) return;
     if (cart.length === 0) {
@@ -944,11 +1019,12 @@
       if (!from || !to) return;
     }
     fetchSalesReport(store, employeeId, from, to, 'admin');
+    fetchSalesChartData(store, employeeId, from, to);
   }
 
   function updateMySalesReport() {
     const store = document.getElementById('mySalesReportStoreSelect').value;
-    const employeeId = currentEmployee.id; // always the logged-in employee
+    const employeeId = currentEmployee.id;
     const range = document.getElementById('mySalesReportDateRangeSelect').value;
     let from = null, to = null;
     const today = new Date();
@@ -978,10 +1054,8 @@
     const store = document.getElementById('receiptsStoreSelect').value;
     let employeeId = 'all';
     if (currentEmployee && currentEmployee.isAdmin) {
-      // Admin: use selected employee (or 'all')
       employeeId = document.getElementById('receiptsEmployeeSelect').value;
     } else {
-      // Non-admin: see all receipts (no filter)
       employeeId = 'all';
     }
     const range = document.getElementById('receiptsDateRangeSelect').value;
@@ -1010,7 +1084,6 @@
     fetchReceipts(store, employeeId, from, to, search);
   }
 
-  // Populate employee dropdowns (only for admin)
   async function populateEmployeeSelects() {
     if (!currentEmployee || !currentEmployee.isAdmin) return;
     const employees = await fetchEmployees();
@@ -1028,7 +1101,6 @@
       adminReportEmpSelect.appendChild(opt1);
       receiptsEmpSelect.appendChild(opt2);
     });
-    // Show employee filter only for admin
     document.getElementById('receiptsEmployeeFilter').style.display = currentEmployee.isAdmin ? 'flex' : 'none';
   }
 
