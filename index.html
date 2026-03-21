@@ -190,11 +190,13 @@
     .receipt-actions {
       display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px;
     }
-    .reprint-btn {
+    .reprint-btn, .lucky-btn {
       background: #8b5cf6; border: none; color: white; padding: 4px 12px;
       border-radius: 30px; font-size: 0.75rem; cursor: pointer;
     }
+    .lucky-btn { background: #f59e0b; }
     .reprint-btn:hover { background: #7c3aed; }
+    .lucky-btn:hover { background: #d97706; }
 
     .modal-buttons { display: flex; gap: 12px; justify-content: flex-end; margin-top: 16px; }
     .modal-btn { padding: 10px 20px; border-radius: 40px; border: none; font-weight: 500; cursor: pointer; }
@@ -209,6 +211,24 @@
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .loading-text { color: white; margin-top: 12px; }
     @media (max-width: 780px) { .pos-dashboard { flex-direction: column; } .product-grid { max-height: 40vh; } }
+
+    /* Payment method buttons */
+    .payment-buttons {
+      display: flex; gap: 12px; margin: 20px 0;
+    }
+    .payment-btn {
+      flex: 1; padding: 12px; border-radius: 40px; font-weight: 600; border: none; cursor: pointer;
+      background: #e2e8f0; transition: 0.1s;
+    }
+    .payment-btn.selected { background: #2c7a4b; color: white; }
+    .suggestions {
+      display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0;
+    }
+    .suggestion-btn {
+      background: #f1f5f9; border: none; padding: 8px 16px; border-radius: 40px;
+      font-weight: 500; cursor: pointer;
+    }
+    .suggestion-btn:hover { background: #e2e8f0; }
 
     /* PIN login specific */
     .pin-input {
@@ -308,6 +328,45 @@
         <button id="clearCartBtn">🗑️ Clear</button>
         <button id="refreshProductsBtn">🔄 Refresh</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Method Modal -->
+<div id="paymentModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 400px;">
+    <div class="modal-title">💳 Select Payment Method</div>
+    <div class="payment-buttons">
+      <button class="payment-btn" data-method="Cash">💵 Cash</button>
+      <button class="payment-btn" data-method="Card">💳 Card</button>
+      <button class="payment-btn" data-method="QR Pay">📱 QR Pay</button>
+    </div>
+    <div id="cashOptions" style="display: none;">
+      <div class="suggestions" id="suggestionsContainer"></div>
+      <input type="number" id="customCashInput" class="modal-input" placeholder="Enter amount received (RM)" step="0.01">
+      <div class="modal-buttons">
+        <button id="confirmCashBtn" class="modal-btn modal-btn-primary">Confirm</button>
+        <button id="cancelPaymentBtn" class="modal-btn modal-btn-secondary">Cancel</button>
+      </div>
+    </div>
+    <div id="otherPaymentOptions" style="display: none;">
+      <div class="modal-buttons">
+        <button id="confirmOtherBtn" class="modal-btn modal-btn-primary">Confirm</button>
+        <button id="cancelOtherBtn" class="modal-btn modal-btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Lucky Draw Modal -->
+<div id="luckyDrawModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 400px;">
+    <div class="modal-title">🎲 Lucky Draw</div>
+    <p>Transaction ID: <strong id="luckyTxId"></strong></p>
+    <p>Click below to enter the Lucky Draw with this receipt number.</p>
+    <div class="modal-buttons">
+      <button id="openLuckyDrawBtn" class="modal-btn modal-btn-primary">🎁 Go to Lucky Draw</button>
+      <button id="closeLuckyDrawBtn" class="modal-btn modal-btn-secondary">Close</button>
     </div>
   </div>
 </div>
@@ -448,6 +507,7 @@
   let currentEmployee = null;
   let storeChart = null;
   let dayChart = null;
+  let pendingTransaction = null; // store transaction data before payment confirmation
 
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -516,7 +576,7 @@
   function showLoading(msg = 'Loading...') { document.getElementById('loadingMessage').innerText = msg; document.getElementById('loadingOverlay').style.display = 'flex'; }
   function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
 
-  // API calls
+  // API calls (same as before)
   async function verifyEmployeeByPin(pin) {
     showLoading('Verifying...');
     try {
@@ -773,6 +833,7 @@
           </div>
           <div class="receipt-actions">
             <button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>🖨️ Reprint</button>
+            <button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>
           </div>
         </div>
       `;
@@ -782,6 +843,13 @@
       btn.addEventListener('click', (e) => {
         const receipt = JSON.parse(btn.dataset.receipt);
         reprintReceipt(receipt);
+        e.stopPropagation();
+      });
+    });
+    document.querySelectorAll('.lucky-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const txId = btn.dataset.txid;
+        openLuckyDraw(txId);
         e.stopPropagation();
       });
     });
@@ -795,6 +863,11 @@
     const success = await window.printerAPI.printReceipt(receipt);
     if (success) await showAlertModal('Reprint', `Receipt ${receipt.transaction_id} sent to printer.`);
     else await showAlertModal('Error', 'Print failed.');
+  }
+
+  function openLuckyDraw(transactionId) {
+    const luckyUrl = `https://teohmarcus584.github.io/LUCKYDRAW/?receipt=${encodeURIComponent(transactionId)}`;
+    window.open(luckyUrl, '_blank');
   }
 
   // Cart functions
@@ -893,7 +966,8 @@
     updateCartUI();
   }
 
-  async function checkout() {
+  // New checkout with payment buttons
+  async function startCheckout() {
     if (cart.length === 0) {
       await showAlertModal('Empty Cart', 'No items to checkout.');
       return;
@@ -906,21 +980,88 @@
       }
     }
     const totalAmount = cart.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
-    const paymentMethod = await showSelectModal('Payment Method', ['Cash', 'Card', 'QR Pay']);
-    if (!paymentMethod) return;
-    let cashReceived = null;
-    if (paymentMethod === 'Cash') {
-      const cashInput = await showInputModal('Enter cash received (RM)', `Total: RM ${totalAmount.toFixed(2)}`);
-      if (cashInput === null) return;
+    pendingTransaction = { totalAmount };
+    showPaymentModal(totalAmount);
+  }
+
+  function showPaymentModal(totalAmount) {
+    const modal = document.getElementById('paymentModal');
+    const cashOptionsDiv = document.getElementById('cashOptions');
+    const otherOptionsDiv = document.getElementById('otherPaymentOptions');
+    const suggestionsContainer = document.getElementById('suggestionsContainer');
+
+    // Reset display
+    cashOptionsDiv.style.display = 'none';
+    otherOptionsDiv.style.display = 'none';
+    modal.style.display = 'flex';
+
+    // Setup payment buttons
+    const paymentBtns = document.querySelectorAll('.payment-btn');
+    paymentBtns.forEach(btn => {
+      btn.classList.remove('selected');
+      btn.addEventListener('click', () => {
+        paymentBtns.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        const method = btn.dataset.method;
+        if (method === 'Cash') {
+          cashOptionsDiv.style.display = 'block';
+          otherOptionsDiv.style.display = 'none';
+          // Generate suggestions
+          const denominations = [100, 50, 20, 10];
+          const suggestions = denominations.filter(amt => amt >= totalAmount);
+          suggestionsContainer.innerHTML = '';
+          suggestions.forEach(amt => {
+            const btn = document.createElement('button');
+            btn.className = 'suggestion-btn';
+            btn.innerText = `RM ${amt}`;
+            btn.onclick = () => {
+              document.getElementById('customCashInput').value = amt;
+            };
+            suggestionsContainer.appendChild(btn);
+          });
+          document.getElementById('customCashInput').value = '';
+        } else {
+          cashOptionsDiv.style.display = 'none';
+          otherOptionsDiv.style.display = 'block';
+        }
+      });
+    });
+
+    // Confirm handlers
+    const confirmCash = async () => {
+      const cashInput = document.getElementById('customCashInput').value;
+      if (!cashInput) {
+        await showAlertModal('Error', 'Please enter cash amount.');
+        return;
+      }
       const cashVal = parseFloat(cashInput);
       if (isNaN(cashVal) || cashVal < totalAmount) {
         await showAlertModal('Invalid', `Cash amount must be at least RM ${totalAmount.toFixed(2)}`);
         return;
       }
-      cashReceived = cashVal;
       const change = cashVal - totalAmount;
       await showAlertModal('Change', `Change: RM ${change.toFixed(2)}`);
-    }
+      completeCheckout('Cash', cashVal);
+    };
+    const confirmOther = () => {
+      const selected = document.querySelector('.payment-btn.selected');
+      if (!selected) {
+        showAlertModal('Error', 'Please select a payment method.');
+        return;
+      }
+      completeCheckout(selected.dataset.method, null);
+    };
+    document.getElementById('confirmCashBtn').onclick = confirmCash;
+    document.getElementById('confirmOtherBtn').onclick = confirmOther;
+    document.getElementById('cancelPaymentBtn').onclick = () => modal.style.display = 'none';
+    document.getElementById('cancelOtherBtn').onclick = () => modal.style.display = 'none';
+  }
+
+  async function completeCheckout(paymentMethod, cashReceived) {
+    const modal = document.getElementById('paymentModal');
+    modal.style.display = 'none';
+    const totalAmount = pendingTransaction.totalAmount;
+
     const transactionId = `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const saleItems = cart.map(item => ({
       id: item.product.id,
@@ -945,6 +1086,15 @@
         await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
       }
       await showAlertModal('✅ Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
+      // Show Lucky Draw modal
+      document.getElementById('luckyTxId').innerText = transactionId;
+      const luckyModal = document.getElementById('luckyDrawModal');
+      luckyModal.style.display = 'flex';
+      document.getElementById('openLuckyDrawBtn').onclick = () => {
+        openLuckyDraw(transactionId);
+        luckyModal.style.display = 'none';
+      };
+      document.getElementById('closeLuckyDrawBtn').onclick = () => luckyModal.style.display = 'none';
       await fetchProductsFromSheet();
       clearCart();
     } else {
@@ -952,6 +1102,7 @@
     }
   }
 
+  // Other UI functions (unchanged)
   function renderProductGrid() {
     const searchTerm = searchInput.value.toLowerCase();
     const selectedCategory = categorySelect.value;
@@ -992,7 +1143,7 @@
 
   function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){ if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; return m;}); }
 
-  // Report generation functions
+  // Report generation functions (unchanged)
   function updateAdminReport() {
     const store = document.getElementById('adminReportStoreSelect').value;
     const employeeId = document.getElementById('adminReportEmployeeSelect').value;
@@ -1122,7 +1273,7 @@
     });
   }
 
-  // Event listeners for modals
+  // Event listeners
   document.getElementById('reportsButton').addEventListener('click', async () => {
     if (!currentEmployee || !currentEmployee.isAdmin) return;
     await populateEmployeeSelects();
@@ -1178,20 +1329,18 @@
   document.getElementById('receiptsToDate').addEventListener('change', updateReceipts);
   document.getElementById('receiptsSearch').addEventListener('input', updateReceipts);
 
-  // Main store change
   storeSelect.addEventListener('change', async () => {
     currentStore = storeSelect.value;
     await fetchProductsFromSheet();
     clearCart();
   });
 
-  document.getElementById('checkoutBtn').addEventListener('click', checkout);
+  document.getElementById('checkoutBtn').addEventListener('click', startCheckout);
   document.getElementById('clearCartBtn').addEventListener('click', clearCart);
   document.getElementById('refreshProductsBtn').addEventListener('click', () => fetchProductsFromSheet());
   searchInput.addEventListener('input', renderProductGrid);
   categorySelect.addEventListener('change', renderProductGrid);
 
-  // Logout
   document.getElementById('logoutButton').addEventListener('click', () => {
     currentEmployee = null;
     document.getElementById('mainContent').style.display = 'none';
@@ -1202,7 +1351,7 @@
     products = [];
   });
 
-  // PIN keypad handling
+  // PIN keypad
   const pinInput = document.getElementById('pinInput');
   const keypadBtns = document.querySelectorAll('.keypad-btn');
   keypadBtns.forEach(btn => {
@@ -1231,7 +1380,7 @@
     }
   });
 
-  // Printer setup
+  // Printer setup (unchanged)
   (function setupPrinter() {
     let gattServer = null;
     let printerCharacteristic = null;
