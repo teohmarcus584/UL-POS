@@ -380,7 +380,7 @@
   </div>
 </div>
 
-<!-- Receipts Modal (unchanged) -->
+<!-- Receipts Modal -->
 <div id="receiptsModal" class="modal-overlay">
   <div class="modal-container">
     <div class="modal-title">📜 Receipt History</div>
@@ -389,6 +389,7 @@
         <label>Store</label>
         <select id="receiptsStoreSelect"><option value="all">All Stores</option></select>
       </div>
+      <!-- Employee filter only shown for admin -->
       <div id="receiptsEmployeeFilter" class="filter-group" style="display: none;">
         <label>Employee</label>
         <select id="receiptsEmployeeSelect"><option value="all">All Employees</option></select>
@@ -976,15 +977,12 @@
   function updateReceipts() {
     const store = document.getElementById('receiptsStoreSelect').value;
     let employeeId = 'all';
-    if (currentEmployee) {
-      if (currentEmployee.isAdmin) {
-        // admin: use the selected employee from dropdown if visible
-        const selectedEmp = document.getElementById('receiptsEmployeeSelect').value;
-        employeeId = selectedEmp === 'all' ? 'all' : selectedEmp;
-      } else {
-        // non-admin: always their own
-        employeeId = currentEmployee.id;
-      }
+    if (currentEmployee && currentEmployee.isAdmin) {
+      // Admin: use selected employee (or 'all')
+      employeeId = document.getElementById('receiptsEmployeeSelect').value;
+    } else {
+      // Non-admin: see all receipts (no filter)
+      employeeId = 'all';
     }
     const range = document.getElementById('receiptsDateRangeSelect').value;
     const search = document.getElementById('receiptsSearch').value;
@@ -1030,7 +1028,7 @@
       adminReportEmpSelect.appendChild(opt1);
       receiptsEmpSelect.appendChild(opt2);
     });
-    // For receipts, show employee filter only for admin
+    // Show employee filter only for admin
     document.getElementById('receiptsEmployeeFilter').style.display = currentEmployee.isAdmin ? 'flex' : 'none';
   }
 
