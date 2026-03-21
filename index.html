@@ -33,7 +33,7 @@
       align-items: center;
       flex-wrap: wrap;
     }
-    #reportsButton, #receiptsButton {
+    #reportsButton, #receiptsButton, #mySalesToggle {
       background: #3b82f6;
       border: none;
       border-radius: 40px;
@@ -43,9 +43,17 @@
       color: white;
       cursor: pointer;
     }
+    #mySalesToggle {
+      background: #8b5cf6;
+      transition: 0.1s;
+    }
+    #mySalesToggle.active {
+      background: #2c7a4b;
+    }
     #receiptsButton { background: #8b5cf6; }
     #reportsButton:hover { background: #2563eb; }
     #receiptsButton:hover { background: #7c3aed; }
+    #mySalesToggle:hover { opacity: 0.9; }
     #connectPrinterButton {
       background: #1e293b;
       border: none;
@@ -249,7 +257,10 @@
   <div class="pos-header">
     <h1>🛍️ POS System</h1>
     <div class="header-buttons">
-      <button id="reportsButton">📊 Reports</button>
+      <div id="reportsButtonContainer" style="display: none;">
+        <button id="reportsButton">📊 Reports</button>
+        <button id="mySalesToggle">👤 My Sales</button>
+      </div>
       <button id="receiptsButton">📜 Receipts</button>
       <button id="connectPrinterButton">🖨️ Connect Printer</button>
       <div id="printerStatus">⚪ Not connected</div>
@@ -304,7 +315,8 @@
         <label>Store</label>
         <select id="reportStoreSelect"><option value="all">All Stores</option></select>
       </div>
-      <div class="filter-group">
+      <!-- Employee filter hidden for non-admins or when "My Sales" is active -->
+      <div id="reportEmployeeFilter" class="filter-group" style="display: none;">
         <label>Employee</label>
         <select id="reportEmployeeSelect"><option value="all">All Employees</option></select>
       </div>
@@ -345,7 +357,8 @@
         <label>Store</label>
         <select id="receiptsStoreSelect"><option value="all">All Stores</option></select>
       </div>
-      <div class="filter-group">
+      <!-- Employee filter hidden for non-admins or when "My Sales" is active -->
+      <div id="receiptsEmployeeFilter" class="filter-group" style="display: none;">
         <label>Employee</label>
         <select id="receiptsEmployeeSelect"><option value="all">All Employees</option></select>
       </div>
@@ -381,11 +394,12 @@
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx9RAvWLh0Flte7TP2zND-nya1aJLiQGoN41i_26NvoSh7gJYaM9OO4aBFGla2i8me6/exec"; // Replace with your web app URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZmDrBZrC5SG_2_NNuuGbleqQfyFAM8W47_nbzYER-rdb31wuqm0i02grFmlcfruk1/exec"; // Replace with your web app URL
   let products = [];
   let cart = [];
   let currentStore = "queens";
   let currentEmployee = null;
+  let mySalesActive = false; // only used if admin
 
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -470,6 +484,21 @@
           const storeOpt = Array.from(storeSelect.options).find(opt => opt.value === currentEmployee.store);
           if (storeOpt) storeSelect.value = currentEmployee.store;
           currentStore = storeSelect.value;
+        }
+        // Set up admin UI
+        const isAdmin = currentEmployee.isAdmin;
+        const reportsContainer = document.getElementById('reportsButtonContainer');
+        if (isAdmin) {
+          reportsContainer.style.display = 'flex';
+          // mySalesToggle initial state
+          mySalesActive = false;
+          const toggleBtn = document.getElementById('mySalesToggle');
+          toggleBtn.classList.remove('active');
+          toggleBtn.innerText = '👤 My Sales';
+        } else {
+          reportsContainer.style.display = 'none';
+          // For non-admins, they always see only their own sales in receipts and reports (if they could see reports)
+          // But since reports button is hidden, they only have receipts – we'll filter by employee always.
         }
         await fetchProductsFromSheet();
         updateCartUI();
@@ -858,7 +887,13 @@
   // Report auto-generation
   function updateReport() {
     const store = document.getElementById('reportStoreSelect').value;
-    const employeeId = document.getElementById('reportEmployeeSelect').value;
+    // Determine employee filter:
+    // If admin and mySalesActive is true, use currentEmployee.id; otherwise use 'all'
+    // If not admin, this function is never called because button hidden.
+    let employeeId = 'all';
+    if (currentEmployee && currentEmployee.isAdmin && mySalesActive) {
+      employeeId = currentEmployee.id;
+    }
     const range = document.getElementById('reportDateRangeSelect').value;
     let from = null, to = null;
     const today = new Date();
@@ -886,7 +921,17 @@
 
   function updateReceipts() {
     const store = document.getElementById('receiptsStoreSelect').value;
-    const employeeId = document.getElementById('receiptsEmployeeSelect').value;
+    // Determine employee filter:
+    // For admin: if mySalesActive is true, use currentEmployee.id; else use 'all'
+    // For non-admin: always use currentEmployee.id
+    let employeeId = 'all';
+    if (currentEmployee) {
+      if (currentEmployee.isAdmin && mySalesActive) {
+        employeeId = currentEmployee.id;
+      } else if (!currentEmployee.isAdmin) {
+        employeeId = currentEmployee.id;
+      }
+    }
     const range = document.getElementById('receiptsDateRangeSelect').value;
     const search = document.getElementById('receiptsSearch').value;
     let from = null, to = null;
@@ -913,11 +958,13 @@
     fetchReceipts(store, employeeId, from, to, search);
   }
 
-  // Populate employee dropdowns from the sheet
+  // Populate employee dropdowns (only needed for admin view)
   async function populateEmployeeSelects() {
+    if (!currentEmployee || !currentEmployee.isAdmin) return;
     const employees = await fetchEmployees();
     const reportSelect = document.getElementById('reportEmployeeSelect');
     const receiptsSelect = document.getElementById('receiptsEmployeeSelect');
+    // Clear and repopulate
     reportSelect.innerHTML = '<option value="all">All Employees</option>';
     receiptsSelect.innerHTML = '<option value="all">All Employees</option>';
     employees.forEach(emp => {
@@ -930,6 +977,10 @@
       reportSelect.appendChild(opt1);
       receiptsSelect.appendChild(opt2);
     });
+    // Show/hide employee filter based on mySalesActive
+    const showFilter = !mySalesActive;
+    document.getElementById('reportEmployeeFilter').style.display = showFilter ? 'flex' : 'none';
+    document.getElementById('receiptsEmployeeFilter').style.display = showFilter ? 'flex' : 'none';
   }
 
   // Populate store dropdowns
@@ -947,8 +998,34 @@
     });
   }
 
+  // My Sales toggle for admins
+  const mySalesToggle = document.getElementById('mySalesToggle');
+  mySalesToggle.addEventListener('click', () => {
+    if (!currentEmployee || !currentEmployee.isAdmin) return;
+    mySalesActive = !mySalesActive;
+    if (mySalesActive) {
+      mySalesToggle.classList.add('active');
+      mySalesToggle.innerText = '👤 My Sales (Active)';
+    } else {
+      mySalesToggle.classList.remove('active');
+      mySalesToggle.innerText = '👤 My Sales';
+    }
+    // When toggle changes, refresh both report and receipts if open
+    if (document.getElementById('reportModal').style.display === 'flex') {
+      updateReport();
+    }
+    if (document.getElementById('receiptsModal').style.display === 'flex') {
+      updateReceipts();
+    }
+    // Also update the visibility of employee filter dropdowns
+    const showFilter = !mySalesActive;
+    document.getElementById('reportEmployeeFilter').style.display = showFilter ? 'flex' : 'none';
+    document.getElementById('receiptsEmployeeFilter').style.display = showFilter ? 'flex' : 'none';
+  });
+
   // Event listeners for modals
   document.getElementById('reportsButton').addEventListener('click', async () => {
+    if (!currentEmployee || !currentEmployee.isAdmin) return;
     await populateEmployeeSelects();
     populateStoreSelects();
     document.getElementById('reportModal').style.display = 'flex';
@@ -967,7 +1044,9 @@
   document.getElementById('reportToDate').addEventListener('change', updateReport);
 
   document.getElementById('receiptsButton').addEventListener('click', async () => {
-    await populateEmployeeSelects();
+    if (currentEmployee && currentEmployee.isAdmin) {
+      await populateEmployeeSelects();
+    }
     populateStoreSelects();
     document.getElementById('receiptsModal').style.display = 'flex';
     updateReceipts();
