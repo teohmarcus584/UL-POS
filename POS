@@ -4,7 +4,7 @@
   <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
-  <title>POS System | Loyverse Style</title>
+  <title>POS System | Category Filter</title>
   <style>
     * {
       box-sizing: border-box;
@@ -83,19 +83,28 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.03);
       border: 1px solid #e2e8f0;
     }
-    .search-bar {
-      width: 100%;
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    #categorySelect {
+      flex: 1;
       padding: 12px 16px;
       border-radius: 60px;
       border: 1px solid #cbd5e1;
-      margin-bottom: 20px;
+      background: white;
       font-size: 0.9rem;
       outline: none;
-      transition: 0.2s;
     }
-    .search-bar:focus {
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+    .search-bar {
+      flex: 2;
+      padding: 12px 16px;
+      border-radius: 60px;
+      border: 1px solid #cbd5e1;
+      font-size: 0.9rem;
+      outline: none;
     }
     .product-grid {
       display: grid;
@@ -382,7 +391,12 @@
 
 <div class="pos-dashboard">
   <div class="products-panel">
-    <input type="text" id="searchInput" class="search-bar" placeholder="🔍 Search product...">
+    <div class="filter-bar">
+      <select id="categorySelect">
+        <option value="all">📂 All Categories</option>
+      </select>
+      <input type="text" id="searchInput" class="search-bar" placeholder="🔍 Search product...">
+    </div>
     <div id="productGrid" class="product-grid">
       <div style="text-align:center; padding: 30px;">Loading products...</div>
     </div>
@@ -414,10 +428,10 @@
 <script>
   // ======================= CONFIGURATION =======================
   // 🔁 REPLACE WITH YOUR GOOGLE APPS SCRIPT WEB APP URL
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwysRzcWu6xm67lrH1llh-BaxVgJtZlgomBe924ZWJBgVsf7JB7z6Xz6lrbi3fOtyuXow/exec THIS MY GOGLE APP SCRIPT";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyGRG7WZspgzXIRliiLJ58jyJuTAnPNOrE-tr00T5esMTq8YIZ710PAjDoThwSwyBys_A/exec";
 
   // ======================= GLOBAL STATE =======================
-  let products = [];
+  let products = [];          // { id, name, price, stock, category }
   let cart = [];
   let lastTransaction = null;
 
@@ -426,8 +440,9 @@
   const subtotalSpan = document.getElementById('subtotal');
   const totalSpan = document.getElementById('totalAmount');
   const searchInput = document.getElementById('searchInput');
+  const categorySelect = document.getElementById('categorySelect');
 
-  // ======================= MODAL HELPERS =======================
+  // ======================= MODAL HELPERS (unchanged) =======================
   function showAlertModal(title, message) {
     return new Promise((resolve) => {
       const overlay = document.getElementById('alertModal');
@@ -494,7 +509,22 @@
       const response = await fetch(url);
       const result = await response.json();
       if (result.success && Array.isArray(result.products)) {
-        products = result.products.map(p => ({ id: p.id, name: p.name, price: parseFloat(p.price), stock: parseInt(p.stock) || 0 }));
+        products = result.products.map(p => ({
+          id: p.id,
+          name: p.name,
+          price: parseFloat(p.price),
+          stock: parseInt(p.stock) || 0,
+          category: p.category || "Uncategorized"
+        }));
+        // Populate category dropdown
+        const categories = [...new Set(products.map(p => p.category))].sort();
+        categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
+        categories.forEach(cat => {
+          const option = document.createElement('option');
+          option.value = cat;
+          option.textContent = cat;
+          categorySelect.appendChild(option);
+        });
         renderProductGrid();
         return true;
       } else {
@@ -532,7 +562,7 @@
     }
   }
 
-  // ======================= CART LOGIC =======================
+  // ======================= CART LOGIC (unchanged) =======================
   function updateCartUI() {
     if (!cartContainer) return;
     if (cart.length === 0) {
@@ -629,7 +659,7 @@
     updateCartUI();
   }
 
-  // ======================= CHECKOUT & PAYMENT =======================
+  // ======================= CHECKOUT & PAYMENT (unchanged) =======================
   async function checkout() {
     if (cart.length === 0) {
       await showAlertModal('Empty Cart', 'No items to checkout.');
@@ -690,11 +720,21 @@
     }
   }
 
-  // ======================= RENDER PRODUCT GRID =======================
+  // ======================= RENDER PRODUCT GRID WITH CATEGORY FILTER =======================
   function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){ if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; return m;}); }
+  
   function renderProductGrid() {
     const searchTerm = searchInput.value.toLowerCase();
-    const filtered = products.filter(p => p.name.toLowerCase().includes(searchTerm));
+    const selectedCategory = categorySelect.value;
+    
+    let filtered = products;
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(p => p.category === selectedCategory);
+    }
+    if (searchTerm) {
+      filtered = filtered.filter(p => p.name.toLowerCase().includes(searchTerm));
+    }
+    
     if (filtered.length === 0) {
       productGridEl.innerHTML = '<div style="text-align:center; padding:20px;">No products found</div>';
       return;
@@ -723,7 +763,7 @@
     });
   }
 
-  // ======================= REPRINT LAST TICKET =======================
+  // ======================= REPRINT LAST TICKET (unchanged) =======================
   async function reprintLast() {
     if (!lastTransaction) {
       await showAlertModal('No data', 'No previous sale to reprint.');
@@ -738,7 +778,7 @@
     else await showAlertModal('Error', 'Print failed.');
   }
 
-  // ======================= BLUETOOTH PRINTER INTEGRATION =======================
+  // ======================= BLUETOOTH PRINTER INTEGRATION (unchanged) =======================
   (function setupPrinter() {
     let gattServer = null;
     let printerCharacteristic = null;
@@ -872,6 +912,7 @@
   document.getElementById('refreshProductsBtn').addEventListener('click', fetchProductsFromSheet);
   document.getElementById('reprintLastBtn').addEventListener('click', reprintLast);
   searchInput.addEventListener('input', () => renderProductGrid());
+  categorySelect.addEventListener('change', () => renderProductGrid());
 
   (async () => {
     await fetchProductsFromSheet();
