@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
-  <title>POS System | PIN Login + Lucky Spin</title>
+  <title>POS System | PIN Login</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -136,30 +136,6 @@
     #refreshProductsBtn { background: #eef2ff; color: #1e40af; }
     button:active { transform: scale(0.97); }
 
-    /* Payment buttons */
-    .payment-buttons {
-      display: flex;
-      gap: 12px;
-      margin-top: 12px;
-      justify-content: center;
-    }
-    .payment-btn {
-      flex: 1;
-      padding: 14px;
-      border-radius: 60px;
-      font-size: 1rem;
-      font-weight: 600;
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s;
-      background: #f1f5f9;
-      color: #334155;
-    }
-    .payment-btn:hover {
-      background: #e2e8f0;
-      transform: scale(0.98);
-    }
-
     /* Modal styles */
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -252,59 +228,6 @@
     .keypad-btn:active { transform: scale(0.95); background: #e2e8f0; }
     .keypad-btn.clear { background: #ef4444; color: white; }
     .keypad-btn.enter { background: #2c7a4b; color: white; }
-
-    /* Lucky Spin styles */
-    .wheel-wrapper {
-      position: relative;
-      display: flex;
-      justify-content: center;
-      margin: 20px 0;
-    }
-    canvas#wheelCanvas {
-      width: 100%;
-      max-width: 400px;
-      height: auto;
-      aspect-ratio: 1/1;
-      background: white;
-      border-radius: 50%;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    #spinButton {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: #0a7b3c;
-      color: white;
-      border: none;
-      border-radius: 50%;
-      width: 80px;
-      height: 80px;
-      font-size: 1.2rem;
-      font-weight: bold;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-      cursor: pointer;
-      z-index: 10;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 2px solid white;
-    }
-    #spinButton:hover {
-      background: #0c8f47;
-      transform: translate(-50%, -50%) scale(1.05);
-    }
-    #spinButton:disabled {
-      opacity: 0.5;
-      pointer-events: none;
-    }
-    .spin-result {
-      text-align: center;
-      font-size: 1.2rem;
-      margin-top: 16px;
-      font-weight: bold;
-      color: #0a7b3c;
-    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -389,30 +312,32 @@
   </div>
 </div>
 
-<!-- Lucky Spin Modal -->
-<div id="luckySpinModal" class="modal-overlay">
-  <div class="modal-container" style="max-width: 500px;">
-    <div class="modal-title">🎲 Lucky Spin</div>
-    <div class="wheel-wrapper">
-      <canvas id="wheelCanvas" width="500" height="500"></canvas>
-      <button id="spinButton">SPIN</button>
-    </div>
-    <div id="spinResult" class="spin-result"></div>
-    <div class="modal-buttons">
-      <button id="closeSpinModal" class="modal-btn modal-btn-secondary">Close</button>
-    </div>
-  </div>
-</div>
-
 <!-- Admin Report Modal -->
 <div id="adminReportModal" class="modal-overlay">
   <div class="modal-container">
     <div class="modal-title">📊 Sales Report</div>
     <div class="report-filters">
-      <div class="filter-group"><label>Store</label><select id="adminReportStoreSelect"><option value="all">All Stores</option></select></div>
-      <div class="filter-group"><label>Employee</label><select id="adminReportEmployeeSelect"><option value="all">All Employees</option></select></div>
-      <div class="filter-group"><label>Date Range</label><select id="adminReportDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div>
-      <div id="adminReportCustomDateRange" style="display: none;" class="date-range"><input type="date" id="adminReportFromDate"><input type="date" id="adminReportToDate"></div>
+      <div class="filter-group">
+        <label>Store</label>
+        <select id="adminReportStoreSelect"><option value="all">All Stores</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Employee</label>
+        <select id="adminReportEmployeeSelect"><option value="all">All Employees</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Date Range</label>
+        <select id="adminReportDateRangeSelect">
+          <option value="today">Today</option>
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div id="adminReportCustomDateRange" style="display: none;" class="date-range">
+        <input type="date" id="adminReportFromDate">
+        <input type="date" id="adminReportToDate">
+      </div>
     </div>
     <div class="report-stats">
       <div class="stat-item">Total Sales: <span id="adminReportTotalSales" class="stat-value">RM 0.00</span></div>
@@ -422,20 +347,40 @@
       <div class="stat-item">Transactions: <span id="adminReportTransactionCount" class="stat-value">0</span></div>
       <div class="stat-item">Items Sold: <span id="adminReportTotalItems" class="stat-value">0</span></div>
     </div>
-    <div class="chart-container"><canvas id="storeChart" width="400" height="200"></canvas></div>
-    <div class="chart-container"><canvas id="dayChart" width="400" height="200"></canvas></div>
-    <div class="modal-buttons"><button id="closeAdminReportBtn" class="modal-btn modal-btn-secondary">Close</button></div>
+    <div class="chart-container">
+      <canvas id="storeChart" width="400" height="200"></canvas>
+    </div>
+    <div class="chart-container">
+      <canvas id="dayChart" width="400" height="200"></canvas>
+    </div>
+    <div class="modal-buttons">
+      <button id="closeAdminReportBtn" class="modal-btn modal-btn-secondary">Close</button>
+    </div>
   </div>
 </div>
 
-<!-- My Sales Report Modal -->
+<!-- Non‑admin "My Sales" Report Modal -->
 <div id="mySalesReportModal" class="modal-overlay">
   <div class="modal-container">
     <div class="modal-title">📊 My Sales</div>
     <div class="report-filters">
-      <div class="filter-group"><label>Store</label><select id="mySalesReportStoreSelect"><option value="all">All Stores</option></select></div>
-      <div class="filter-group"><label>Date Range</label><select id="mySalesReportDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div>
-      <div id="mySalesReportCustomDateRange" style="display: none;" class="date-range"><input type="date" id="mySalesReportFromDate"><input type="date" id="mySalesReportToDate"></div>
+      <div class="filter-group">
+        <label>Store</label>
+        <select id="mySalesReportStoreSelect"><option value="all">All Stores</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Date Range</label>
+        <select id="mySalesReportDateRangeSelect">
+          <option value="today">Today</option>
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div id="mySalesReportCustomDateRange" style="display: none;" class="date-range">
+        <input type="date" id="mySalesReportFromDate">
+        <input type="date" id="mySalesReportToDate">
+      </div>
     </div>
     <div class="report-stats">
       <div class="stat-item">Total Sales: <span id="mySalesReportTotalSales" class="stat-value">RM 0.00</span></div>
@@ -445,7 +390,9 @@
       <div class="stat-item">Transactions: <span id="mySalesReportTransactionCount" class="stat-value">0</span></div>
       <div class="stat-item">Items Sold: <span id="mySalesReportTotalItems" class="stat-value">0</span></div>
     </div>
-    <div class="modal-buttons"><button id="closeMySalesReportBtn" class="modal-btn modal-btn-secondary">Close</button></div>
+    <div class="modal-buttons">
+      <button id="closeMySalesReportBtn" class="modal-btn modal-btn-secondary">Close</button>
+    </div>
   </div>
 </div>
 
@@ -454,14 +401,36 @@
   <div class="modal-container">
     <div class="modal-title">📜 Receipt History</div>
     <div class="receipts-filters">
-      <div class="filter-group"><label>Store</label><select id="receiptsStoreSelect"><option value="all">All Stores</option></select></div>
-      <div id="receiptsEmployeeFilter" class="filter-group" style="display: none;"><label>Employee</label><select id="receiptsEmployeeSelect"><option value="all">All Employees</option></select></div>
-      <div class="filter-group"><label>Date Range</label><select id="receiptsDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div>
-      <div id="receiptsCustomDateRange" style="display: none;" class="date-range"><input type="date" id="receiptsFromDate"><input type="date" id="receiptsToDate"></div>
-      <div class="filter-group" style="flex: 2;"><label>Search</label><input type="text" id="receiptsSearch" placeholder="Receipt # or product"></div>
+      <div class="filter-group">
+        <label>Store</label>
+        <select id="receiptsStoreSelect"><option value="all">All Stores</option></select>
+      </div>
+      <div id="receiptsEmployeeFilter" class="filter-group" style="display: none;">
+        <label>Employee</label>
+        <select id="receiptsEmployeeSelect"><option value="all">All Employees</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Date Range</label>
+        <select id="receiptsDateRangeSelect">
+          <option value="today">Today</option>
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div id="receiptsCustomDateRange" style="display: none;" class="date-range">
+        <input type="date" id="receiptsFromDate">
+        <input type="date" id="receiptsToDate">
+      </div>
+      <div class="filter-group" style="flex: 2;">
+        <label>Search (Receipt # or Product)</label>
+        <input type="text" id="receiptsSearch" placeholder="Type to filter...">
+      </div>
     </div>
     <div id="receiptsList" class="receipts-list">Loading receipts...</div>
-    <div class="modal-buttons"><button id="closeReceiptsBtn" class="modal-btn modal-btn-secondary">Close</button></div>
+    <div class="modal-buttons">
+      <button id="closeReceiptsBtn" class="modal-btn modal-btn-secondary">Close</button>
+    </div>
   </div>
 </div>
 
@@ -472,7 +441,7 @@
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyFSkNdiqYn-xfc_2PjLunUsGBvn5Eoqai91dXCqi4168l-I4dL7laG_LyWck_RWYkb6A/exec"; // Replace with your web app URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHX7gTdZnI-sZIpNbvaDOg5M5spTkkLi5OAS5VeplzNpqdYTLY6sozdeH8OEuOJ4HG7Q/exec"; // Replace with your web app URL
   let products = [];
   let cart = [];
   let currentStore = "queens";
@@ -480,284 +449,15 @@
   let storeChart = null;
   let dayChart = null;
 
-  // Lucky Spin variables
-  let currentTransactionId = null;
-  let spinning = false;
-  let currentRotation = 0;
-  let animationFrame = null;
-  let spinStartTime = null;
-  const spinDuration = 12000;
-  let spinStartRotation = 0;
-  let spinTargetRotation = 0;
-  const TWO_PI = 2 * Math.PI;
+  const productGridEl = document.getElementById('productGrid');
+  const cartContainer = document.getElementById('cartItemsContainer');
+  const subtotalSpan = document.getElementById('subtotal');
+  const totalSpan = document.getElementById('totalAmount');
+  const searchInput = document.getElementById('searchInput');
+  const categorySelect = document.getElementById('categorySelect');
+  const storeSelect = document.getElementById('storeSelect');
 
-  // Prize data
-  let prizes = [
-    { label: "CAR AROMATIC RM 38", weight: 5 },
-    { label: "15ML TRAVEL PERFUME RM 75", weight: 3 },
-    { label: "CAR AROMATIC RM 38", weight: 5 },
-    { label: "LA PREVE 100ML RM 280", weight: 0 },
-    { label: "CAR AROMATIC RM 38", weight: 5 },
-    { label: "100ML SIGNATURE EDP RM 180", weight: 0 },
-    { label: "CAR AROMATIC RM 38", weight: 5 },
-    { label: "200ML REED DIFFUSER RM 89", weight: 0 },
-    { label: "CAR AROMATIC RM 38", weight: 1 },
-    { label: "500ML BODY WASH RM 67", weight: 0 },
-    { label: "15ML TRAVEL PERFUME RM 75", weight: 3 },
-    { label: "300ML LOTION RM 109", weight: 1 },
-    { label: "15ML TRAVEL PERFUME RM 75", weight: 3 },
-    { label: "100ML ROOM SPRAY RM 89", weight: 0 },
-    { label: "NO WIN", weight: 0 },
-    { label: "100ML PILLOW MIST RM 75", weight: 1 },
-    { label: "NO WIN", weight: 0 },
-    { label: "HUMIDIFIER MACHINE RM 249", weight: 0 },
-  ];
-
-  const colorPalette = [
-    "#FF6F61", "#6B5B95", "#88B04B", "#FFA07A", "#92A8D1",
-    "#F7CAC9", "#955251", "#B565A7", "#009B77", "#DD4124"
-  ];
-
-  const wheelCanvas = document.getElementById('wheelCanvas');
-  const spinBtn = document.getElementById('spinButton');
-  const spinResultDiv = document.getElementById('spinResult');
-
-  // Helper functions for wheel
-  function normalizeAngle(angle) {
-    return ((angle % TWO_PI) + TWO_PI) % TWO_PI;
-  }
-
-  function drawWheel() {
-    if (!wheelCanvas) return;
-    const ctx = wheelCanvas.getContext('2d');
-    const centerX = wheelCanvas.width / 2;
-    const centerY = wheelCanvas.height / 2;
-    const radius = Math.min(centerX, centerY) - 15;
-
-    ctx.clearRect(0, 0, wheelCanvas.width, wheelCanvas.height);
-
-    if (prizes.length === 0) {
-      ctx.font = 'bold 24px Arial';
-      ctx.fillStyle = '#999';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('Add prizes', centerX, centerY);
-      return;
-    }
-
-    const segmentAngle = TWO_PI / prizes.length;
-    let startAngle = currentRotation;
-
-    for (let i = 0; i < prizes.length; i++) {
-      const prize = prizes[i];
-      const endAngle = startAngle + segmentAngle;
-
-      ctx.beginPath();
-      ctx.moveTo(centerX, centerY);
-      ctx.arc(centerX, centerY, radius, startAngle, endAngle);
-      ctx.closePath();
-      ctx.fillStyle = colorPalette[i % colorPalette.length];
-      ctx.fill();
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      ctx.save();
-      ctx.translate(centerX, centerY);
-      ctx.rotate(startAngle + segmentAngle / 2);
-      const textRadius = radius * 0.55;
-      const chordLength = 2 * textRadius * Math.sin(segmentAngle / 2) * 0.95;
-      let fontSize = 26;
-      const minFontSize = 18;
-      const text = prize.label;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
-      while (fontSize > minFontSize && ctx.measureText(text).width > chordLength) {
-        fontSize -= 1;
-        ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
-      }
-      ctx.fillStyle = '#000';
-      ctx.shadowColor = 'rgba(255,255,255,0.8)';
-      ctx.shadowBlur = 5;
-      ctx.fillText(text, textRadius, 0);
-      ctx.restore();
-
-      startAngle = endAngle;
-    }
-
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, 30, 0, TWO_PI);
-    ctx.fillStyle = '#333';
-    ctx.shadowBlur = 0;
-    ctx.fill();
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(centerX - 20, 15);
-    ctx.lineTo(centerX, 45);
-    ctx.lineTo(centerX + 20, 15);
-    ctx.fillStyle = '#f00';
-    ctx.fill();
-  }
-
-  async function spinWheel() {
-    if (spinning) return;
-    if (!currentTransactionId) {
-      await showAlertModal('Error', 'No transaction ID found. Please try again.');
-      return;
-    }
-
-    showLoading('Checking eligibility...');
-    try {
-      const eligibilityUrl = `${APPS_SCRIPT_URL}?action=checkLuckyDrawEligibility&transactionId=${encodeURIComponent(currentTransactionId)}`;
-      const eligibilityRes = await fetch(eligibilityUrl);
-      const eligibility = await eligibilityRes.json();
-      if (!eligibility.eligible) {
-        await showAlertModal('Already Spun', `This transaction (${currentTransactionId}) has already been used for a lucky spin.`);
-        return;
-      }
-    } catch (err) {
-      console.error(err);
-      await showAlertModal('Error', 'Could not check eligibility.');
-      return;
-    } finally {
-      hideLoading();
-    }
-
-    playSpinSound();
-
-    const totalWeight = prizes.reduce((sum, p) => sum + p.weight, 0);
-    if (totalWeight === 0) {
-      spinResultDiv.innerText = 'No prizes available.';
-      return;
-    }
-
-    const rand = Math.random() * totalWeight;
-    let cumulative = 0;
-    let selectedIndex = 0;
-    for (let i = 0; i < prizes.length; i++) {
-      cumulative += prizes[i].weight;
-      if (rand < cumulative) {
-        selectedIndex = i;
-        break;
-      }
-    }
-
-    const centerX = wheelCanvas.width / 2;
-    const centerY = wheelCanvas.height / 2;
-    const pointerTip = { x: centerX, y: 45 };
-    const pointerAngle = Math.atan2(pointerTip.y - centerY, pointerTip.x - centerX);
-    const normalizedPointerAngle = normalizeAngle(pointerAngle);
-
-    const segmentAngle = TWO_PI / prizes.length;
-    const randomOffset = Math.random() * segmentAngle;
-    const targetAngleInWheel = selectedIndex * segmentAngle + randomOffset;
-    let targetBaseRotation = normalizeAngle(normalizedPointerAngle - targetAngleInWheel);
-
-    const extraFullTurns = 12 + Math.floor(Math.random() * 9);
-    const extraAngle = extraFullTurns * TWO_PI;
-    spinTargetRotation = targetBaseRotation + extraAngle;
-
-    spinStartRotation = currentRotation;
-    spinStartTime = performance.now();
-    spinning = true;
-    spinBtn.disabled = true;
-
-    if (animationFrame) cancelAnimationFrame(animationFrame);
-
-    function animateSpin(now) {
-      const elapsed = now - spinStartTime;
-      let progress = Math.min(elapsed / spinDuration, 1);
-      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
-      const rawRotation = spinStartRotation + (spinTargetRotation - spinStartRotation) * easeOutQuart;
-      currentRotation = normalizeAngle(rawRotation);
-      drawWheel();
-
-      if (progress < 1) {
-        animationFrame = requestAnimationFrame(animateSpin);
-      } else {
-        const wheelAngleAtPointer = normalizeAngle(normalizedPointerAngle - currentRotation);
-        const segmentIndex = Math.floor(wheelAngleAtPointer / segmentAngle);
-        const actualIndex = Math.min(segmentIndex, prizes.length - 1);
-        const wonPrize = prizes[actualIndex];
-
-        spinning = false;
-        spinBtn.disabled = false;
-        spinResultDiv.innerText = `🎉 You won: ${wonPrize.label}`;
-
-        showLoading('Saving prize...');
-        try {
-          const saveUrl = APPS_SCRIPT_URL;
-          const formData = new URLSearchParams();
-          formData.append("action", "saveLuckyDrawResult");
-          formData.append("transactionId", currentTransactionId);
-          formData.append("prize", wonPrize.label);
-          formData.append("employeeId", currentEmployee.id);
-          formData.append("store", currentStore);
-
-          const response = await fetch(saveUrl, { method: "POST", body: formData });
-          const result = await response.json();
-          if (result.success) {
-            if (window.printerAPI && window.printerAPI.isConnected && window.printerAPI.printLuckyTicket) {
-              await window.printerAPI.printLuckyTicket(wonPrize.label, currentTransactionId);
-            }
-          } else {
-            console.warn("Failed to save spin result");
-          }
-        } catch (err) {
-          console.error(err);
-        } finally {
-          hideLoading();
-        }
-
-        animationFrame = null;
-      }
-    }
-
-    animationFrame = requestAnimationFrame(animateSpin);
-  }
-
-  function playSpinSound() {
-    try {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const now = audioContext.currentTime;
-      const bufferSize = 4096;
-      const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
-      const output = noiseBuffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
-      const noise = audioContext.createBufferSource();
-      noise.buffer = noiseBuffer;
-      const filter = audioContext.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.setValueAtTime(800, now);
-      filter.frequency.exponentialRampToValueAtTime(200, now + 0.5);
-      filter.Q.value = 5;
-      const gain = audioContext.createGain();
-      gain.gain.setValueAtTime(0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-      noise.connect(filter);
-      filter.connect(gain);
-      gain.connect(audioContext.destination);
-      noise.start(now);
-      noise.stop(now + 0.5);
-      const osc = audioContext.createOscillator();
-      const oscGain = audioContext.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(150, now);
-      osc.frequency.exponentialRampToValueAtTime(60, now + 0.4);
-      oscGain.gain.setValueAtTime(0.1, now);
-      oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-      osc.connect(oscGain);
-      oscGain.connect(audioContext.destination);
-      osc.start(now);
-      osc.stop(now + 0.4);
-    } catch (e) { console.log('Audio not supported'); }
-  }
-
-  // ---------- Modal Helpers ----------
+  // Modal helpers
   function showAlertModal(title, message) {
     return new Promise((resolve) => {
       const overlay = document.getElementById('alertModal');
@@ -769,7 +469,6 @@
       okBtn.addEventListener('click', onOk);
     });
   }
-
   function showInputModal(title, placeholder = '') {
     return new Promise((resolve) => {
       const overlay = document.getElementById('inputModal');
@@ -794,7 +493,6 @@
       field.focus();
     });
   }
-
   function showSelectModal(title, options) {
     return new Promise((resolve) => {
       const overlay = document.getElementById('selectModal');
@@ -815,16 +513,10 @@
       cancelBtn.addEventListener('click', cancel);
     });
   }
+  function showLoading(msg = 'Loading...') { document.getElementById('loadingMessage').innerText = msg; document.getElementById('loadingOverlay').style.display = 'flex'; }
+  function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
 
-  function showLoading(msg = 'Loading...') {
-    document.getElementById('loadingMessage').innerText = msg;
-    document.getElementById('loadingOverlay').style.display = 'flex';
-  }
-  function hideLoading() {
-    document.getElementById('loadingOverlay').style.display = 'none';
-  }
-
-  // ---------- API Calls ----------
+  // API calls
   async function verifyEmployeeByPin(pin) {
     showLoading('Verifying...');
     try {
@@ -1105,7 +797,7 @@
     else await showAlertModal('Error', 'Print failed.');
   }
 
-  // ---------- Cart Functions ----------
+  // Cart functions
   function updateCartUI() {
     if (!cartContainer) return;
     if (cart.length === 0) {
@@ -1201,7 +893,6 @@
     updateCartUI();
   }
 
-  // ---------- Checkout with Payment Buttons ----------
   async function checkout() {
     if (cart.length === 0) {
       await showAlertModal('Empty Cart', 'No items to checkout.');
@@ -1214,107 +905,53 @@
         return;
       }
     }
-
     const totalAmount = cart.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
-
-    // Payment method selection using buttons
-    return new Promise(async (resolve) => {
-      const modal = document.createElement('div');
-      modal.className = 'modal-overlay';
-      modal.style.display = 'flex';
-      modal.innerHTML = `
-        <div class="modal-container" style="max-width: 400px;">
-          <div class="modal-title">Select Payment Method</div>
-          <div class="payment-buttons">
-            <button class="payment-btn" data-method="Cash">💵 Cash</button>
-            <button class="payment-btn" data-method="Card">💳 Card</button>
-            <button class="payment-btn" data-method="QR Pay">📱 QR Pay</button>
-          </div>
-          <div class="modal-buttons">
-            <button class="modal-btn modal-btn-secondary" id="cancelPayment">Cancel</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-
-      const buttons = modal.querySelectorAll('.payment-btn');
-      const cancelBtn = modal.querySelector('#cancelPayment');
-
-      const closeModal = () => {
-        modal.remove();
-        resolve();
-      };
-
-      const handleSelect = async (method) => {
-        modal.remove();
-        let cashReceived = null;
-        if (method === 'Cash') {
-          const cashInput = await showInputModal('Enter cash received (RM)', `Total: RM ${totalAmount.toFixed(2)}`);
-          if (cashInput === null) {
-            resolve();
-            return;
-          }
-          const cashVal = parseFloat(cashInput);
-          if (isNaN(cashVal) || cashVal < totalAmount) {
-            await showAlertModal('Invalid', `Cash amount must be at least RM ${totalAmount.toFixed(2)}`);
-            resolve();
-            return;
-          }
-          cashReceived = cashVal;
-          const change = cashVal - totalAmount;
-          await showAlertModal('Change', `Change: RM ${change.toFixed(2)}`);
-        }
-
-        const transactionId = `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-        const saleItems = cart.map(item => ({
-          id: item.product.id,
-          name: item.product.name,
-          price: item.product.price,
-          quantity: item.quantity,
-          total: item.product.price * item.quantity
-        }));
-        const transaction = {
-          transaction_id: transactionId,
-          items: saleItems,
-          total: totalAmount,
-          payment_method: method,
-          cash_received: cashReceived,
-          timestamp: new Date().toISOString()
-        };
-        const success = await saveTransactionToSheet(transaction);
-        if (success) {
-          if (window.printerAPI && window.printerAPI.isConnected && window.printerAPI.printReceipt) {
-            await window.printerAPI.printReceipt(transaction);
-          } else {
-            await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
-          }
-          await showAlertModal('✅ Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
-          await fetchProductsFromSheet();
-          clearCart();
-
-          // Open Lucky Spin modal
-          currentTransactionId = transactionId;
-          currentRotation = 0;
-          drawWheel();
-          spinResultDiv.innerText = '';
-          spinBtn.disabled = false;
-          spinning = false;
-          if (animationFrame) cancelAnimationFrame(animationFrame);
-          document.getElementById('luckySpinModal').style.display = 'flex';
-        } else {
-          await showAlertModal('Error', 'Failed to record sale. Check network / Apps Script.');
-        }
-        resolve();
-      };
-
-      buttons.forEach(btn => {
-        btn.addEventListener('click', () => handleSelect(btn.dataset.method));
-      });
-      cancelBtn.addEventListener('click', closeModal);
-    });
+    const paymentMethod = await showSelectModal('Payment Method', ['Cash', 'Card', 'QR Pay']);
+    if (!paymentMethod) return;
+    let cashReceived = null;
+    if (paymentMethod === 'Cash') {
+      const cashInput = await showInputModal('Enter cash received (RM)', `Total: RM ${totalAmount.toFixed(2)}`);
+      if (cashInput === null) return;
+      const cashVal = parseFloat(cashInput);
+      if (isNaN(cashVal) || cashVal < totalAmount) {
+        await showAlertModal('Invalid', `Cash amount must be at least RM ${totalAmount.toFixed(2)}`);
+        return;
+      }
+      cashReceived = cashVal;
+      const change = cashVal - totalAmount;
+      await showAlertModal('Change', `Change: RM ${change.toFixed(2)}`);
+    }
+    const transactionId = `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const saleItems = cart.map(item => ({
+      id: item.product.id,
+      name: item.product.name,
+      price: item.product.price,
+      quantity: item.quantity,
+      total: item.product.price * item.quantity
+    }));
+    const transaction = {
+      transaction_id: transactionId,
+      items: saleItems,
+      total: totalAmount,
+      payment_method: paymentMethod,
+      cash_received: cashReceived,
+      timestamp: new Date().toISOString()
+    };
+    const success = await saveTransactionToSheet(transaction);
+    if (success) {
+      if (window.printerAPI && window.printerAPI.isConnected && window.printerAPI.printReceipt) {
+        await window.printerAPI.printReceipt(transaction);
+      } else {
+        await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
+      }
+      await showAlertModal('✅ Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
+      await fetchProductsFromSheet();
+      clearCart();
+    } else {
+      await showAlertModal('Error', 'Failed to record sale. Check network / Apps Script.');
+    }
   }
 
-  // ---------- Render Product Grid ----------
   function renderProductGrid() {
     const searchTerm = searchInput.value.toLowerCase();
     const selectedCategory = categorySelect.value;
@@ -1355,7 +992,7 @@
 
   function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){ if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; return m;}); }
 
-  // ---------- Report Generation ----------
+  // Report generation functions
   function updateAdminReport() {
     const store = document.getElementById('adminReportStoreSelect').value;
     const employeeId = document.getElementById('adminReportEmployeeSelect').value;
@@ -1485,7 +1122,7 @@
     });
   }
 
-  // ---------- Event Listeners ----------
+  // Event listeners for modals
   document.getElementById('reportsButton').addEventListener('click', async () => {
     if (!currentEmployee || !currentEmployee.isAdmin) return;
     await populateEmployeeSelects();
@@ -1594,12 +1231,6 @@
     }
   });
 
-  // Lucky Spin modal close
-  document.getElementById('closeSpinModal').addEventListener('click', () => {
-    document.getElementById('luckySpinModal').style.display = 'none';
-  });
-  spinBtn.addEventListener('click', spinWheel);
-
   // Printer setup
   (function setupPrinter() {
     let gattServer = null;
@@ -1670,43 +1301,6 @@
       }
     }
 
-    async function printLuckyTicket(prize, transactionId) {
-      if (!isConnected || !printerCharacteristic) {
-        printerStatusDiv.innerText = '❌ Printer not connected';
-        return false;
-      }
-      const encoder = new TextEncoder();
-      const lines = [
-        '',
-        '    ★ LUCKY DRAW TICKET ★',
-        '-----------------------------',
-        `Transaction: ${transactionId}`,
-        `Prize: ${prize}`,
-        '-----------------------------',
-        'Valid for 30 days',
-        'Present this ticket at any store',
-        '',
-        ''
-      ];
-      const text = lines.join('\n');
-      const commands = [
-        0x1B, 0x40,
-        0x1B, 0x61, 0x01,
-        ...encoder.encode(text),
-        0x1B, 0x64, 0x03,
-        0x1D, 0x56, 0x41, 0x00
-      ];
-      try {
-        await printerCharacteristic.writeValue(new Uint8Array(commands));
-        printerStatusDiv.innerText = '✅ Lucky ticket printed';
-        return true;
-      } catch (err) {
-        console.error(err);
-        printerStatusDiv.innerText = `❌ Print error`;
-        return false;
-      }
-    }
-
     async function connectPrinter() {
       try {
         printerStatusDiv.innerText = '🔍 Scanning...';
@@ -1762,12 +1356,9 @@
 
     window.printerAPI = {
       isConnected: false,
-      printReceipt: printReceipt,
-      printLuckyTicket: printLuckyTicket
+      printReceipt: printReceipt
     };
   })();
-
-  // Initial load – wait for login
 </script>
 </body>
 </html>
