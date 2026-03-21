@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
+  <title>POS System | Loyverse Style</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #f4f5f7;
+      color: #1e293b;
+      line-height: 1.4;
+      padding: 16px;
+      min-height: 100vh;
+    }
+
+    .pos-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+      background: white;
+      padding: 12px 20px;
+      border-radius: 28px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: #0f172a;
+      letter-spacing: -0.3px;
+    }
+    .printer-section {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    #connectPrinterButton {
+      background: #1e293b;
+      border: none;
+      border-radius: 40px;
+      padding: 10px 20px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    #connectPrinterButton:hover {
+      background: #0f172a;
+      transform: scale(0.98);
+    }
+    #printerStatus {
+      font-size: 0.8rem;
+      background: #f1f5f9;
+      padding: 6px 12px;
+      border-radius: 30px;
+      color: #334155;
+    }
+
+    .pos-dashboard {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .products-panel {
+      flex: 2;
+      min-width: 260px;
+      background: white;
+      border-radius: 28px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+      border: 1px solid #e2e8f0;
+    }
+    .search-bar {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 60px;
+      border: 1px solid #cbd5e1;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: 0.2s;
+    }
+    .search-bar:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+    }
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 16px;
+      max-height: 65vh;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .product-card {
+      background: #f8fafc;
+      border-radius: 24px;
+      padding: 16px 12px;
+      text-align: center;
+      transition: all 0.2s;
+      border: 1px solid #e2e8f0;
+      cursor: pointer;
+    }
+    .product-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+      border-color: #cbd5e1;
+    }
+    .product-name {
+      font-weight: 600;
+      font-size: 1rem;
+      margin-bottom: 8px;
+      color: #0f172a;
+    }
+    .product-price {
+      font-weight: 700;
+      color: #2c7a4b;
+      font-size: 1.2rem;
+      margin: 6px 0;
+    }
+    .product-stock {
+      font-size: 0.7rem;
+      color: #64748b;
+      margin-bottom: 10px;
+    }
+    .add-btn {
+      background: #3b82f6;
+      border: none;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 40px;
+      font-weight: 500;
+      font-size: 0.8rem;
+      width: 100%;
+      cursor: pointer;
+      transition: 0.1s;
+    }
+    .add-btn:active {
+      transform: scale(0.96);
+      background: #2563eb;
+    }
+    .add-btn.disabled, .add-btn:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    .cart-panel {
+      flex: 1.2;
+      min-width: 280px;
+      background: white;
+      border-radius: 28px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+      border: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      height: fit-content;
+    }
+    .cart-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      border-bottom: 2px solid #eef2ff;
+      padding-bottom: 10px;
+    }
+    .cart-items {
+      max-height: 50vh;
+      overflow-y: auto;
+      margin-bottom: 20px;
+    }
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #edf2f7;
+    }
+    .cart-item-info {
+      flex: 2;
+    }
+    .cart-item-name {
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+    .cart-item-price {
+      font-size: 0.8rem;
+      color: #2c7a4b;
+    }
+    .cart-item-qty {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 12px;
+    }
+    .qty-btn {
+      background: #f1f5f9;
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 30px;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .qty-btn:active {
+      background: #e2e8f0;
+    }
+    .cart-item-total {
+      font-weight: 600;
+      min-width: 65px;
+      text-align: right;
+    }
+    .remove-item {
+      background: none;
+      border: none;
+      color: #ef4444;
+      font-size: 1.2rem;
+      cursor: pointer;
+      margin-left: 8px;
+      width: 28px;
+    }
+    .cart-summary {
+      border-top: 2px dashed #e2e8f0;
+      padding-top: 16px;
+      margin-top: 8px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 10px 0;
+      font-size: 1.1rem;
+    }
+    .total-row {
+      font-weight: 800;
+      font-size: 1.4rem;
+      color: #0f172a;
+      border-top: 1px solid #cbd5e1;
+      padding-top: 12px;
+      margin-top: 8px;
+    }
+    .cart-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    .cart-actions button {
+      flex: 1;
+      padding: 12px;
+      border-radius: 40px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: 0.1s;
+    }
+    #checkoutBtn {
+      background: #2c7a4b;
+      color: white;
+    }
+    #clearCartBtn {
+      background: #f1f5f9;
+      color: #334155;
+    }
+    #refreshProductsBtn {
+      background: #eef2ff;
+      color: #1e40af;
+    }
+    #reprintLastBtn {
+      background: #8b5cf6;
+      color: white;
+    }
+    button:active {
+      transform: scale(0.97);
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    .modal-container {
+      background: white;
+      max-width: 400px;
+      width: 90%;
+      border-radius: 28px;
+      padding: 24px;
+      box-shadow: 0 20px 35px rgba(0,0,0,0.2);
+    }
+    .modal-title {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .modal-input, .modal-select {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 60px;
+      margin-bottom: 20px;
+    }
+    .modal-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    .modal-btn {
+      padding: 10px 20px;
+      border-radius: 40px;
+      border: none;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .modal-btn-primary {
+      background: #2c7a4b;
+      color: white;
+    }
+    .modal-btn-secondary {
+      background: #e2e8f0;
+    }
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+      flex-direction: column;
+    }
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid #e2e8f0;
+      border-top: 5px solid #2c7a4b;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .loading-text {
+      color: white;
+      margin-top: 12px;
+    }
+    @media (max-width: 780px) {
+      .pos-dashboard { flex-direction: column; }
+      .product-grid { max-height: 40vh; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="pos-header">
+  <h1>🛍️ POS System</h1>
+  <div class="printer-section">
+    <button id="connectPrinterButton">🖨️ Connect Printer</button>
+    <div id="printerStatus">⚪ Not connected</div>
+  </div>
+</div>
+
+<div class="pos-dashboard">
+  <div class="products-panel">
+    <input type="text" id="searchInput" class="search-bar" placeholder="🔍 Search product...">
+    <div id="productGrid" class="product-grid">
+      <div style="text-align:center; padding: 30px;">Loading products...</div>
+    </div>
+  </div>
+
+  <div class="cart-panel">
+    <div class="cart-title">🧾 Current Sale</div>
+    <div id="cartItemsContainer" class="cart-items">
+      <div style="color:#94a3b8; text-align:center;">Cart is empty</div>
+    </div>
+    <div class="cart-summary">
+      <div class="summary-row"><span>Subtotal</span><span id="subtotal">RM 0.00</span></div>
+      <div class="summary-row total-row"><span>TOTAL</span><span id="totalAmount">RM 0.00</span></div>
+    </div>
+    <div class="cart-actions">
+      <button id="checkoutBtn">💳 CHECKOUT</button>
+      <button id="clearCartBtn">🗑️ Clear</button>
+      <button id="refreshProductsBtn">🔄 Refresh</button>
+      <button id="reprintLastBtn">🖨️ Reprint Last</button>
+    </div>
+  </div>
+</div>
+
+<div id="alertModal" class="modal-overlay"><div class="modal-container"><div class="modal-title" id="alertModalTitle"></div><div class="modal-message" id="alertModalMessage"></div><div class="modal-buttons"><button class="modal-btn modal-btn-primary" id="alertModalOk">OK</button></div></div></div>
+<div id="inputModal" class="modal-overlay"><div class="modal-container"><div class="modal-title" id="inputModalTitle"></div><input type="text" id="inputModalField" class="modal-input" placeholder=""><div class="modal-buttons"><button class="modal-btn modal-btn-secondary" id="inputModalCancel">Cancel</button><button class="modal-btn modal-btn-primary" id="inputModalOk">OK</button></div></div></div>
+<div id="selectModal" class="modal-overlay"><div class="modal-container"><div class="modal-title" id="selectModalTitle"></div><select id="selectModalField" class="modal-select"></select><div class="modal-buttons"><button class="modal-btn modal-btn-secondary" id="selectModalCancel">Cancel</button><button class="modal-btn modal-btn-primary" id="selectModalOk">OK</button></div></div></div>
+<div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
+
+<script>
+  // ======================= CONFIGURATION =======================
+  // 🔁 REPLACE WITH YOUR GOOGLE APPS SCRIPT WEB APP URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/REPLACE_ME/exec";
+
+  // ======================= GLOBAL STATE =======================
+  let products = [];
+  let cart = [];
+  let lastTransaction = null;
+
+  const productGridEl = document.getElementById('productGrid');
+  const cartContainer = document.getElementById('cartItemsContainer');
+  const subtotalSpan = document.getElementById('subtotal');
+  const totalSpan = document.getElementById('totalAmount');
+  const searchInput = document.getElementById('searchInput');
+
+  // ======================= MODAL HELPERS =======================
+  function showAlertModal(title, message) {
+    return new Promise((resolve) => {
+      const overlay = document.getElementById('alertModal');
+      document.getElementById('alertModalTitle').innerText = title;
+      document.getElementById('alertModalMessage').innerText = message;
+      overlay.style.display = 'flex';
+      const okBtn = document.getElementById('alertModalOk');
+      const onOk = () => { overlay.style.display = 'none'; okBtn.removeEventListener('click', onOk); resolve(); };
+      okBtn.addEventListener('click', onOk);
+    });
+  }
+  function showInputModal(title, placeholder = '') {
+    return new Promise((resolve) => {
+      const overlay = document.getElementById('inputModal');
+      document.getElementById('inputModalTitle').innerText = title;
+      const field = document.getElementById('inputModalField');
+      field.placeholder = placeholder;
+      field.value = '';
+      overlay.style.display = 'flex';
+      const ok = () => { overlay.style.display = 'none'; cleanup(); resolve(field.value.trim()); };
+      const cancel = () => { overlay.style.display = 'none'; cleanup(); resolve(null); };
+      const cleanup = () => {
+        okBtn.removeEventListener('click', ok);
+        cancelBtn.removeEventListener('click', cancel);
+        field.removeEventListener('keydown', keydown);
+      };
+      const keydown = (e) => { if (e.key === 'Enter') ok(); if (e.key === 'Escape') cancel(); };
+      const okBtn = document.getElementById('inputModalOk');
+      const cancelBtn = document.getElementById('inputModalCancel');
+      okBtn.addEventListener('click', ok);
+      cancelBtn.addEventListener('click', cancel);
+      field.addEventListener('keydown', keydown);
+      field.focus();
+    });
+  }
+  function showSelectModal(title, options) {
+    return new Promise((resolve) => {
+      const overlay = document.getElementById('selectModal');
+      document.getElementById('selectModalTitle').innerText = title;
+      const select = document.getElementById('selectModalField');
+      select.innerHTML = '';
+      options.forEach(opt => { const option = document.createElement('option'); option.value = opt; option.textContent = opt; select.appendChild(option); });
+      overlay.style.display = 'flex';
+      const ok = () => { overlay.style.display = 'none'; cleanup(); resolve(select.value); };
+      const cancel = () => { overlay.style.display = 'none'; cleanup(); resolve(null); };
+      const cleanup = () => {
+        okBtn.removeEventListener('click', ok);
+        cancelBtn.removeEventListener('click', cancel);
+      };
+      const okBtn = document.getElementById('selectModalOk');
+      const cancelBtn = document.getElementById('selectModalCancel');
+      okBtn.addEventListener('click', ok);
+      cancelBtn.addEventListener('click', cancel);
+    });
+  }
+  function showLoading(msg = 'Loading...') { document.getElementById('loadingMessage').innerText = msg; document.getElementById('loadingOverlay').style.display = 'flex'; }
+  function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
+
+  // ======================= GOOGLE SHEETS API =======================
+  async function fetchProductsFromSheet() {
+    showLoading('Fetching products...');
+    try {
+      const url = `${APPS_SCRIPT_URL}?action=getProducts`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success && Array.isArray(result.products)) {
+        products = result.products.map(p => ({ id: p.id, name: p.name, price: parseFloat(p.price), stock: parseInt(p.stock) || 0 }));
+        renderProductGrid();
+        return true;
+      } else {
+        throw new Error('Invalid data format');
+      }
+    } catch (err) {
+      console.error(err);
+      await showAlertModal('Error', 'Failed to load products from Google Sheets. Check URL & CORS.');
+      return false;
+    } finally {
+      hideLoading();
+    }
+  }
+
+  async function saveTransactionToSheet(transaction) {
+    showLoading('Recording sale...');
+    try {
+      const formData = new URLSearchParams();
+      formData.append("action", "saveSale");
+      formData.append("transaction_id", transaction.transaction_id);
+      formData.append("items", JSON.stringify(transaction.items));
+      formData.append("total", transaction.total);
+      formData.append("payment_method", transaction.payment_method);
+      formData.append("cash_received", transaction.cash_received || '');
+      formData.append("timestamp", transaction.timestamp);
+
+      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+      const result = await response.json();
+      return result.success === true;
+    } catch (err) {
+      console.error(err);
+      return false;
+    } finally {
+      hideLoading();
+    }
+  }
+
+  // ======================= CART LOGIC =======================
+  function updateCartUI() {
+    if (!cartContainer) return;
+    if (cart.length === 0) {
+      cartContainer.innerHTML = '<div style="color:#94a3b8; text-align:center;">Cart is empty</div>';
+      subtotalSpan.innerText = `RM 0.00`;
+      totalSpan.innerText = `RM 0.00`;
+      return;
+    }
+    let html = '';
+    let subtotal = 0;
+    cart.forEach((item, idx) => {
+      const itemTotal = item.product.price * item.quantity;
+      subtotal += itemTotal;
+      html += `
+        <div class="cart-item">
+          <div class="cart-item-info">
+            <div class="cart-item-name">${escapeHtml(item.product.name)}</div>
+            <div class="cart-item-price">RM ${item.product.price.toFixed(2)}</div>
+          </div>
+          <div class="cart-item-qty">
+            <button class="qty-btn" data-index="${idx}" data-delta="-1">−</button>
+            <span>${item.quantity}</span>
+            <button class="qty-btn" data-index="${idx}" data-delta="1">+</button>
+          </div>
+          <div class="cart-item-total">RM ${itemTotal.toFixed(2)}</div>
+          <button class="remove-item" data-index="${idx}">✕</button>
+        </div>
+      `;
+    });
+    cartContainer.innerHTML = html;
+    subtotalSpan.innerText = `RM ${subtotal.toFixed(2)}`;
+    totalSpan.innerText = `RM ${subtotal.toFixed(2)}`;
+    // attach events
+    document.querySelectorAll('.qty-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const idx = parseInt(btn.dataset.index);
+        const delta = parseInt(btn.dataset.delta);
+        if (!isNaN(idx) && !isNaN(delta)) updateQuantity(idx, delta);
+        e.stopPropagation();
+      });
+    });
+    document.querySelectorAll('.remove-item').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const idx = parseInt(btn.dataset.index);
+        if (!isNaN(idx)) removeCartItem(idx);
+        e.stopPropagation();
+      });
+    });
+  }
+
+  function updateQuantity(index, delta) {
+    const item = cart[index];
+    if (!item) return;
+    const newQty = item.quantity + delta;
+    if (newQty <= 0) {
+      cart.splice(index, 1);
+    } else {
+      const productStock = item.product.stock;
+      if (newQty > productStock && productStock !== undefined) {
+        showAlertModal('Stock limit', `Only ${productStock} left in stock.`);
+        return;
+      }
+      item.quantity = newQty;
+    }
+    updateCartUI();
+  }
+
+  function removeCartItem(index) {
+    cart.splice(index, 1);
+    updateCartUI();
+  }
+
+  function addToCart(product) {
+    if (product.stock <= 0) {
+      showAlertModal('Out of Stock', `${product.name} is out of stock.`);
+      return;
+    }
+    const existing = cart.find(item => item.product.id === product.id);
+    if (existing) {
+      if (existing.quantity + 1 > product.stock) {
+        showAlertModal('Stock limit', `Cannot add more than ${product.stock} units.`);
+        return;
+      }
+      existing.quantity += 1;
+    } else {
+      cart.push({ product: { ...product }, quantity: 1 });
+    }
+    updateCartUI();
+  }
+
+  function clearCart() {
+    if (cart.length === 0) return;
+    cart = [];
+    updateCartUI();
+  }
+
+  // ======================= CHECKOUT & PAYMENT =======================
+  async function checkout() {
+    if (cart.length === 0) {
+      await showAlertModal('Empty Cart', 'No items to checkout.');
+      return;
+    }
+    for (let item of cart) {
+      const originalProduct = products.find(p => p.id === item.product.id);
+      if (!originalProduct || originalProduct.stock < item.quantity) {
+        await showAlertModal('Stock changed', `${item.product.name} stock insufficient. Please refresh products and adjust cart.`);
+        return;
+      }
+    }
+    const totalAmount = cart.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
+    const paymentMethod = await showSelectModal('Payment Method', ['Cash', 'Card', 'QR Pay']);
+    if (!paymentMethod) return;
+    let cashReceived = null;
+    if (paymentMethod === 'Cash') {
+      const cashInput = await showInputModal('Enter cash received (RM)', `Total: RM ${totalAmount.toFixed(2)}`);
+      if (cashInput === null) return;
+      const cashVal = parseFloat(cashInput);
+      if (isNaN(cashVal) || cashVal < totalAmount) {
+        await showAlertModal('Invalid', `Cash amount must be at least RM ${totalAmount.toFixed(2)}`);
+        return;
+      }
+      cashReceived = cashVal;
+      const change = cashVal - totalAmount;
+      await showAlertModal('Change', `Change: RM ${change.toFixed(2)}`);
+    }
+    const transactionId = `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const saleItems = cart.map(item => ({
+      id: item.product.id,
+      name: item.product.name,
+      price: item.product.price,
+      quantity: item.quantity,
+      total: item.product.price * item.quantity
+    }));
+    const transaction = {
+      transaction_id: transactionId,
+      items: saleItems,
+      total: totalAmount,
+      payment_method: paymentMethod,
+      cash_received: cashReceived,
+      timestamp: new Date().toISOString()
+    };
+    const success = await saveTransactionToSheet(transaction);
+    if (success) {
+      lastTransaction = { ...transaction, cartSnapshot: [...cart] };
+      if (window.printerAPI && window.printerAPI.isConnected && window.printerAPI.printSaleReceipt) {
+        await window.printerAPI.printSaleReceipt(transaction, cart);
+      } else {
+        await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
+      }
+      await showAlertModal('✅ Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
+      await fetchProductsFromSheet();
+      clearCart();
+    } else {
+      await showAlertModal('Error', 'Failed to record sale. Check network / Apps Script.');
+    }
+  }
+
+  // ======================= RENDER PRODUCT GRID =======================
+  function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){ if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; return m;}); }
+  function renderProductGrid() {
+    const searchTerm = searchInput.value.toLowerCase();
+    const filtered = products.filter(p => p.name.toLowerCase().includes(searchTerm));
+    if (filtered.length === 0) {
+      productGridEl.innerHTML = '<div style="text-align:center; padding:20px;">No products found</div>';
+      return;
+    }
+    let html = '';
+    filtered.forEach(prod => {
+      const stockStatus = prod.stock > 0 ? `📦 Stock: ${prod.stock}` : '❌ Out of stock';
+      const disabledAttr = prod.stock <= 0 ? 'disabled' : '';
+      html += `
+        <div class="product-card">
+          <div class="product-name">${escapeHtml(prod.name)}</div>
+          <div class="product-price">RM ${prod.price.toFixed(2)}</div>
+          <div class="product-stock">${stockStatus}</div>
+          <button class="add-btn" data-id="${prod.id}" ${disabledAttr}>+ Add to cart</button>
+        </div>
+      `;
+    });
+    productGridEl.innerHTML = html;
+    document.querySelectorAll('.add-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = btn.dataset.id;
+        const product = products.find(p => p.id == id);
+        if (product && product.stock > 0) addToCart(product);
+        e.stopPropagation();
+      });
+    });
+  }
+
+  // ======================= REPRINT LAST TICKET =======================
+  async function reprintLast() {
+    if (!lastTransaction) {
+      await showAlertModal('No data', 'No previous sale to reprint.');
+      return;
+    }
+    if (!window.printerAPI || !window.printerAPI.isConnected) {
+      await showAlertModal('Printer required', 'Connect Bluetooth printer first.');
+      return;
+    }
+    const success = await window.printerAPI.printSaleReceipt(lastTransaction, lastTransaction.cartSnapshot);
+    if (success) await showAlertModal('Reprint', 'Last receipt sent to printer.');
+    else await showAlertModal('Error', 'Print failed.');
+  }
+
+  // ======================= BLUETOOTH PRINTER INTEGRATION =======================
+  (function setupPrinter() {
+    let gattServer = null;
+    let printerCharacteristic = null;
+    let isConnected = false;
+    const connectBtn = document.getElementById('connectPrinterButton');
+    const printerStatusDiv = document.getElementById('printerStatus');
+
+    function formatDateForReceipt(date) {
+      const d = date.getDate().toString().padStart(2,'0');
+      const m = (date.getMonth()+1).toString().padStart(2,'0');
+      const y = date.getFullYear();
+      const h = date.getHours().toString().padStart(2,'0');
+      const min = date.getMinutes().toString().padStart(2,'0');
+      return `${d}/${m}/${y} ${h}:${min}`;
+    }
+
+    function generatePOSReceipt(transaction, cartItems) {
+      const encoder = new TextEncoder();
+      const lines = [
+        '',
+        '    ★ POS INVOICE ★',
+        '-----------------------------',
+        `Txn: ${transaction.transaction_id}`,
+        `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`,
+        '-----------------------------',
+      ];
+      let total = 0;
+      for (let item of cartItems) {
+        const lineItem = `${item.product.name} x${item.quantity}`;
+        const priceLine = `  ${item.product.price.toFixed(2)} x ${item.quantity} = RM ${(item.product.price * item.quantity).toFixed(2)}`;
+        lines.push(lineItem, priceLine);
+        total += item.product.price * item.quantity;
+      }
+      lines.push('-----------------------------');
+      lines.push(`TOTAL: RM ${total.toFixed(2)}`);
+      lines.push(`Payment: ${transaction.payment_method}`);
+      if (transaction.cash_received) lines.push(`Cash: RM ${transaction.cash_received} | Change: RM ${(transaction.cash_received - total).toFixed(2)}`);
+      lines.push('-----------------------------');
+      lines.push('Thank you & come again!');
+      lines.push('');
+      const text = lines.join('\n');
+      const commands = [
+        0x1B, 0x40,
+        0x1B, 0x61, 0x01,
+        ...encoder.encode(text),
+        0x1B, 0x64, 0x03,
+        0x1D, 0x56, 0x41, 0x00
+      ];
+      return new Uint8Array(commands);
+    }
+
+    async function printSaleReceipt(transaction, cartItems) {
+      if (!isConnected || !printerCharacteristic) {
+        printerStatusDiv.innerText = '❌ Printer not connected';
+        return false;
+      }
+      try {
+        const receipt = generatePOSReceipt(transaction, cartItems);
+        await printerCharacteristic.writeValue(receipt);
+        printerStatusDiv.innerText = '✅ Receipt printed';
+        return true;
+      } catch (err) {
+        console.error(err);
+        printerStatusDiv.innerText = `❌ Print error`;
+        return false;
+      }
+    }
+
+    async function connectPrinter() {
+      try {
+        printerStatusDiv.innerText = '🔍 Scanning...';
+        connectBtn.disabled = true;
+        const device = await navigator.bluetooth.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+        });
+        gattServer = await device.gatt.connect();
+        const services = await gattServer.getPrimaryServices();
+        let foundChar = null;
+        for (const service of services) {
+          const chars = await service.getCharacteristics();
+          for (const char of chars) {
+            if (char.properties.write || char.properties.writeWithoutResponse) {
+              foundChar = char;
+              break;
+            }
+          }
+          if (foundChar) break;
+        }
+        if (!foundChar) throw new Error('No writable characteristic');
+        printerCharacteristic = foundChar;
+        isConnected = true;
+        window.printerAPI.isConnected = true;
+        printerStatusDiv.innerText = '✅ Printer ready';
+        connectBtn.innerText = '🔌 Disconnect';
+      } catch (err) {
+        printerStatusDiv.innerText = `❌ ${err.message}`;
+        gattServer = null;
+        printerCharacteristic = null;
+      } finally {
+        connectBtn.disabled = false;
+      }
+    }
+
+    async function disconnectPrinter() {
+      if (gattServer) {
+        gattServer.disconnect();
+        gattServer = null;
+        printerCharacteristic = null;
+      }
+      isConnected = false;
+      window.printerAPI.isConnected = false;
+      printerStatusDiv.innerText = '⚪ Not connected';
+      connectBtn.innerText = '🖨️ Connect Printer';
+    }
+
+    connectBtn.addEventListener('click', () => {
+      if (!isConnected) connectPrinter();
+      else disconnectPrinter();
+    });
+
+    window.printerAPI = {
+      isConnected: false,
+      printSaleReceipt: printSaleReceipt
+    };
+  })();
+
+  // ======================= EVENT LISTENERS & INIT =======================
+  document.getElementById('checkoutBtn').addEventListener('click', checkout);
+  document.getElementById('clearCartBtn').addEventListener('click', clearCart);
+  document.getElementById('refreshProductsBtn').addEventListener('click', fetchProductsFromSheet);
+  document.getElementById('reprintLastBtn').addEventListener('click', reprintLast);
+  searchInput.addEventListener('input', () => renderProductGrid());
+
+  (async () => {
+    await fetchProductsFromSheet();
+    updateCartUI();
+  })();
+</script>
+</body>
+</html>
