@@ -272,70 +272,21 @@
     canvas { max-width: 100%; height: auto; }
     .receipts-list { max-height: 60vh; overflow-y: auto; }
     .receipt-item {
-      border: 1px solid #e2e8f0; border-radius: 20px; padding: 12px;
-      margin-bottom: 12px;
-      background: #f8fafc;
-      transition: 0.1s;
+      border: 1px solid #e2e8f0; border-radius: 20px; padding: 12px; margin-bottom: 12px;
+      background: #f8fafc; transition: 0.1s;
     }
     .receipt-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 12px;
-      padding-bottom: 8px;
-      border-bottom: 2px solid #e2e8f0;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;
+      gap: 8px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #cbd5e1;
     }
-    .receipt-id {
-      font-weight: 700;
-      background: #eef2ff;
-      padding: 4px 12px;
-      border-radius: 30px;
-      font-size: 0.85rem;
-      color: #1e40af;
-    }
-    .receipt-date {
-      font-size: 0.8rem;
-      color: #64748b;
-    }
-    .receipt-total {
-      font-weight: 700;
-      font-size: 1.1rem;
-      color: #2c7a4b;
-    }
-    .receipt-details {
-      font-size: 0.85rem;
-      margin: 12px 0;
-      padding: 8px;
-      background: #f1f5f9;
-      border-radius: 16px;
-      line-height: 1.5;
-    }
-    .receipt-items {
-      margin-top: 8px;
-      font-size: 0.85rem;
-      color: #334155;
-    }
-    .receipt-item-line {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 4px;
-    }
-    .receipt-actions {
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-      margin-top: 12px;
-    }
+    .receipt-id { font-weight: 600; color: #0f172a; }
+    .receipt-date { font-size: 0.8rem; color: #64748b; }
+    .receipt-total { font-weight: 700; color: #2c7a4b; }
+    .receipt-details { font-size: 0.85rem; margin: 8px 0; color: #334155; }
+    .receipt-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
     .reprint-btn, .lucky-btn {
-      background: #8b5cf6;
-      border: none;
-      color: white;
-      padding: 4px 12px;
-      border-radius: 30px;
-      font-size: 0.75rem;
-      cursor: pointer;
+      background: #8b5cf6; border: none; color: white; padding: 4px 12px;
+      border-radius: 30px; font-size: 0.75rem; cursor: pointer;
     }
     .lucky-btn { background: #f59e0b; }
     .reprint-btn:hover { background: #7c3aed; }
@@ -578,6 +529,7 @@
     <span class="close-modal" id="closeAdminReportModal">×</span>
     <div class="modal-title">📊 Sales Report</div>
     <div class="report-filters">
+      <!-- Store filter (only visible for admin) -->
       <div class="filter-group" id="reportStoreFilterGroup" style="display: none;">
         <label>Store</label>
         <select id="adminReportStoreSelect">
@@ -587,6 +539,7 @@
           <option value="gurney_paragon">Gurney Paragon</option>
         </select>
       </div>
+      <!-- Employee filter (only visible for admin) -->
       <div class="filter-group" id="employeeFilterGroup" style="display: none;">
         <label>Employee</label>
         <select id="adminReportEmployeeSelect"><option value="all">All Employees</option></select>
@@ -602,13 +555,21 @@
       <div class="stat-item">Transactions: <span id="adminReportTransactionCount" class="stat-value">0</span></div>
       <div class="stat-item">Items Sold: <span id="adminReportTotalItems" class="stat-value">0</span></div>
     </div>
+
+    <!-- Sales by Store chart (admin only) -->
     <div class="chart-container" id="storeChartContainer" style="display: none;">
       <canvas id="storeChart" width="400" height="200"></canvas>
     </div>
+
+    <!-- Sales by Day chart (always visible) -->
     <div class="chart-container"><canvas id="dayChart" width="400" height="200"></canvas></div>
+
+    <!-- Sales by Employee chart (admin only) -->
     <div class="chart-container" id="employeeChartContainer" style="display: none;">
       <canvas id="employeeChart" width="400" height="200"></canvas>
     </div>
+
+    <!-- Product Details Section -->
     <div class="modal-section">
       <button id="toggleProductDetailsBtn" class="modal-btn modal-btn-secondary" style="margin-bottom: 12px;">📦 Show Product Details</button>
       <div id="productDetailsContainer" style="display: none;">
@@ -616,13 +577,21 @@
         <div id="productDetailsTable" style="max-height: 300px; overflow-y: auto;">
           <table class="product-details-table">
             <thead>
-              <tr><th>Product</th><th>Category</th><th style="text-align: right;">Qty Sold</th><th style="text-align: right;">Total (RM)</th></tr>
+              <tr>
+                <th>Product</th>
+                <th>Category</th>
+                <th style="text-align: right;">Qty Sold</th>
+                <th style="text-align: right;">Total (RM)</th>
+              </tr>
             </thead>
-            <tbody id="productDetailsBody"><tr><td colspan="4" style="text-align: center;">Loading...</td></tr></tbody>
+            <tbody id="productDetailsBody">
+              <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
+            </tbody>
           </table>
         </div>
       </div>
     </div>
+
     <div class="modal-buttons"><button id="closeAdminReportBtn" class="modal-btn modal-btn-secondary">Close</button></div>
   </div>
 </div>
@@ -656,7 +625,7 @@
   let viewMode = "grid"; // 'grid' or 'list'
   let productDetailsVisible = false;
   let lastProductData = null; // cache to avoid re-fetch on toggle
-  let employeeNameMap = {}; // id -> name
+  let employeeNameMap = {}; // map employee ID -> name
 
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -786,6 +755,9 @@
           employeeChartContainer.style.display = 'none';
         }
         
+        // Fetch employee name map for receipt display
+        await fetchEmployeeNameMap();
+        
         await populateSoldBySelect();
         await fetchProductsFromSheet();
         updateCartUI();
@@ -799,6 +771,26 @@
       document.getElementById('loginError').innerText = 'Connection error';
       return false;
     } finally { hideLoading(); }
+  }
+
+  // Fetch employee name mapping for receipt display
+  async function fetchEmployeeNameMap() {
+    try {
+      const response = await fetch(`${APPS_SCRIPT_URL}?action=getEmployees`);
+      const result = await response.json();
+      if (result.success) {
+        employeeNameMap = {};
+        result.employees.forEach(emp => {
+          employeeNameMap[emp.id] = emp.name;
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch employee names:', err);
+    }
+  }
+
+  function getEmployeeName(employeeId) {
+    return employeeNameMap[employeeId] || employeeId;
   }
 
   // Products
@@ -851,14 +843,7 @@
     try {
       const response = await fetch(`${APPS_SCRIPT_URL}?action=getEmployees`);
       const result = await response.json();
-      if (result.success && Array.isArray(result.employees)) {
-        // Build name map
-        result.employees.forEach(emp => {
-          employeeNameMap[emp.id] = emp.name;
-        });
-        return result.employees;
-      }
-      return [];
+      return result.success ? result.employees : [];
     } catch (err) { console.error(err); return []; }
   }
 
@@ -872,11 +857,6 @@
       if (currentEmployee && emp.id == currentEmployee.id) option.selected = true;
       soldBySelect.appendChild(option);
     });
-  }
-
-  // Helper to get employee name from ID
-  function getEmployeeName(empId) {
-    return employeeNameMap[empId] || empId;
   }
 
   // Report functions – now accept store parameter
@@ -1061,12 +1041,13 @@
   }
 
   async function updateAdminReport() {
+    // Determine store and employee based on admin status
     let store, employeeId;
     if (currentEmployee.isAdmin) {
       store = document.getElementById('adminReportStoreSelect').value;
       employeeId = document.getElementById('adminReportEmployeeSelect').value;
     } else {
-      store = 'all';
+      store = 'all'; // non-admin sees all stores (but only their own sales via employeeId)
       employeeId = currentEmployee.id;
     }
     
@@ -1097,12 +1078,14 @@
       if (!from || !to) return;
     }
     
+    // Fetch main report data and charts
     await fetchSalesReport(store, employeeId, from, to);
     await fetchSalesChartData(store, employeeId, from, to);
     if (currentEmployee.isAdmin) {
       await fetchEmployeeSalesData(store, from, to);
     }
     
+    // Fetch product details
     lastProductData = await fetchProductSalesReport(store, employeeId, from, to);
     if (productDetailsVisible) {
       renderProductDetails(lastProductData);
@@ -1130,31 +1113,12 @@
     let html = '';
     receipts.forEach(rec => {
       const date = new Date(rec.timestamp).toLocaleString();
-      const empName = getEmployeeName(rec.employee_id);
-      const itemsHtml = rec.items.map(i => {
+      const itemsSummary = rec.items.map(i => {
         const displayName = i.category ? `${i.category}: ${i.name}` : i.name;
-        return `<div class="receipt-item-line">
-          <span>${displayName} x${i.quantity}</span>
-          <span>RM ${(i.price * i.quantity).toFixed(2)}</span>
-        </div>`;
-      }).join('');
-      html += `<div class="receipt-item" data-receipt='${JSON.stringify(rec)}'>
-        <div class="receipt-header">
-          <span class="receipt-id">${rec.transaction_id}</span>
-          <span class="receipt-date">${date}</span>
-          <span class="receipt-total">RM ${rec.total.toFixed(2)}</span>
-        </div>
-        <div class="receipt-details">
-          <div>🏬 Store: ${rec.store}</div>
-          <div>💳 Payment: ${rec.payment_method}</div>
-          <div>👤 Cashier: ${empName}</div>
-        </div>
-        <div class="receipt-items">${itemsHtml}</div>
-        <div class="receipt-actions">
-          <button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>🖨️ Reprint</button>
-          <button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>
-        </div>
-      </div>`;
+        return `${displayName} x${i.quantity}`;
+      }).join(', ');
+      const employeeName = getEmployeeName(rec.employee_id);
+      html += `<div class="receipt-item" data-receipt='${JSON.stringify(rec)}'><div class="receipt-header"><span class="receipt-id">${rec.transaction_id}</span><span class="receipt-date">${date}</span><span class="receipt-total">RM ${rec.total.toFixed(2)}</span></div><div class="receipt-details"><div>Store: ${rec.store} | Payment: ${rec.payment_method} | Employee: ${employeeName}</div><div>Items: ${itemsSummary}</div></div><div class="receipt-actions"><button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>🖨️ Reprint</button><button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button></div></div>`;
     });
     container.innerHTML = html;
     document.querySelectorAll('.reprint-btn').forEach(btn => { btn.addEventListener('click', (e) => { reprintReceipt(JSON.parse(btn.dataset.receipt)); e.stopPropagation(); }); });
@@ -1277,8 +1241,14 @@
     const transaction = { transaction_id: transactionId, items: saleItems, total: totalAmount, payment_method: paymentMethod, cash_received: cashReceived, timestamp: new Date().toISOString() };
     const success = await saveTransactionToSheet(transaction);
     if (success) {
-      if (window.printerAPI?.isConnected && window.printerAPI.printReceipt) await window.printerAPI.printReceipt(transaction);
-      else await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
+      // Print receipt if printer connected
+      if (window.printerAPI?.isConnected && window.printerAPI.printReceipt) {
+        // Add employee name to transaction for printing
+        const transactionWithName = { ...transaction, employee_name: currentEmployee.name };
+        await window.printerAPI.printReceipt(transactionWithName);
+      } else {
+        await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
+      }
       await showAlertModal('✅ Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
       document.getElementById('luckyTxId').innerText = transactionId;
       const luckyModal = document.getElementById('luckyDrawModal');
@@ -1398,6 +1368,7 @@
   document.getElementById('adminReportFromDate').addEventListener('change', updateAdminReport);
   document.getElementById('adminReportToDate').addEventListener('change', updateAdminReport);
 
+  // Toggle product details visibility
   const toggleBtn = document.getElementById('toggleProductDetailsBtn');
   const productDetailsContainer = document.getElementById('productDetailsContainer');
   toggleBtn.addEventListener('click', () => {
@@ -1405,7 +1376,9 @@
     if (productDetailsVisible) {
       productDetailsContainer.style.display = 'block';
       toggleBtn.innerText = '📦 Hide Product Details';
-      if (lastProductData) renderProductDetails(lastProductData);
+      if (lastProductData) {
+        renderProductDetails(lastProductData);
+      }
     } else {
       productDetailsContainer.style.display = 'none';
       toggleBtn.innerText = '📦 Show Product Details';
@@ -1451,112 +1424,30 @@
   });
   pinInput.addEventListener('input', () => { if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value); });
 
-  // Printer setup with improved receipt format
+  // Printer setup (updated to use employee name)
   (function setupPrinter() {
     let gattServer = null, printerCharacteristic = null, isConnected = false;
     const connectBtn = document.getElementById('connectPrinterButton'), printerStatusDiv = document.getElementById('printerStatus');
-    
-    function formatDateForReceipt(date) { 
-      const d = date.getDate().toString().padStart(2,'0'), m = (date.getMonth()+1).toString().padStart(2,'0'), y = date.getFullYear(), h = date.getHours().toString().padStart(2,'0'), min = date.getMinutes().toString().padStart(2,'0'); 
-      return `${d}/${m}/${y} ${h}:${min}`; 
-    }
-    
+    function formatDateForReceipt(date) { const d = date.getDate().toString().padStart(2,'0'), m = (date.getMonth()+1).toString().padStart(2,'0'), y = date.getFullYear(), h = date.getHours().toString().padStart(2,'0'), min = date.getMinutes().toString().padStart(2,'0'); return `${d}/${m}/${y} ${h}:${min}`; }
     function generateReceiptData(transaction) {
       const encoder = new TextEncoder();
-      const empName = getEmployeeName(transaction.employee_id);
-      const lines = [
-        '',
-        '     ╔════════════════════════════╗',
-        '     ║       ★ POS INVOICE ★      ║',
-        '     ╚════════════════════════════╝',
-        '---------------------------------',
-        `  Txn: ${transaction.transaction_id}`,
-        `  Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`,
-        `  Cashier: ${empName}`,
-        '---------------------------------',
-      ];
+      const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
+      const lines = ['', '    ★ POS INVOICE ★', '-----------------------------', `Txn: ${transaction.transaction_id}`, `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`, `Employee: ${employeeName}`, '-----------------------------'];
       let total = 0;
       for (let item of transaction.items) {
         const displayName = item.category ? `${item.category}: ${item.name}` : item.name;
-        const lineTotal = item.price * item.quantity;
-        total += lineTotal;
-        lines.push(`  ${displayName}`);
-        lines.push(`    ${item.quantity} x RM ${item.price.toFixed(2)} = RM ${lineTotal.toFixed(2)}`);
+        lines.push(`${displayName} x${item.quantity}`, `  ${item.price.toFixed(2)} x ${item.quantity} = RM ${(item.price * item.quantity).toFixed(2)}`);
+        total += item.price * item.quantity;
       }
-      lines.push('---------------------------------');
-      lines.push(`  TOTAL: RM ${total.toFixed(2)}`);
-      lines.push(`  Payment: ${transaction.payment_method}`);
-      if (transaction.cash_received) {
-        const change = transaction.cash_received - total;
-        lines.push(`  Cash: RM ${transaction.cash_received}`);
-        lines.push(`  Change: RM ${change.toFixed(2)}`);
-      }
-      lines.push('---------------------------------');
-      lines.push('    Thank you & come again!');
-      lines.push(' ');
+      lines.push('-----------------------------', `TOTAL: RM ${total.toFixed(2)}`, `Payment: ${transaction.payment_method}`);
+      if (transaction.cash_received) lines.push(`Cash: RM ${transaction.cash_received} | Change: RM ${(transaction.cash_received - total).toFixed(2)}`);
+      lines.push('-----------------------------', 'Thank you & come again!', '');
       const text = lines.join('\n');
-      // Add ESC/POS commands: reset, center, cut
       return new Uint8Array([0x1B, 0x40, 0x1B, 0x61, 0x01, ...encoder.encode(text), 0x1B, 0x64, 0x03, 0x1D, 0x56, 0x41, 0x00]);
     }
-    
-    async function printReceipt(transaction) { 
-      if (!isConnected || !printerCharacteristic) { printerStatusDiv.innerText = '❌ Printer not connected'; return false; } 
-      try { 
-        await printerCharacteristic.writeValue(generateReceiptData(transaction)); 
-        printerStatusDiv.innerText = '✅ Receipt printed'; 
-        return true; 
-      } catch (err) { 
-        console.error(err); 
-        printerStatusDiv.innerText = `❌ Print error`; 
-        return false; 
-      } 
-    }
-    
-    async function connectPrinter() { 
-      try { 
-        printerStatusDiv.innerText = '🔍 Scanning...'; 
-        connectBtn.disabled = true; 
-        const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] }); 
-        gattServer = await device.gatt.connect(); 
-        const services = await gattServer.getPrimaryServices(); 
-        let foundChar = null; 
-        for (const service of services) { 
-          const chars = await service.getCharacteristics(); 
-          for (const char of chars) { 
-            if (char.properties.write || char.properties.writeWithoutResponse) { 
-              foundChar = char; 
-              break; 
-            } 
-          } 
-          if (foundChar) break; 
-        } 
-        if (!foundChar) throw new Error('No writable characteristic'); 
-        printerCharacteristic = foundChar; 
-        isConnected = true; 
-        window.printerAPI.isConnected = true; 
-        printerStatusDiv.innerText = '✅ Printer ready'; 
-        connectBtn.innerText = '🔌 Disconnect'; 
-      } catch (err) { 
-        printerStatusDiv.innerText = `❌ ${err.message}`; 
-        gattServer = null; 
-        printerCharacteristic = null; 
-      } finally { 
-        connectBtn.disabled = false; 
-      } 
-    }
-    
-    async function disconnectPrinter() { 
-      if (gattServer) { 
-        gattServer.disconnect(); 
-        gattServer = null; 
-        printerCharacteristic = null; 
-      } 
-      isConnected = false; 
-      window.printerAPI.isConnected = false; 
-      printerStatusDiv.innerText = '⚪ Not connected'; 
-      connectBtn.innerText = '🖨️ Connect Printer'; 
-    }
-    
+    async function printReceipt(transaction) { if (!isConnected || !printerCharacteristic) { printerStatusDiv.innerText = '❌ Printer not connected'; return false; } try { await printerCharacteristic.writeValue(generateReceiptData(transaction)); printerStatusDiv.innerText = '✅ Receipt printed'; return true; } catch (err) { console.error(err); printerStatusDiv.innerText = `❌ Print error`; return false; } }
+    async function connectPrinter() { try { printerStatusDiv.innerText = '🔍 Scanning...'; connectBtn.disabled = true; const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] }); gattServer = await device.gatt.connect(); const services = await gattServer.getPrimaryServices(); let foundChar = null; for (const service of services) { const chars = await service.getCharacteristics(); for (const char of chars) { if (char.properties.write || char.properties.writeWithoutResponse) { foundChar = char; break; } } if (foundChar) break; } if (!foundChar) throw new Error('No writable characteristic'); printerCharacteristic = foundChar; isConnected = true; window.printerAPI.isConnected = true; printerStatusDiv.innerText = '✅ Printer ready'; connectBtn.innerText = '🔌 Disconnect'; } catch (err) { printerStatusDiv.innerText = `❌ ${err.message}`; gattServer = null; printerCharacteristic = null; } finally { connectBtn.disabled = false; } }
+    async function disconnectPrinter() { if (gattServer) { gattServer.disconnect(); gattServer = null; printerCharacteristic = null; } isConnected = false; window.printerAPI.isConnected = false; printerStatusDiv.innerText = '⚪ Not connected'; connectBtn.innerText = '🖨️ Connect Printer'; }
     connectBtn.addEventListener('click', () => { if (!isConnected) connectPrinter(); else disconnectPrinter(); });
     window.printerAPI = { isConnected: false, printReceipt: printReceipt };
   })();
