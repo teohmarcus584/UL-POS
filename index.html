@@ -529,7 +529,21 @@
     <span class="close-modal" id="closeAdminReportModal">×</span>
     <div class="modal-title">📊 Sales Report</div>
     <div class="report-filters">
-      <div class="filter-group" id="employeeFilterGroup" style="display: none;"><label>Employee</label><select id="adminReportEmployeeSelect"><option value="all">All Employees</option></select></div>
+      <!-- Store filter (only visible for admin) -->
+      <div class="filter-group" id="reportStoreFilterGroup" style="display: none;">
+        <label>Store</label>
+        <select id="adminReportStoreSelect">
+          <option value="all">All Stores</option>
+          <option value="queens">Queens</option>
+          <option value="sunshine">Sunshine</option>
+          <option value="gurney_paragon">Gurney Paragon</option>
+        </select>
+      </div>
+      <!-- Employee filter (only visible for admin) -->
+      <div class="filter-group" id="employeeFilterGroup" style="display: none;">
+        <label>Employee</label>
+        <select id="adminReportEmployeeSelect"><option value="all">All Employees</option></select>
+      </div>
       <div class="filter-group"><label>Date Range</label><select id="adminReportDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div>
       <div id="adminReportCustomDateRange" style="display: none;" class="date-range"><input type="date" id="adminReportFromDate"><input type="date" id="adminReportToDate"></div>
     </div>
@@ -712,13 +726,16 @@
           storeSelect.disabled = false;
         }
         
-        // Show/hide employee filter in report modal based on admin status
+        // Show/hide filters in report modal based on admin status
+        const reportStoreFilter = document.getElementById('reportStoreFilterGroup');
         const employeeFilterGroup = document.getElementById('employeeFilterGroup');
         const employeeChartContainer = document.getElementById('employeeChartContainer');
         if (currentEmployee.isAdmin) {
+          reportStoreFilter.style.display = 'flex';
           employeeFilterGroup.style.display = 'flex';
           employeeChartContainer.style.display = 'block';
         } else {
+          reportStoreFilter.style.display = 'none';
           employeeFilterGroup.style.display = 'none';
           employeeChartContainer.style.display = 'none';
         }
@@ -804,11 +821,11 @@
     });
   }
 
-  // Report functions – always use store = "all"
-  async function fetchSalesReport(employeeId, from, to) {
+  // Report functions – now accept store parameter
+  async function fetchSalesReport(store, employeeId, from, to) {
     showLoading('Loading report...');
     try {
-      let url = `${APPS_SCRIPT_URL}?action=getSalesReport&store=all&employeeId=${employeeId}`;
+      let url = `${APPS_SCRIPT_URL}?action=getSalesReport&store=${store}&employeeId=${employeeId}`;
       if (from) url += `&from=${encodeURIComponent(from)}`;
       if (to) url += `&to=${encodeURIComponent(to)}`;
       const response = await fetch(url);
@@ -824,9 +841,9 @@
     } catch (err) { console.error(err); await showAlertModal('Error', 'Failed to load report.'); } finally { hideLoading(); }
   }
 
-  async function fetchSalesChartData(employeeId, from, to) {
+  async function fetchSalesChartData(store, employeeId, from, to) {
     try {
-      let url = `${APPS_SCRIPT_URL}?action=getSalesChartData&store=all&employeeId=${employeeId}`;
+      let url = `${APPS_SCRIPT_URL}?action=getSalesChartData&store=${store}&employeeId=${employeeId}`;
       if (from) url += `&from=${encodeURIComponent(from)}`;
       if (to) url += `&to=${encodeURIComponent(to)}`;
       const response = await fetch(url);
@@ -871,9 +888,9 @@
     }
   }
 
-  async function fetchEmployeeSalesData(from, to) {
+  async function fetchEmployeeSalesData(store, from, to) {
     try {
-      let url = `${APPS_SCRIPT_URL}?action=getEmployeeSalesData&store=all`;
+      let url = `${APPS_SCRIPT_URL}?action=getEmployeeSalesData&store=${store}`;
       if (from) url += `&from=${encodeURIComponent(from)}`;
       if (to) url += `&to=${encodeURIComponent(to)}`;
       const response = await fetch(url);
@@ -911,9 +928,9 @@
   }
 
   // New: fetch product sales breakdown
-  async function fetchProductSalesReport(employeeId, from, to) {
+  async function fetchProductSalesReport(store, employeeId, from, to) {
     try {
-      let url = `${APPS_SCRIPT_URL}?action=getProductSalesReport&employeeId=${employeeId}`;
+      let url = `${APPS_SCRIPT_URL}?action=getProductSalesReport&store=${store}&employeeId=${employeeId}`;
       if (from) url += `&from=${encodeURIComponent(from)}`;
       if (to) url += `&to=${encodeURIComponent(to)}`;
       const response = await fetch(url);
@@ -956,11 +973,13 @@
   }
 
   async function updateAdminReport() {
-    // Determine employee ID based on admin status
-    let employeeId;
+    // Determine store and employee based on admin status
+    let store, employeeId;
     if (currentEmployee.isAdmin) {
+      store = document.getElementById('adminReportStoreSelect').value;
       employeeId = document.getElementById('adminReportEmployeeSelect').value;
     } else {
+      store = 'all'; // non-admin sees all stores (but only their own sales via employeeId)
       employeeId = currentEmployee.id;
     }
     
@@ -992,14 +1011,14 @@
     }
     
     // Fetch main report data and charts
-    await fetchSalesReport(employeeId, from, to);
-    await fetchSalesChartData(employeeId, from, to);
+    await fetchSalesReport(store, employeeId, from, to);
+    await fetchSalesChartData(store, employeeId, from, to);
     if (currentEmployee.isAdmin) {
-      await fetchEmployeeSalesData(from, to);
+      await fetchEmployeeSalesData(store, from, to);
     }
     
-    // Fetch product details (always for the current employee filter)
-    lastProductData = await fetchProductSalesReport(employeeId, from, to);
+    // Fetch product details
+    lastProductData = await fetchProductSalesReport(store, employeeId, from, to);
     if (productDetailsVisible) {
       renderProductDetails(lastProductData);
     }
@@ -1268,6 +1287,7 @@
   });
   document.getElementById('closeAdminReportBtn').addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
   document.getElementById('closeAdminReportModal').addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
+  document.getElementById('adminReportStoreSelect').addEventListener('change', updateAdminReport);
   document.getElementById('adminReportEmployeeSelect').addEventListener('change', updateAdminReport);
   document.getElementById('adminReportDateRangeSelect').addEventListener('change', (e) => { document.getElementById('adminReportCustomDateRange').style.display = e.target.value === 'custom' ? 'flex' : 'none'; updateAdminReport(); });
   document.getElementById('adminReportFromDate').addEventListener('change', updateAdminReport);
@@ -1283,13 +1303,6 @@
       toggleBtn.innerText = '📦 Hide Product Details';
       if (lastProductData) {
         renderProductDetails(lastProductData);
-      } else {
-        // If data not yet fetched, we can trigger a fetch (but it should already be loaded on report load)
-        if (lastProductData === undefined) {
-          // This shouldn't happen because updateAdminReport always fetches product data.
-          // But just in case, we can call updateAdminReport again to load.
-          updateAdminReport().then(() => renderProductDetails(lastProductData));
-        }
       }
     } else {
       productDetailsContainer.style.display = 'none';
