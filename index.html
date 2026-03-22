@@ -491,12 +491,13 @@
   </div>
 </div>
 
-<!-- Unified Report Modal (no store filter, only employee filter for admin) -->
+<!-- Unified Report Modal -->
 <div id="adminReportModal" class="modal-overlay">
   <div class="modal-container">
     <span class="close-modal" id="closeAdminReportModal">×</span>
     <div class="modal-title">📊 Sales Report</div>
     <div class="report-filters">
+      <!-- Employee filter only shown for admins -->
       <div class="filter-group" id="employeeFilterGroup" style="display: none;"><label>Employee</label><select id="adminReportEmployeeSelect"><option value="all">All Employees</option></select></div>
       <div class="filter-group"><label>Date Range</label><select id="adminReportDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div>
       <div id="adminReportCustomDateRange" style="display: none;" class="date-range"><input type="date" id="adminReportFromDate"><input type="date" id="adminReportToDate"></div>
@@ -510,7 +511,7 @@
       <div class="stat-item">Items Sold: <span id="adminReportTotalItems" class="stat-value">0</span></div>
     </div>
     <div class="chart-container"><canvas id="dayChart" width="400" height="200"></canvas></div>
-    <div class="chart-container"><canvas id="employeeChart" width="400" height="200"></canvas></div>
+    <div class="chart-container" id="employeeChartContainer"><canvas id="employeeChart" width="400" height="200"></canvas></div>
     <div class="modal-buttons"><button id="closeAdminReportBtn" class="modal-btn modal-btn-secondary">Close</button></div>
   </div>
 </div>
@@ -628,7 +629,7 @@
   document.getElementById('confirmStoreBtn').addEventListener('click', () => {
     selectedStore = document.getElementById('initialStoreSelect').value;
     currentStore = selectedStore;
-    storeSelect.value = selectedStore; // set the main store selector
+    storeSelect.value = selectedStore;
     document.getElementById('storeSelectModal').style.display = 'none';
     document.getElementById('loginModal').style.display = 'flex';
     document.getElementById('pinInput').focus();
@@ -656,10 +657,13 @@
         
         // Show/hide employee filter in report modal based on admin status
         const employeeFilterGroup = document.getElementById('employeeFilterGroup');
+        const employeeChartContainer = document.getElementById('employeeChartContainer');
         if (currentEmployee.isAdmin) {
           employeeFilterGroup.style.display = 'flex';
+          employeeChartContainer.style.display = 'block'; // show employee chart for admin
         } else {
           employeeFilterGroup.style.display = 'none';
+          employeeChartContainer.style.display = 'none'; // hide employee chart for non-admin
         }
         
         await populateSoldBySelect();
@@ -685,7 +689,6 @@
       const response = await fetch(url);
       const result = await response.json();
       if (result.success && Array.isArray(result.products)) {
-        // Sort alphabetically by name (case-insensitive)
         products = result.products
           .map(p => ({ id: p.id, name: p.name, price: parseFloat(p.price), stock: parseInt(p.stock) || 0, category: p.category || "Uncategorized" }))
           .sort((a, b) => a.name.localeCompare(b.name));
@@ -858,8 +861,15 @@
   }
 
   function updateAdminReport() {
-    let employeeId = document.getElementById('adminReportEmployeeSelect').value;
-    if (!currentEmployee.isAdmin) employeeId = 'all';
+    // Determine employee ID based on admin status
+    let employeeId;
+    if (currentEmployee.isAdmin) {
+      employeeId = document.getElementById('adminReportEmployeeSelect').value;
+    } else {
+      // Non‑admin: show only their own sales
+      employeeId = currentEmployee.id;
+    }
+    
     const range = document.getElementById('adminReportDateRangeSelect').value;
     let from = null, to = null;
     const today = new Date();
@@ -886,9 +896,14 @@
       to = document.getElementById('adminReportToDate').value;
       if (!from || !to) return;
     }
+    
     fetchSalesReport(employeeId, from, to);
     fetchSalesChartData(employeeId, from, to);
-    fetchEmployeeSalesData(from, to);
+    
+    // For admins, also load employee chart (shows all employees)
+    if (currentEmployee.isAdmin) {
+      fetchEmployeeSalesData(from, to);
+    }
   }
 
   // Receipts (unchanged)
@@ -932,7 +947,7 @@
 
   function openLuckyDraw(transactionId) { window.open(`https://teohmarcus584.github.io/LUCKYDRAW/?receipt=${encodeURIComponent(transactionId)}`, '_blank'); }
 
-  // Cart functions
+  // Cart functions (unchanged)
   function updateCartUI() {
     if (!cartContainer) return;
     if (cart.length === 0) { cartContainer.innerHTML = '<div style="color:#94a3b8; text-align:center;">Cart is empty</div>'; subtotalSpan.innerText = `RM 0.00`; totalSpan.innerText = `RM 0.00`; return; }
@@ -1028,7 +1043,6 @@
     document.getElementById('paymentModal').style.display = 'none';
     const totalAmount = pendingTransaction.totalAmount;
     const transactionId = `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    // Include category in each sale item
     const saleItems = cart.map(item => ({ 
       id: item.product.id, 
       category: item.product.category,
@@ -1171,7 +1185,7 @@
   document.getElementById('receiptsSearch').addEventListener('input', updateReceipts);
 
   storeSelect.addEventListener('change', async () => { 
-    if (!storeSelect.disabled) { // only allow change if not disabled (admin)
+    if (!storeSelect.disabled) {
       currentStore = storeSelect.value; 
       await fetchProductsFromSheet(); 
       clearCart(); 
@@ -1199,7 +1213,7 @@
   });
   pinInput.addEventListener('input', () => { if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value); });
 
-  // Printer setup (unchanged except receipt format)
+  // Printer setup (unchanged)
   (function setupPrinter() {
     let gattServer = null, printerCharacteristic = null, isConnected = false;
     const connectBtn = document.getElementById('connectPrinterButton'), printerStatusDiv = document.getElementById('printerStatus');
