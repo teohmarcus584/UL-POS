@@ -512,9 +512,8 @@
         
         // If employee has an assigned store
         if (currentEmployee.store && currentEmployee.store !== '') {
-          // Match case-insensitively and set to the lowercase value used in options
-          const storeOpt = Array.from(storeSelect.options).find(opt => opt.value.toLowerCase() === currentEmployee.store.toLowerCase());
-          if (storeOpt) storeSelect.value = storeOpt.value;
+          const storeOpt = Array.from(storeSelect.options).find(opt => opt.value === currentEmployee.store);
+          if (storeOpt) storeSelect.value = currentEmployee.store;
           currentStore = storeSelect.value;
         }
         
@@ -1006,10 +1005,9 @@
     populateStoreSelects();
     const modal = document.getElementById('adminReportModal');
     const storeSelect = document.getElementById('adminReportStoreSelect');
-    // For non-admin, set store to their assigned store (case-insensitive) and disable
+    // For non-admin, set store to their assigned store and disable
     if (!currentEmployee.isAdmin && currentEmployee.store) {
-      const matchedOption = Array.from(storeSelect.options).find(opt => opt.value.toLowerCase() === currentEmployee.store.toLowerCase());
-      if (matchedOption) storeSelect.value = matchedOption.value;
+      storeSelect.value = currentEmployee.store;
       storeSelect.disabled = true;
     } else {
       storeSelect.disabled = false;
