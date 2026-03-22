@@ -491,13 +491,12 @@
   </div>
 </div>
 
-<!-- Unified Report Modal -->
+<!-- Unified Report Modal (no store filter, only employee filter for admin) -->
 <div id="adminReportModal" class="modal-overlay">
   <div class="modal-container">
     <span class="close-modal" id="closeAdminReportModal">×</span>
     <div class="modal-title">📊 Sales Report</div>
     <div class="report-filters">
-      <div class="filter-group"><label>Store</label><select id="adminReportStoreSelect"><option value="all">All Stores</option></select></div>
       <div class="filter-group" id="employeeFilterGroup" style="display: none;"><label>Employee</label><select id="adminReportEmployeeSelect"><option value="all">All Employees</option></select></div>
       <div class="filter-group"><label>Date Range</label><select id="adminReportDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div>
       <div id="adminReportCustomDateRange" style="display: none;" class="date-range"><input type="date" id="adminReportFromDate"><input type="date" id="adminReportToDate"></div>
@@ -510,7 +509,6 @@
       <div class="stat-item">Transactions: <span id="adminReportTransactionCount" class="stat-value">0</span></div>
       <div class="stat-item">Items Sold: <span id="adminReportTotalItems" class="stat-value">0</span></div>
     </div>
-    <div class="chart-container"><canvas id="storeChart" width="400" height="200"></canvas></div>
     <div class="chart-container"><canvas id="dayChart" width="400" height="200"></canvas></div>
     <div class="chart-container"><canvas id="employeeChart" width="400" height="200"></canvas></div>
     <div class="modal-buttons"><button id="closeAdminReportBtn" class="modal-btn modal-btn-secondary">Close</button></div>
@@ -649,9 +647,7 @@
         document.getElementById('loginModal').style.display = 'none';
         document.getElementById('mainContent').style.display = 'block';
         
-        // IMPORTANT: Do NOT override currentStore with employee's assigned store.
-        // Keep the store that was initially selected.
-        // However, if the employee is non-admin, we disable the store dropdown.
+        // Keep the initially selected store; only disable dropdown for non-admin
         if (!currentEmployee.isAdmin) {
           storeSelect.disabled = true;
         } else {
@@ -748,11 +744,11 @@
     });
   }
 
-  // Report functions (unchanged)
-  async function fetchSalesReport(store, employeeId, from, to) {
+  // Report functions – always use store = "all"
+  async function fetchSalesReport(employeeId, from, to) {
     showLoading('Loading report...');
     try {
-      let url = `${APPS_SCRIPT_URL}?action=getSalesReport&store=${store}&employeeId=${employeeId}`;
+      let url = `${APPS_SCRIPT_URL}?action=getSalesReport&store=all&employeeId=${employeeId}`;
       if (from) url += `&from=${encodeURIComponent(from)}`;
       if (to) url += `&to=${encodeURIComponent(to)}`;
       const response = await fetch(url);
@@ -768,9 +764,9 @@
     } catch (err) { console.error(err); await showAlertModal('Error', 'Failed to load report.'); } finally { hideLoading(); }
   }
 
-  async function fetchSalesChartData(store, employeeId, from, to) {
+  async function fetchSalesChartData(employeeId, from, to) {
     try {
-      let url = `${APPS_SCRIPT_URL}?action=getSalesChartData&store=${store}&employeeId=${employeeId}`;
+      let url = `${APPS_SCRIPT_URL}?action=getSalesChartData&store=all&employeeId=${employeeId}`;
       if (from) url += `&from=${encodeURIComponent(from)}`;
       if (to) url += `&to=${encodeURIComponent(to)}`;
       const response = await fetch(url);
@@ -815,9 +811,9 @@
     }
   }
 
-  async function fetchEmployeeSalesData(store, from, to) {
+  async function fetchEmployeeSalesData(from, to) {
     try {
-      let url = `${APPS_SCRIPT_URL}?action=getEmployeeSalesData&store=${store}`;
+      let url = `${APPS_SCRIPT_URL}?action=getEmployeeSalesData&store=all`;
       if (from) url += `&from=${encodeURIComponent(from)}`;
       if (to) url += `&to=${encodeURIComponent(to)}`;
       const response = await fetch(url);
@@ -862,7 +858,6 @@
   }
 
   function updateAdminReport() {
-    let store = document.getElementById('adminReportStoreSelect').value;
     let employeeId = document.getElementById('adminReportEmployeeSelect').value;
     if (!currentEmployee.isAdmin) employeeId = 'all';
     const range = document.getElementById('adminReportDateRangeSelect').value;
@@ -891,12 +886,12 @@
       to = document.getElementById('adminReportToDate').value;
       if (!from || !to) return;
     }
-    fetchSalesReport(store, employeeId, from, to);
-    fetchSalesChartData(store, employeeId, from, to);
-    fetchEmployeeSalesData(store, from, to);
+    fetchSalesReport(employeeId, from, to);
+    fetchSalesChartData(employeeId, from, to);
+    fetchEmployeeSalesData(from, to);
   }
 
-  // Receipts
+  // Receipts (unchanged)
   async function fetchReceipts(store, employeeId, from, to, search) {
     showLoading('Loading receipts...');
     try {
@@ -1108,15 +1103,11 @@
 
   function populateStoreSelects() {
     const stores = Array.from(storeSelect.options).map(opt => ({ value: opt.value, text: opt.text }));
-    const adminReportStore = document.getElementById('adminReportStoreSelect');
     const receiptsStore = document.getElementById('receiptsStoreSelect');
-    adminReportStore.innerHTML = '<option value="all">All Stores</option>';
     receiptsStore.innerHTML = '<option value="all">All Stores</option>';
     stores.forEach(s => {
-      const opt1 = document.createElement('option'); opt1.value = s.value; opt1.textContent = s.text;
-      const opt2 = document.createElement('option'); opt2.value = s.value; opt2.textContent = s.text;
-      adminReportStore.appendChild(opt1);
-      receiptsStore.appendChild(opt2);
+      const opt = document.createElement('option'); opt.value = s.value; opt.textContent = s.text;
+      receiptsStore.appendChild(opt);
     });
   }
 
@@ -1159,19 +1150,11 @@
     await populateEmployeeSelects();
     populateStoreSelects();
     const modal = document.getElementById('adminReportModal');
-    const storeSelect = document.getElementById('adminReportStoreSelect');
-    if (!currentEmployee.isAdmin && currentEmployee.store) {
-      storeSelect.value = currentEmployee.store;
-      storeSelect.disabled = true;
-    } else {
-      storeSelect.disabled = false;
-    }
     modal.style.display = 'flex';
     setTimeout(() => { updateAdminReport(); }, 200);
   });
   document.getElementById('closeAdminReportBtn').addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
   document.getElementById('closeAdminReportModal').addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
-  document.getElementById('adminReportStoreSelect').addEventListener('change', updateAdminReport);
   document.getElementById('adminReportEmployeeSelect').addEventListener('change', updateAdminReport);
   document.getElementById('adminReportDateRangeSelect').addEventListener('change', (e) => { document.getElementById('adminReportCustomDateRange').style.display = e.target.value === 'custom' ? 'flex' : 'none'; updateAdminReport(); });
   document.getElementById('adminReportFromDate').addEventListener('change', updateAdminReport);
