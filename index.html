@@ -429,7 +429,7 @@
   </div>
 </div>
 
-<!-- Non‑admin "My Sales" Report Modal -->
+<!-- Non‑admin "My Sales" Report Modal (with chart) -->
 <div id="mySalesReportModal" class="modal-overlay">
   <div class="modal-container">
     <div class="modal-title">📊 My Sales</div>
@@ -459,6 +459,9 @@
       <div class="stat-item breakdown">📱 Other: <span id="mySalesReportOtherTotal" class="stat-value">RM 0.00</span></div>
       <div class="stat-item">Transactions: <span id="mySalesReportTransactionCount" class="stat-value">0</span></div>
       <div class="stat-item">Items Sold: <span id="mySalesReportTotalItems" class="stat-value">0</span></div>
+    </div>
+    <div class="chart-container">
+      <canvas id="mySalesChart" width="400" height="200"></canvas>
     </div>
     <div class="modal-buttons">
       <button id="closeMySalesReportBtn" class="modal-btn modal-btn-secondary">Close</button>
@@ -511,13 +514,14 @@
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw1x0Fy1jGXXdq8GEb8p5fkWMs_M0oltWFSfmth1xWEfZAni016EFTmDKMIMCAA84uw6g/exec"; // Replace with your web app URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyDxry3Gqd1pYsua3JwZVHLGUyJbOIFzcIo4shEZF6xHbXI2eHtZ4s0koNF897jssmmuA/exec"; // Replace with your web app URL
   let products = [];
   let cart = [];
   let currentStore = "queens";
   let currentEmployee = null;
   let storeChart = null;
   let dayChart = null;
+  let mySalesChart = null;
   let pendingTransaction = null;
 
   const productGridEl = document.getElementById('productGrid');
@@ -604,6 +608,12 @@
           const storeOpt = Array.from(storeSelect.options).find(opt => opt.value === currentEmployee.store);
           if (storeOpt) storeSelect.value = currentEmployee.store;
           currentStore = storeSelect.value;
+          // Also set the My Sales store dropdown to this store and disable it
+          const mySalesStoreSelect = document.getElementById('mySalesReportStoreSelect');
+          if (mySalesStoreSelect) {
+            mySalesStoreSelect.value = currentEmployee.store;
+            mySalesStoreSelect.disabled = true;
+          }
         }
         const isAdmin = currentEmployee.isAdmin;
         if (isAdmin) {
@@ -812,6 +822,40 @@
         });
       } else {
         console.warn('Chart data error');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function fetchMySalesChartData(store, employeeId, from, to) {
+    try {
+      let url = `${APPS_SCRIPT_URL}?action=getSalesChartData&store=${store}&employeeId=${employeeId}`;
+      if (from) url += `&from=${encodeURIComponent(from)}`;
+      if (to) url += `&to=${encodeURIComponent(to)}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        if (mySalesChart) mySalesChart.destroy();
+        const ctx = document.getElementById('mySalesChart').getContext('2d');
+        mySalesChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: result.salesByDay.labels,
+            datasets: [{
+              label: 'My Sales (RM)',
+              data: result.salesByDay.data,
+              backgroundColor: 'rgba(75, 192, 192, 0.6)',
+              borderColor: 'rgba(75, 192, 192, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } }
+          }
+        });
       }
     } catch (err) {
       console.error(err);
@@ -1223,6 +1267,7 @@
       if (!from || !to) return;
     }
     fetchSalesReport(store, employeeId, from, to, 'nonAdmin');
+    fetchMySalesChartData(store, employeeId, from, to);
   }
 
   function updateReceipts() {
