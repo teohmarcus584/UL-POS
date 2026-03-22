@@ -511,7 +511,7 @@
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzSQDCsLWkA8k95N1x8sPa84GX--I6h2AhZrBVIJMfPwzqX70oIHMG5z2GOEbzAytPvMA/exec"; // Replace with your web app URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw1x0Fy1jGXXdq8GEb8p5fkWMs_M0oltWFSfmth1xWEfZAni016EFTmDKMIMCAA84uw6g/exec"; // Replace with your web app URL
   let products = [];
   let cart = [];
   let currentStore = "queens";
@@ -529,7 +529,7 @@
   const storeSelect = document.getElementById('storeSelect');
   const soldBySelect = document.getElementById('soldBySelect');
 
-  // Modal helpers (unchanged)
+  // Modal helpers
   function showAlertModal(title, message) {
     return new Promise((resolve) => {
       const overlay = document.getElementById('alertModal');
@@ -1167,7 +1167,7 @@
 
   function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){ if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; return m;}); }
 
-  // Report functions (unchanged)
+  // Report functions
   function updateAdminReport() {
     const store = document.getElementById('adminReportStoreSelect').value;
     const employeeId = document.getElementById('adminReportEmployeeSelect').value;
@@ -1404,7 +1404,7 @@
     }
   });
 
-  // Printer setup (unchanged)
+  // Printer setup
   (function setupPrinter() {
     let gattServer = null;
     let printerCharacteristic = null;
