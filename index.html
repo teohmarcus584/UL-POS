@@ -61,12 +61,33 @@
     .employee-bar {
       background: white; border-radius: 28px; padding: 10px 20px; margin-bottom: 20px;
       display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
     .employee-info { font-weight: 500; color: #0f172a; }
-    .logout-btn {
-      background: #ef4444; border: none; border-radius: 40px; padding: 6px 16px;
-      color: white; font-size: 0.8rem; cursor: pointer;
+    .employee-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .logout-btn, .drawer-btn {
+      background: #ef4444;
+      border: none;
+      border-radius: 40px;
+      padding: 6px 16px;
+      color: white;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .drawer-btn {
+      background: #f59e0b;
+    }
+    .drawer-btn:hover { background: #d97706; }
+    .drawer-btn:disabled {
+      background: #cbd5e1;
+      cursor: not-allowed;
+      opacity: 0.6;
     }
     .logout-btn:hover { background: #dc2626; }
     .store-selector {
@@ -433,7 +454,10 @@
 
   <div class="employee-bar">
     <span class="employee-info">👤 Cashier: <span id="employeeName"></span></span>
-    <button id="logoutButton" class="logout-btn">Logout</button>
+    <div class="employee-actions">
+      <button id="openDrawerBtn" class="drawer-btn" disabled>💰 Open Drawer</button>
+      <button id="logoutButton" class="logout-btn">Logout</button>
+    </div>
   </div>
 
   <div class="store-selector">
@@ -582,10 +606,10 @@
                 <th>Category</th>
                 <th style="text-align: right;">Qty Sold</th>
                 <th style="text-align: right;">Total (RM)</th>
-               </tr>
+                </tr>
             </thead>
             <tbody id="productDetailsBody">
-               <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
+              <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
             </tbody>
           </table>
         </div>
@@ -1424,10 +1448,12 @@
   });
   pinInput.addEventListener('input', () => { if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value); });
 
-  // Printer setup with cash drawer support and receipt cut
+  // Printer setup with cash drawer support and receipt cut, plus open drawer button
   (function setupPrinter() {
     let gattServer = null, printerCharacteristic = null, isConnected = false;
     const connectBtn = document.getElementById('connectPrinterButton'), printerStatusDiv = document.getElementById('printerStatus');
+    const openDrawerBtn = document.getElementById('openDrawerBtn');
+    
     function formatDateForReceipt(date) { const d = date.getDate().toString().padStart(2,'0'), m = (date.getMonth()+1).toString().padStart(2,'0'), y = date.getFullYear(), h = date.getHours().toString().padStart(2,'0'), min = date.getMinutes().toString().padStart(2,'0'); return `${d}/${m}/${y} ${h}:${min}`; }
     
     // Generate receipt data with optional cash drawer open
@@ -1459,7 +1485,7 @@
       // Full cut (GS V A 0)
       commands.push(0x1D, 0x56, 0x41, 0x00);
       
-      // If cash transaction, add cash drawer kick command before the cut (or after receipt)
+      // If cash transaction, add cash drawer kick command before the cut
       if (openDrawer) {
         // Standard ESC/POS cash drawer kick: ESC p m t1 t2
         // Often m=0, t1=0x19, t2=0xFA (pulse 25ms on, 250ms off)
@@ -1469,6 +1495,28 @@
       }
       
       return new Uint8Array(commands);
+    }
+    
+    // Open cash drawer only (no receipt)
+    async function openCashDrawer() {
+      if (!isConnected || !printerCharacteristic) {
+        printerStatusDiv.innerText = '❌ Printer not connected';
+        return false;
+      }
+      try {
+        // Just send the drawer kick command
+        const drawerCommand = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]);
+        await printerCharacteristic.writeValue(drawerCommand);
+        printerStatusDiv.innerText = '💰 Drawer opened';
+        setTimeout(() => {
+          if (isConnected) printerStatusDiv.innerText = '✅ Printer ready';
+        }, 2000);
+        return true;
+      } catch (err) {
+        console.error(err);
+        printerStatusDiv.innerText = `❌ Drawer error`;
+        return false;
+      }
     }
     
     async function printReceipt(transaction) { 
@@ -1512,7 +1560,8 @@
         isConnected = true; 
         window.printerAPI.isConnected = true; 
         printerStatusDiv.innerText = '✅ Printer ready'; 
-        connectBtn.innerText = '🔌 Disconnect'; 
+        connectBtn.innerText = '🔌 Disconnect';
+        openDrawerBtn.disabled = false;
       } catch (err) { 
         printerStatusDiv.innerText = `❌ ${err.message}`; 
         gattServer = null; 
@@ -1531,13 +1580,23 @@
       isConnected = false; 
       window.printerAPI.isConnected = false; 
       printerStatusDiv.innerText = '⚪ Not connected'; 
-      connectBtn.innerText = '🖨️ Connect Printer'; 
+      connectBtn.innerText = '🖨️ Connect Printer';
+      openDrawerBtn.disabled = true;
     }
     
     connectBtn.addEventListener('click', () => { 
       if (!isConnected) connectPrinter(); 
       else disconnectPrinter(); 
     });
+    
+    openDrawerBtn.addEventListener('click', async () => {
+      if (!isConnected) {
+        await showAlertModal('Printer not connected', 'Please connect a printer first.');
+        return;
+      }
+      await openCashDrawer();
+    });
+    
     window.printerAPI = { isConnected: false, printReceipt: printReceipt };
   })();
 </script>
