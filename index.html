@@ -73,7 +73,8 @@
     .logout-btn:hover { background: #dc2626; }
     .store-selector {
       background: white; border-radius: 28px; padding: 12px 20px; margin-bottom: 20px;
-      display: flex; justify-content: space-between; align-items: center;
+      display: flex; justify-content: space-between;
+      align-items: center;
       flex-wrap: wrap;
       gap: 12px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
@@ -379,7 +380,7 @@
   </div>
 </div>
 
-<!-- My Sales Report Modal (with store total) -->
+<!-- My Sales Report Modal -->
 <div id="mySalesReportModal" class="modal-overlay">
   <div class="modal-container">
     <div class="modal-title">📊 My Sales</div>
@@ -426,7 +427,7 @@
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRVmWF_gwHOimAa4gMgraMCkkTfPVGo2zQWRYontyYb2tLf6IoT2Gd7ASSTjZvaCXFIg/exec";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRVmWF_gwHOimAa4gMgraMCkkTfPVGo2zQWRYontyYb2tLf6IoT2Gd7ASSTjZvaCXFIg/exec"; // Replace with your actual web app URL
   let products = [], cart = [], currentStore = "queens", currentEmployee = null;
   let storeChart = null, dayChart = null, mySalesChart = null, storeEmployeesChart = null;
   let pendingTransaction = null;
@@ -514,7 +515,6 @@
         const employeeStore = currentEmployee.store;
         
         if (!isAdmin && employeeStore && employeeStore !== '') {
-          // Non-admin: lock store to their assigned store
           const storeOpt = Array.from(storeSelect.options).find(opt => opt.value === employeeStore);
           if (storeOpt) {
             storeSelect.value = employeeStore;
@@ -522,14 +522,12 @@
           }
           currentStore = employeeStore;
           
-          // Also set My Sales store dropdown
           const mySalesStoreSelect = document.getElementById('mySalesReportStoreSelect');
           if (mySalesStoreSelect) {
             mySalesStoreSelect.value = employeeStore;
             mySalesStoreSelect.disabled = true;
           }
         } else if (isAdmin) {
-          // Admin: store select remains enabled
           storeSelect.disabled = false;
         }
         
@@ -558,13 +556,26 @@
       const response = await fetch(url);
       const result = await response.json();
       if (result.success && Array.isArray(result.products)) {
-        products = result.products.map(p => ({ id: p.id, name: p.name, price: parseFloat(p.price), stock: parseInt(p.stock) || 0, category: p.category || "Uncategorized" }));
+        products = result.products.map(p => ({ 
+          id: p.id, 
+          name: p.name, 
+          price: parseFloat(p.price), 
+          stock: parseInt(p.stock) || 0, 
+          category: p.category || "Uncategorized" 
+        }));
         const categories = [...new Set(products.map(p => p.category))].sort();
         categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
-        categories.forEach(cat => { const option = document.createElement('option'); option.value = cat; option.textContent = cat; categorySelect.appendChild(option); });
+        categories.forEach(cat => { 
+          const option = document.createElement('option'); 
+          option.value = cat; 
+          option.textContent = cat; 
+          categorySelect.appendChild(option); 
+        });
         renderProductGrid();
         return true;
-      } else throw new Error('Invalid data format');
+      } else {
+        throw new Error('Invalid data format');
+      }
     } catch (err) {
       console.error(err);
       await showAlertModal('Error', 'Failed to load products. Check URL & sheet.');
@@ -709,10 +720,29 @@
       if (result.success) {
         if (storeChart) storeChart.destroy();
         if (dayChart) dayChart.destroy();
-        const storeCtx = document.getElementById('storeChart').getContext('2d');
-        storeChart = new Chart(storeCtx, { type: 'bar', data: { labels: result.salesByStore.labels, datasets: [{ label: 'Sales (RM)', data: result.salesByStore.data, backgroundColor: 'rgba(54,162,235,0.6)', borderColor: 'rgba(54,162,235,1)', borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } } });
+        
+        // For admin report, we need store breakdown
+        if (result.salesByStore) {
+          const storeCtx = document.getElementById('storeChart').getContext('2d');
+          storeChart = new Chart(storeCtx, { 
+            type: 'bar', 
+            data: { 
+              labels: result.salesByStore.labels, 
+              datasets: [{ label: 'Sales (RM)', data: result.salesByStore.data, backgroundColor: 'rgba(54,162,235,0.6)', borderColor: 'rgba(54,162,235,1)', borderWidth: 1 }] 
+            }, 
+            options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } } 
+          });
+        }
+        
         const dayCtx = document.getElementById('dayChart').getContext('2d');
-        dayChart = new Chart(dayCtx, { type: 'bar', data: { labels: result.salesByDay.labels, datasets: [{ label: 'Sales (RM)', data: result.salesByDay.data, backgroundColor: 'rgba(75,192,192,0.6)', borderColor: 'rgba(75,192,192,1)', borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } } });
+        dayChart = new Chart(dayCtx, { 
+          type: 'bar', 
+          data: { 
+            labels: result.salesByDay.labels, 
+            datasets: [{ label: 'Sales (RM)', data: result.salesByDay.data, backgroundColor: 'rgba(75,192,192,0.6)', borderColor: 'rgba(75,192,192,1)', borderWidth: 1 }] 
+          }, 
+          options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } } 
+        });
       }
     } catch (err) { console.error(err); }
   }
