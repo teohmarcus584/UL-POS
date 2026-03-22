@@ -369,6 +369,7 @@
     </div>
     <div class="chart-container"><canvas id="storeChart" width="400" height="200"></canvas></div>
     <div class="chart-container"><canvas id="dayChart" width="400" height="200"></canvas></div>
+    <div class="chart-container"><canvas id="employeeChart" width="400" height="200"></canvas></div>
     <div class="modal-buttons"><button id="closeAdminReportBtn" class="modal-btn modal-btn-secondary">Close</button></div>
   </div>
 </div>
@@ -396,7 +397,7 @@
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxIFTiszA4JBjU0jHRGwK43YtdDf6CJufCvudxTwDcTMgIhU1B2Qtcrpv8GR9K8ImFE6Q/exec";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyX5pMcoq_WsXbC7XWKJzYJcX30iw_-ZsvNa2vYmN2ARcAOiG4OUMyAQSskKnq93Xickw/exec";
   let products = [], cart = [], currentStore = "queens", currentEmployee = null;
 
   const productGridEl = document.getElementById('productGrid');
@@ -662,6 +663,45 @@
     }
   }
 
+  async function fetchEmployeeSalesData(store, from, to) {
+    try {
+      let url = `${APPS_SCRIPT_URL}?action=getEmployeeSalesData&store=${store}`;
+      if (from) url += `&from=${encodeURIComponent(from)}`;
+      if (to) url += `&to=${encodeURIComponent(to)}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        const employeeCanvas = document.getElementById('employeeChart');
+        if (!employeeCanvas) return;
+        if (window.employeeChart && typeof window.employeeChart.destroy === 'function') {
+          window.employeeChart.destroy();
+          window.employeeChart = null;
+        }
+        const labels = result.labels || [];
+        const data = result.data || [];
+        if (labels.length === 0) {
+          employeeCanvas.style.display = 'none';
+          return;
+        }
+        employeeCanvas.style.display = 'block';
+        const ctx = employeeCanvas.getContext('2d');
+        window.employeeChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{ label: 'Sales (RM)', data: data, backgroundColor: 'rgba(255,99,132,0.6)', borderColor: 'rgba(255,99,132,1)', borderWidth: 1 }]
+          },
+          options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } }
+        });
+      } else {
+        console.error('Employee sales data error:', result);
+      }
+    } catch (err) {
+      console.error('fetchEmployeeSalesData error:', err);
+    }
+  }
+
   function updateAdminReport() {
     const store = document.getElementById('adminReportStoreSelect').value;
     let employeeId = document.getElementById('adminReportEmployeeSelect').value;
@@ -677,6 +717,7 @@
     else if (range === 'custom') { from = document.getElementById('adminReportFromDate').value; to = document.getElementById('adminReportToDate').value; if (!from || !to) return; }
     fetchSalesReport(store, employeeId, from, to);
     fetchSalesChartData(store, employeeId, from, to);
+    fetchEmployeeSalesData(store, from, to);
   }
 
   // Receipts
