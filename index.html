@@ -384,7 +384,7 @@
   <div class="modal-container">
     <div class="modal-title">📊 My Sales</div>
     <div class="report-filters">
-      <div class="filter-group"><label>Store</label><select id="mySalesReportStoreSelect"><option value="all">All Stores</option></select></div>
+      <div class="filter-group"><label>Store</label><select id="mySalesReportStoreSelect" disabled><option value="">Loading...</option></select></div>
       <div class="filter-group"><label>Date Range</label><select id="mySalesReportDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div>
       <div id="mySalesReportCustomDateRange" style="display: none;" class="date-range"><input type="date" id="mySalesReportFromDate"><input type="date" id="mySalesReportToDate"></div>
     </div>
@@ -426,7 +426,7 @@
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyUI1oWHUXgs1P57m5VzAI1pzf2QVvutFgLC25F47-_1xuXWkyymEaWnplCS3WYGj4LjA/exec";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxCtkHtRcTCpi-_j-V9T1vgljze4yOaO2dH_DP98XcFsLZ6ZSiAZWPTdaEV9bn310dL/exec";
   let products = [], cart = [], currentStore = "queens", currentEmployee = null;
   let storeChart = null, dayChart = null, mySalesChart = null, storeEmployeesChart = null;
   let pendingTransaction = null;
@@ -509,20 +509,33 @@
         document.getElementById('employeeName').innerText = currentEmployee.name;
         document.getElementById('loginModal').style.display = 'none';
         document.getElementById('mainContent').style.display = 'block';
-        if (currentEmployee.store && currentEmployee.store !== '') {
-          const storeOpt = Array.from(storeSelect.options).find(opt => opt.value === currentEmployee.store);
-          if (storeOpt) storeSelect.value = currentEmployee.store;
-          currentStore = storeSelect.value;
-          // Set My Sales store dropdown and disable it for non-admin
+        
+        const isAdmin = currentEmployee.isAdmin;
+        const employeeStore = currentEmployee.store;
+        
+        if (!isAdmin && employeeStore && employeeStore !== '') {
+          // Non-admin: lock store to their assigned store
+          const storeOpt = Array.from(storeSelect.options).find(opt => opt.value === employeeStore);
+          if (storeOpt) {
+            storeSelect.value = employeeStore;
+            storeSelect.disabled = true;
+          }
+          currentStore = employeeStore;
+          
+          // Also set My Sales store dropdown
           const mySalesStoreSelect = document.getElementById('mySalesReportStoreSelect');
           if (mySalesStoreSelect) {
-            mySalesStoreSelect.value = currentEmployee.store;
+            mySalesStoreSelect.value = employeeStore;
             mySalesStoreSelect.disabled = true;
           }
+        } else if (isAdmin) {
+          // Admin: store select remains enabled
+          storeSelect.disabled = false;
         }
-        const isAdmin = currentEmployee.isAdmin;
+        
         document.getElementById('adminReportContainer').style.display = isAdmin ? 'block' : 'none';
         document.getElementById('nonAdminReportContainer').style.display = isAdmin ? 'none' : 'block';
+        
         await populateSoldBySelect();
         await fetchProductsFromSheet();
         updateCartUI();
