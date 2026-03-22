@@ -342,6 +342,38 @@
       margin-top: 16px;
       font-weight: 500;
     }
+    .modal-section {
+      margin-top: 24px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 16px;
+    }
+    .product-details-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    .product-details-table th,
+    .product-details-table td {
+      padding: 10px 8px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .product-details-table th {
+      background: #f1f5f9;
+      position: sticky;
+      top: 0;
+      font-weight: 600;
+    }
+    .product-details-table tr:hover {
+      background: #f8fafc;
+    }
+    .product-details-table td:last-child,
+    .product-details-table th:last-child {
+      text-align: right;
+    }
+    .product-details-table td:nth-child(3) {
+      text-align: right;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -497,7 +529,6 @@
     <span class="close-modal" id="closeAdminReportModal">×</span>
     <div class="modal-title">📊 Sales Report</div>
     <div class="report-filters">
-      <!-- Employee filter only shown for admins -->
       <div class="filter-group" id="employeeFilterGroup" style="display: none;"><label>Employee</label><select id="adminReportEmployeeSelect"><option value="all">All Employees</option></select></div>
       <div class="filter-group"><label>Date Range</label><select id="adminReportDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div>
       <div id="adminReportCustomDateRange" style="display: none;" class="date-range"><input type="date" id="adminReportFromDate"><input type="date" id="adminReportToDate"></div>
@@ -512,6 +543,30 @@
     </div>
     <div class="chart-container"><canvas id="dayChart" width="400" height="200"></canvas></div>
     <div class="chart-container" id="employeeChartContainer"><canvas id="employeeChart" width="400" height="200"></canvas></div>
+
+    <!-- Product Details Section -->
+    <div class="modal-section">
+      <button id="toggleProductDetailsBtn" class="modal-btn modal-btn-secondary" style="margin-bottom: 12px;">📦 Show Product Details</button>
+      <div id="productDetailsContainer" style="display: none;">
+        <h3 style="margin: 0 0 12px 0;">Product Sales Breakdown</h3>
+        <div id="productDetailsTable" style="max-height: 300px; overflow-y: auto;">
+          <table class="product-details-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Category</th>
+                <th style="text-align: right;">Qty Sold</th>
+                <th style="text-align: right;">Total (RM)</th>
+              </tr>
+            </thead>
+            <tbody id="productDetailsBody">
+              <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <div class="modal-buttons"><button id="closeAdminReportBtn" class="modal-btn modal-btn-secondary">Close</button></div>
   </div>
 </div>
@@ -540,9 +595,11 @@
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzh2L3SVlpxN8o_pIbPqrQGPH4rL1V_s-E_Tezd4h_2gW9ogTCghLN7GsvxELyKmS3YtA/exec";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwTh0IzcaRPgtsZ8JdaliVWK812LYKicEISDnSj01fCN71PqXA2Kip9TR-btmCk7pUcHQ/exec";
   let products = [], cart = [], currentStore = "queens", currentEmployee = null;
   let viewMode = "grid"; // 'grid' or 'list'
+  let productDetailsVisible = false;
+  let lastProductData = null; // cache to avoid re-fetch on toggle
 
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -660,10 +717,10 @@
         const employeeChartContainer = document.getElementById('employeeChartContainer');
         if (currentEmployee.isAdmin) {
           employeeFilterGroup.style.display = 'flex';
-          employeeChartContainer.style.display = 'block'; // show employee chart for admin
+          employeeChartContainer.style.display = 'block';
         } else {
           employeeFilterGroup.style.display = 'none';
-          employeeChartContainer.style.display = 'none'; // hide employee chart for non-admin
+          employeeChartContainer.style.display = 'none';
         }
         
         await populateSoldBySelect();
@@ -853,6 +910,44 @@
     }
   }
 
+  // New: fetch product sales breakdown
+  async function fetchProductSalesReport(employeeId, from, to) {
+    try {
+      let url = `${APPS_SCRIPT_URL}?action=getProductSalesReport&employeeId=${employeeId}`;
+      if (from) url += `&from=${encodeURIComponent(from)}`;
+      if (to) url += `&to=${encodeURIComponent(to)}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        return result.products;
+      } else {
+        console.error('Product sales error:', result);
+        return [];
+      }
+    } catch (err) {
+      console.error('fetchProductSalesReport error:', err);
+      return [];
+    }
+  }
+
+  function renderProductDetails(productsData) {
+    const tbody = document.getElementById('productDetailsBody');
+    if (!productsData || productsData.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No products sold in this period.</td></tr>';
+      return;
+    }
+    let html = '';
+    productsData.forEach(p => {
+      html += `<tr>
+        <td>${escapeHtml(p.name)}</td>
+        <td>${escapeHtml(p.category)}</td>
+        <td style="text-align: right;">${p.quantity}</td>
+        <td style="text-align: right;">RM ${p.total.toFixed(2)}</td>
+      </tr>`;
+    });
+    tbody.innerHTML = html;
+  }
+
   function getLocalDateString(date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -860,13 +955,12 @@
     return `${year}-${month}-${day}`;
   }
 
-  function updateAdminReport() {
+  async function updateAdminReport() {
     // Determine employee ID based on admin status
     let employeeId;
     if (currentEmployee.isAdmin) {
       employeeId = document.getElementById('adminReportEmployeeSelect').value;
     } else {
-      // Non‑admin: show only their own sales
       employeeId = currentEmployee.id;
     }
     
@@ -897,12 +991,17 @@
       if (!from || !to) return;
     }
     
-    fetchSalesReport(employeeId, from, to);
-    fetchSalesChartData(employeeId, from, to);
-    
-    // For admins, also load employee chart (shows all employees)
+    // Fetch main report data and charts
+    await fetchSalesReport(employeeId, from, to);
+    await fetchSalesChartData(employeeId, from, to);
     if (currentEmployee.isAdmin) {
-      fetchEmployeeSalesData(from, to);
+      await fetchEmployeeSalesData(from, to);
+    }
+    
+    // Fetch product details (always for the current employee filter)
+    lastProductData = await fetchProductSalesReport(employeeId, from, to);
+    if (productDetailsVisible) {
+      renderProductDetails(lastProductData);
     }
   }
 
@@ -1173,6 +1272,30 @@
   document.getElementById('adminReportDateRangeSelect').addEventListener('change', (e) => { document.getElementById('adminReportCustomDateRange').style.display = e.target.value === 'custom' ? 'flex' : 'none'; updateAdminReport(); });
   document.getElementById('adminReportFromDate').addEventListener('change', updateAdminReport);
   document.getElementById('adminReportToDate').addEventListener('change', updateAdminReport);
+
+  // Toggle product details visibility
+  const toggleBtn = document.getElementById('toggleProductDetailsBtn');
+  const productDetailsContainer = document.getElementById('productDetailsContainer');
+  toggleBtn.addEventListener('click', () => {
+    productDetailsVisible = !productDetailsVisible;
+    if (productDetailsVisible) {
+      productDetailsContainer.style.display = 'block';
+      toggleBtn.innerText = '📦 Hide Product Details';
+      if (lastProductData) {
+        renderProductDetails(lastProductData);
+      } else {
+        // If data not yet fetched, we can trigger a fetch (but it should already be loaded on report load)
+        if (lastProductData === undefined) {
+          // This shouldn't happen because updateAdminReport always fetches product data.
+          // But just in case, we can call updateAdminReport again to load.
+          updateAdminReport().then(() => renderProductDetails(lastProductData));
+        }
+      }
+    } else {
+      productDetailsContainer.style.display = 'none';
+      toggleBtn.innerText = '📦 Show Product Details';
+    }
+  });
 
   document.getElementById('receiptsButton').addEventListener('click', async () => { if (currentEmployee?.isAdmin) await populateEmployeeSelects(); populateStoreSelects(); document.getElementById('receiptsModal').style.display = 'flex'; updateReceipts(); });
   document.getElementById('closeReceiptsBtn').addEventListener('click', () => document.getElementById('receiptsModal').style.display = 'none');
