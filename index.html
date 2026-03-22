@@ -166,6 +166,7 @@
       margin-top: 20px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
+    canvas { max-width: 100%; height: auto; }
     .receipts-list { max-height: 60vh; overflow-y: auto; }
     .receipt-item {
       border: 1px solid #e2e8f0; border-radius: 20px; padding: 12px; margin-bottom: 12px;
@@ -348,7 +349,7 @@
   </div>
 </div>
 
-<!-- Admin Report Modal (now used for all users) -->
+<!-- Unified Report Modal -->
 <div id="adminReportModal" class="modal-overlay">
   <div class="modal-container">
     <div class="modal-title">📊 Sales Report</div>
@@ -395,7 +396,7 @@
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwbL3MPr7_H0rJcd18AtgToBxVPP9FEyowbwRx6roXzDqdw6pxzrTTtGyWK9tT-WBViaA/exec";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxIFTiszA4JBjU0jHRGwK43YtdDf6CJufCvudxTwDcTMgIhU1B2Qtcrpv8GR9K8ImFE6Q/exec";
   let products = [], cart = [], currentStore = "queens", currentEmployee = null;
   let storeChart = null, dayChart = null;
 
@@ -599,28 +600,59 @@
       let url = `${APPS_SCRIPT_URL}?action=getSalesChartData&store=${store}&employeeId=${employeeId}`;
       if (from) url += `&from=${encodeURIComponent(from)}`;
       if (to) url += `&to=${encodeURIComponent(to)}`;
+      console.log('Fetching chart data:', url);
       const response = await fetch(url);
       const result = await response.json();
       if (result.success) {
-        // Small delay to ensure canvas is ready
-        setTimeout(() => {
-          if (storeChart) storeChart.destroy();
-          if (dayChart) dayChart.destroy();
-          const storeCtx = document.getElementById('storeChart').getContext('2d');
-          storeChart = new Chart(storeCtx, {
-            type: 'bar',
-            data: { labels: result.salesByStore.labels, datasets: [{ label: 'Sales (RM)', data: result.salesByStore.data, backgroundColor: 'rgba(54,162,235,0.6)', borderColor: 'rgba(54,162,235,1)', borderWidth: 1 }] },
-            options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } }
-          });
-          const dayCtx = document.getElementById('dayChart').getContext('2d');
-          dayChart = new Chart(dayCtx, {
-            type: 'bar',
-            data: { labels: result.salesByDay.labels, datasets: [{ label: 'Sales (RM)', data: result.salesByDay.data, backgroundColor: 'rgba(75,192,192,0.6)', borderColor: 'rgba(75,192,192,1)', borderWidth: 1 }] },
-            options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } }
-          });
-        }, 100);
+        // Wait for the modal to be visible and canvas ready
+        await new Promise(resolve => setTimeout(resolve, 200));
+        const storeCanvas = document.getElementById('storeChart');
+        const dayCanvas = document.getElementById('dayChart');
+        if (!storeCanvas || !dayCanvas) {
+          console.error('Canvas elements not found');
+          return;
+        }
+        // Destroy old charts
+        if (window.storeChart) window.storeChart.destroy();
+        if (window.dayChart) window.dayChart.destroy();
+        // Prepare data
+        const storeLabels = result.salesByStore?.labels || [];
+        const storeData = result.salesByStore?.data || [];
+        const dayLabels = result.salesByDay?.labels || [];
+        const dayData = result.salesByDay?.data || [];
+        if (storeLabels.length === 0 && dayLabels.length === 0) {
+          console.log('No chart data to display');
+          // Optionally hide charts or show a message
+          document.getElementById('storeChart').style.display = 'none';
+          document.getElementById('dayChart').style.display = 'none';
+          return;
+        }
+        // Create store chart
+        const storeCtx = storeCanvas.getContext('2d');
+        window.storeChart = new Chart(storeCtx, {
+          type: 'bar',
+          data: {
+            labels: storeLabels,
+            datasets: [{ label: 'Sales (RM)', data: storeData, backgroundColor: 'rgba(54,162,235,0.6)', borderColor: 'rgba(54,162,235,1)', borderWidth: 1 }]
+          },
+          options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } }
+        });
+        // Create day chart
+        const dayCtx = dayCanvas.getContext('2d');
+        window.dayChart = new Chart(dayCtx, {
+          type: 'bar',
+          data: {
+            labels: dayLabels,
+            datasets: [{ label: 'Sales (RM)', data: dayData, backgroundColor: 'rgba(75,192,192,0.6)', borderColor: 'rgba(75,192,192,1)', borderWidth: 1 }]
+          },
+          options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } }
+        });
+      } else {
+        console.error('Chart data error:', result);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error('fetchSalesChartData error:', err);
+    }
   }
 
   function updateAdminReport() {
@@ -843,8 +875,12 @@
   document.getElementById('reportsButton').addEventListener('click', async () => {
     await populateEmployeeSelects();
     populateStoreSelects();
-    document.getElementById('adminReportModal').style.display = 'flex';
-    updateAdminReport();
+    const modal = document.getElementById('adminReportModal');
+    modal.style.display = 'flex';
+    // Wait a moment for the modal to become visible and the canvas to be ready
+    setTimeout(() => {
+      updateAdminReport();
+    }, 200);
   });
   document.getElementById('closeAdminReportBtn').addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
   document.getElementById('adminReportStoreSelect').addEventListener('change', updateAdminReport);
@@ -881,7 +917,7 @@
   });
   pinInput.addEventListener('input', () => { if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value); });
 
-  // Printer setup (unchanged)
+  // Printer setup
   (function setupPrinter() {
     let gattServer = null, printerCharacteristic = null, isConnected = false;
     const connectBtn = document.getElementById('connectPrinterButton'), printerStatusDiv = document.getElementById('printerStatus');
