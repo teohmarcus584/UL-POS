@@ -641,7 +641,7 @@
     } finally { hideLoading(); }
   }
 
-  // Sales transaction (unchanged)
+  // Sales transaction
   async function saveTransactionToSheet(transaction) {
     showLoading('Recording sale...');
     try {
@@ -831,7 +831,7 @@
     fetchEmployeeSalesData(store, from, to);
   }
 
-  // Receipts (unchanged)
+  // Receipts
   async function fetchReceipts(store, employeeId, from, to, search) {
     showLoading('Loading receipts...');
     try {
@@ -852,7 +852,10 @@
     let html = '';
     receipts.forEach(rec => {
       const date = new Date(rec.timestamp).toLocaleString();
-      const itemsSummary = rec.items.map(i => `${i.name} x${i.quantity}`).join(', ');
+      const itemsSummary = rec.items.map(i => {
+        const displayName = i.category ? `${i.category}: ${i.name}` : i.name;
+        return `${displayName} x${i.quantity}`;
+      }).join(', ');
       html += `<div class="receipt-item" data-receipt='${JSON.stringify(rec)}'><div class="receipt-header"><span class="receipt-id">${rec.transaction_id}</span><span class="receipt-date">${date}</span><span class="receipt-total">RM ${rec.total.toFixed(2)}</span></div><div class="receipt-details"><div>Store: ${rec.store} | Payment: ${rec.payment_method} | Employee: ${rec.employee_id}</div><div>Items: ${itemsSummary}</div></div><div class="receipt-actions"><button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>🖨️ Reprint</button><button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button></div></div>`;
     });
     container.innerHTML = html;
@@ -951,7 +954,15 @@
     document.getElementById('paymentModal').style.display = 'none';
     const totalAmount = pendingTransaction.totalAmount;
     const transactionId = `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    const saleItems = cart.map(item => ({ id: item.product.id, name: item.product.name, price: item.product.price, quantity: item.quantity, total: item.product.price * item.quantity }));
+    // Include category in each sale item
+    const saleItems = cart.map(item => ({ 
+      id: item.product.id, 
+      category: item.product.category,
+      name: item.product.name, 
+      price: item.product.price, 
+      quantity: item.quantity, 
+      total: item.product.price * item.quantity 
+    }));
     const transaction = { transaction_id: transactionId, items: saleItems, total: totalAmount, payment_method: paymentMethod, cash_received: cashReceived, timestamp: new Date().toISOString() };
     const success = await saveTransactionToSheet(transaction);
     if (success) {
@@ -969,7 +980,6 @@
     } else await showAlertModal('Error', 'Failed to record sale. Check network / Apps Script.');
   }
 
-  // Product rendering with sorting and view mode
   function renderProductGrid() {
     const searchTerm = searchInput.value.toLowerCase();
     const selectedCategory = categorySelect.value;
@@ -988,17 +998,14 @@
       </div>`;
     });
     productGridEl.innerHTML = html;
-    // Set the correct container class based on viewMode
     productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
     document.querySelectorAll('.add-btn').forEach(btn => { btn.addEventListener('click', (e) => { const product = products.find(p => p.id == btn.dataset.id); if (product && product.stock > 0) addToCart(product); e.stopPropagation(); }); });
   }
 
   function setViewMode(mode) {
     viewMode = mode;
-    // Update button active states
     document.getElementById('gridViewBtn').classList.toggle('active', mode === 'grid');
     document.getElementById('listViewBtn').classList.toggle('active', mode === 'list');
-    // Re-render with new class
     renderProductGrid();
   }
 
@@ -1110,7 +1117,6 @@
   document.getElementById('logoutButton').addEventListener('click', () => { currentEmployee = null; document.getElementById('mainContent').style.display = 'none'; document.getElementById('loginModal').style.display = 'flex'; document.getElementById('pinInput').value = ''; document.getElementById('loginError').innerText = ''; cart = []; products = []; });
   document.getElementById('closeLoginModal').addEventListener('click', () => { /* optional */ });
 
-  // View toggle buttons
   document.getElementById('gridViewBtn').addEventListener('click', () => setViewMode('grid'));
   document.getElementById('listViewBtn').addEventListener('click', () => setViewMode('list'));
 
@@ -1125,7 +1131,7 @@
   });
   pinInput.addEventListener('input', () => { if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value); });
 
-  // Printer setup (unchanged)
+  // Printer setup (unchanged except receipt format)
   (function setupPrinter() {
     let gattServer = null, printerCharacteristic = null, isConnected = false;
     const connectBtn = document.getElementById('connectPrinterButton'), printerStatusDiv = document.getElementById('printerStatus');
@@ -1134,7 +1140,11 @@
       const encoder = new TextEncoder();
       const lines = ['', '    ★ POS INVOICE ★', '-----------------------------', `Txn: ${transaction.transaction_id}`, `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`, `Employee: ${transaction.employee_id || currentEmployee?.id || 'N/A'}`, '-----------------------------'];
       let total = 0;
-      for (let item of transaction.items) { lines.push(`${item.name} x${item.quantity}`, `  ${item.price.toFixed(2)} x ${item.quantity} = RM ${(item.price * item.quantity).toFixed(2)}`); total += item.price * item.quantity; }
+      for (let item of transaction.items) {
+        const displayName = item.category ? `${item.category}: ${item.name}` : item.name;
+        lines.push(`${displayName} x${item.quantity}`, `  ${item.price.toFixed(2)} x ${item.quantity} = RM ${(item.price * item.quantity).toFixed(2)}`);
+        total += item.price * item.quantity;
+      }
       lines.push('-----------------------------', `TOTAL: RM ${total.toFixed(2)}`, `Payment: ${transaction.payment_method}`);
       if (transaction.cash_received) lines.push(`Cash: RM ${transaction.cash_received} | Change: RM ${(transaction.cash_received - total).toFixed(2)}`);
       lines.push('-----------------------------', 'Thank you & come again!', '');
