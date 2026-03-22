@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
   <title>POS System | PIN Login</title>
   <style>
+    /* All styles unchanged from previous version – keep as is */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -414,7 +415,7 @@
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz6z1rhxHmeo6RYxQfvh7Y9gZkjUCufx9-t1TsfBriO5vVI1mlN20Zn75q6rPCXYHW8vg/exec";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzh2L3SVlpxN8o_pIbPqrQGPH4rL1V_s-E_Tezd4h_2gW9ogTCghLN7GsvxELyKmS3YtA/exec";
   let products = [], cart = [], currentStore = "queens", currentEmployee = null;
 
   const productGridEl = document.getElementById('productGrid');
@@ -426,7 +427,7 @@
   const storeSelect = document.getElementById('storeSelect');
   const soldBySelect = document.getElementById('soldBySelect');
 
-  // Helper functions for modals
+  // Helper functions for modals (unchanged)
   function showAlertModal(title, message) {
     return new Promise((resolve) => {
       const overlay = document.getElementById('alertModal');
@@ -633,54 +634,40 @@
       const response = await fetch(url);
       const result = await response.json();
       if (result.success) {
-        // Wait for the modal to be visible and canvas ready
         await new Promise(resolve => setTimeout(resolve, 200));
-        const storeCanvas = document.getElementById('storeChart');
-        const dayCanvas = document.getElementById('dayChart');
-        if (!storeCanvas || !dayCanvas) {
-          console.error('Canvas elements not found');
-          return;
-        }
-        // Safely destroy existing charts
-        if (window.storeChart && typeof window.storeChart.destroy === 'function') {
-          window.storeChart.destroy();
-          window.storeChart = null;
-        }
+        const chartCanvas = document.getElementById('dayChart');
+        if (!chartCanvas) return;
+        
+        // Destroy old chart
         if (window.dayChart && typeof window.dayChart.destroy === 'function') {
           window.dayChart.destroy();
           window.dayChart = null;
         }
-        // Prepare data
-        const storeLabels = result.salesByStore?.labels || [];
-        const storeData = result.salesByStore?.data || [];
-        const dayLabels = result.salesByDay?.labels || [];
-        const dayData = result.salesByDay?.data || [];
-        if (storeLabels.length === 0 && dayLabels.length === 0) {
-          console.log('No chart data to display');
-          storeCanvas.style.display = 'none';
-          dayCanvas.style.display = 'none';
+        
+        // Prepare data based on type (hourly or daily)
+        let labels, data, chartTitle;
+        if (result.type === 'hourly') {
+          labels = result.hourly.labels;
+          data = result.hourly.data;
+          chartTitle = 'Hourly Sales (RM)';
+        } else {
+          labels = result.salesByDay?.labels || [];
+          data = result.salesByDay?.data || [];
+          chartTitle = 'Sales by Day (RM)';
+        }
+        
+        if (labels.length === 0) {
+          chartCanvas.style.display = 'none';
           return;
         }
-        // Ensure canvases are visible
-        storeCanvas.style.display = 'block';
-        dayCanvas.style.display = 'block';
-        // Create store chart
-        const storeCtx = storeCanvas.getContext('2d');
-        window.storeChart = new Chart(storeCtx, {
+        
+        chartCanvas.style.display = 'block';
+        const ctx = chartCanvas.getContext('2d');
+        window.dayChart = new Chart(ctx, {
           type: 'bar',
           data: {
-            labels: storeLabels,
-            datasets: [{ label: 'Sales (RM)', data: storeData, backgroundColor: 'rgba(54,162,235,0.6)', borderColor: 'rgba(54,162,235,1)', borderWidth: 1 }]
-          },
-          options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } }
-        });
-        // Create day chart
-        const dayCtx = dayCanvas.getContext('2d');
-        window.dayChart = new Chart(dayCtx, {
-          type: 'bar',
-          data: {
-            labels: dayLabels,
-            datasets: [{ label: 'Sales (RM)', data: dayData, backgroundColor: 'rgba(75,192,192,0.6)', borderColor: 'rgba(75,192,192,1)', borderWidth: 1 }]
+            labels: labels,
+            datasets: [{ label: chartTitle, data: data, backgroundColor: 'rgba(75,192,192,0.6)', borderColor: 'rgba(75,192,192,1)', borderWidth: 1 }]
           },
           options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } }
         });
@@ -719,7 +706,7 @@
           type: 'bar',
           data: {
             labels: labels,
-            datasets: [{ label: 'Sales (RM)', data: data, backgroundColor: 'rgba(255,99,132,0.6)', borderColor: 'rgba(255,99,132,1)', borderWidth: 1 }]
+            datasets: [{ label: 'Sales by Employee (RM)', data: data, backgroundColor: 'rgba(255,99,132,0.6)', borderColor: 'rgba(255,99,132,1)', borderWidth: 1 }]
           },
           options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } }
         });
@@ -744,8 +731,6 @@
     let employeeId = document.getElementById('adminReportEmployeeSelect').value;
     if (!currentEmployee.isAdmin) {
       employeeId = 'all';
-      // For non-admin, store selector is disabled and already set to their store
-      // We still use the selected value (which is their store) but ensure it's not changed
     }
     const range = document.getElementById('adminReportDateRangeSelect').value;
     let from = null, to = null;
@@ -817,7 +802,7 @@
 
   function openLuckyDraw(transactionId) { window.open(`https://teohmarcus584.github.io/LUCKYDRAW/?receipt=${encodeURIComponent(transactionId)}`, '_blank'); }
 
-  // Cart functions
+  // Cart functions (unchanged)
   function updateCartUI() {
     if (!cartContainer) return;
     if (cart.length === 0) { cartContainer.innerHTML = '<div style="color:#94a3b8; text-align:center;">Cart is empty</div>'; subtotalSpan.innerText = `RM 0.00`; totalSpan.innerText = `RM 0.00`; return; }
@@ -1055,7 +1040,7 @@
   });
   pinInput.addEventListener('input', () => { if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value); });
 
-  // Printer setup
+  // Printer setup (unchanged)
   (function setupPrinter() {
     let gattServer = null, printerCharacteristic = null, isConnected = false;
     const connectBtn = document.getElementById('connectPrinterButton'), printerStatusDiv = document.getElementById('printerStatus');
