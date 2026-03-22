@@ -144,8 +144,20 @@
     .modal-container {
       background: white; max-width: 800px; width: 90%; border-radius: 28px; padding: 24px;
       box-shadow: 0 20px 35px rgba(0,0,0,0.2); max-height: 85vh; overflow-y: auto;
+      position: relative;
     }
-    .modal-title { font-size: 1.4rem; font-weight: 600; margin-bottom: 16px; }
+    .close-modal {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #64748b;
+      line-height: 1;
+    }
+    .close-modal:hover { color: #0f172a; }
+    .modal-title { font-size: 1.4rem; font-weight: 600; margin-bottom: 16px; padding-right: 30px; }
     .report-filters, .receipts-filters {
       display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; align-items: flex-end;
     }
@@ -230,6 +242,7 @@
 
 <div id="loginModal" class="modal-overlay" style="display: flex;">
   <div class="modal-container" style="max-width: 400px;">
+    <span class="close-modal" id="closeLoginModal">×</span>
     <div class="modal-title">🔐 Enter PIN</div>
     <div class="login-form">
       <input type="password" id="pinInput" class="pin-input" placeholder="****" maxlength="4" inputmode="numeric" autofocus>
@@ -313,6 +326,7 @@
 <!-- Payment Modal -->
 <div id="paymentModal" class="modal-overlay">
   <div class="modal-container" style="max-width: 400px;">
+    <span class="close-modal" id="closePaymentModal">×</span>
     <div class="modal-title">💳 Select Payment Method</div>
     <div class="payment-buttons">
       <button class="payment-btn" data-method="Cash">💵 Cash</button>
@@ -339,6 +353,7 @@
 <!-- Lucky Draw Modal -->
 <div id="luckyDrawModal" class="modal-overlay">
   <div class="modal-container" style="max-width: 400px;">
+    <span class="close-modal" id="closeLuckyDrawModal">×</span>
     <div class="modal-title">🎲 Lucky Draw</div>
     <p>Transaction ID: <strong id="luckyTxId"></strong></p>
     <p>Click below to enter the Lucky Draw with this receipt number.</p>
@@ -352,6 +367,7 @@
 <!-- Unified Report Modal -->
 <div id="adminReportModal" class="modal-overlay">
   <div class="modal-container">
+    <span class="close-modal" id="closeAdminReportModal">×</span>
     <div class="modal-title">📊 Sales Report</div>
     <div class="report-filters">
       <div class="filter-group"><label>Store</label><select id="adminReportStoreSelect"><option value="all">All Stores</option></select></div>
@@ -377,6 +393,7 @@
 <!-- Receipts Modal -->
 <div id="receiptsModal" class="modal-overlay">
   <div class="modal-container">
+    <span class="close-modal" id="closeReceiptsModal">×</span>
     <div class="modal-title">📜 Receipt History</div>
     <div class="receipts-filters">
       <div class="filter-group"><label>Store</label><select id="receiptsStoreSelect"><option value="all">All Stores</option></select></div>
@@ -391,9 +408,9 @@
 </div>
 
 <!-- Generic modals -->
-<div id="alertModal" class="modal-overlay"><div class="modal-container"><div class="modal-title" id="alertModalTitle"></div><div class="modal-message" id="alertModalMessage"></div><div class="modal-buttons"><button class="modal-btn modal-btn-primary" id="alertModalOk">OK</button></div></div></div>
-<div id="inputModal" class="modal-overlay"><div class="modal-container"><div class="modal-title" id="inputModalTitle"></div><input type="text" id="inputModalField" class="modal-input" placeholder=""><div class="modal-buttons"><button class="modal-btn modal-btn-secondary" id="inputModalCancel">Cancel</button><button class="modal-btn modal-btn-primary" id="inputModalOk">OK</button></div></div></div>
-<div id="selectModal" class="modal-overlay"><div class="modal-container"><div class="modal-title" id="selectModalTitle"></div><select id="selectModalField" class="modal-select"></select><div class="modal-buttons"><button class="modal-btn modal-btn-secondary" id="selectModalCancel">Cancel</button><button class="modal-btn modal-btn-primary" id="selectModalOk">OK</button></div></div></div>
+<div id="alertModal" class="modal-overlay"><div class="modal-container"><span class="close-modal" id="closeAlertModal">×</span><div class="modal-title" id="alertModalTitle"></div><div class="modal-message" id="alertModalMessage"></div><div class="modal-buttons"><button class="modal-btn modal-btn-primary" id="alertModalOk">OK</button></div></div></div>
+<div id="inputModal" class="modal-overlay"><div class="modal-container"><span class="close-modal" id="closeInputModal">×</span><div class="modal-title" id="inputModalTitle"></div><input type="text" id="inputModalField" class="modal-input" placeholder=""><div class="modal-buttons"><button class="modal-btn modal-btn-secondary" id="inputModalCancel">Cancel</button><button class="modal-btn modal-btn-primary" id="inputModalOk">OK</button></div></div></div>
+<div id="selectModal" class="modal-overlay"><div class="modal-container"><span class="close-modal" id="closeSelectModal">×</span><div class="modal-title" id="selectModalTitle"></div><select id="selectModalField" class="modal-select"></select><div class="modal-buttons"><button class="modal-btn modal-btn-secondary" id="selectModalCancel">Cancel</button><button class="modal-btn modal-btn-primary" id="selectModalOk">OK</button></div></div></div>
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
@@ -417,8 +434,14 @@
       document.getElementById('alertModalMessage').innerText = message;
       overlay.style.display = 'flex';
       const okBtn = document.getElementById('alertModalOk');
-      const onOk = () => { overlay.style.display = 'none'; okBtn.removeEventListener('click', onOk); resolve(); };
-      okBtn.addEventListener('click', onOk);
+      const closeBtn = document.getElementById('closeAlertModal');
+      const onClose = () => { overlay.style.display = 'none'; cleanup(); resolve(); };
+      const cleanup = () => {
+        okBtn.removeEventListener('click', onClose);
+        closeBtn.removeEventListener('click', onClose);
+      };
+      okBtn.addEventListener('click', onClose);
+      closeBtn.addEventListener('click', onClose);
     });
   }
   function showInputModal(title, placeholder = '') {
@@ -434,13 +457,16 @@
       const cleanup = () => {
         okBtn.removeEventListener('click', ok);
         cancelBtn.removeEventListener('click', cancel);
+        closeBtn.removeEventListener('click', cancel);
         field.removeEventListener('keydown', keydown);
       };
       const keydown = (e) => { if (e.key === 'Enter') ok(); if (e.key === 'Escape') cancel(); };
       const okBtn = document.getElementById('inputModalOk');
       const cancelBtn = document.getElementById('inputModalCancel');
+      const closeBtn = document.getElementById('closeInputModal');
       okBtn.addEventListener('click', ok);
       cancelBtn.addEventListener('click', cancel);
+      closeBtn.addEventListener('click', cancel);
       field.addEventListener('keydown', keydown);
       field.focus();
     });
@@ -458,11 +484,14 @@
       const cleanup = () => {
         okBtn.removeEventListener('click', ok);
         cancelBtn.removeEventListener('click', cancel);
+        closeBtn.removeEventListener('click', cancel);
       };
       const okBtn = document.getElementById('selectModalOk');
       const cancelBtn = document.getElementById('selectModalCancel');
+      const closeBtn = document.getElementById('closeSelectModal');
       okBtn.addEventListener('click', ok);
       cancelBtn.addEventListener('click', cancel);
+      closeBtn.addEventListener('click', cancel);
     });
   }
   function showLoading(msg = 'Loading...') { document.getElementById('loadingMessage').innerText = msg; document.getElementById('loadingOverlay').style.display = 'flex'; }
@@ -711,23 +740,24 @@
   }
 
   function updateAdminReport() {
-    const store = document.getElementById('adminReportStoreSelect').value;
+    let store = document.getElementById('adminReportStoreSelect').value;
     let employeeId = document.getElementById('adminReportEmployeeSelect').value;
     if (!currentEmployee.isAdmin) {
       employeeId = 'all';
+      // For non-admin, store selector is disabled and already set to their store
+      // We still use the selected value (which is their store) but ensure it's not changed
     }
     const range = document.getElementById('adminReportDateRangeSelect').value;
     let from = null, to = null;
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // start of today in local time
+    today.setHours(0, 0, 0, 0);
 
     if (range === 'today') {
       from = getLocalDateString(today);
       to = from;
     } else if (range === 'week') {
       const start = new Date(today);
-      const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ...
-      // Adjust to Monday as start of week
+      const dayOfWeek = today.getDay();
       const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
       start.setDate(today.getDate() - diffToMonday);
       from = getLocalDateString(start);
@@ -862,6 +892,7 @@
     document.getElementById('confirmOtherBtn').onclick = () => { const selected = document.querySelector('.payment-btn.selected'); if (!selected) { showAlertModal('Error', 'Please select a payment method.'); return; } completeCheckout(selected.dataset.method, null); };
     document.getElementById('cancelPaymentBtn').onclick = () => modal.style.display = 'none';
     document.getElementById('cancelOtherBtn').onclick = () => modal.style.display = 'none';
+    document.getElementById('closePaymentModal').onclick = () => modal.style.display = 'none';
   }
 
   async function completeCheckout(paymentMethod, cashReceived) {
@@ -880,6 +911,7 @@
       luckyModal.style.display = 'flex';
       document.getElementById('openLuckyDrawBtn').onclick = () => { openLuckyDraw(transactionId); luckyModal.style.display = 'none'; };
       document.getElementById('closeLuckyDrawBtn').onclick = () => luckyModal.style.display = 'none';
+      document.getElementById('closeLuckyDrawModal').onclick = () => luckyModal.style.display = 'none';
       await fetchProductsFromSheet();
       clearCart();
     } else await showAlertModal('Error', 'Failed to record sale. Check network / Apps Script.');
@@ -972,12 +1004,21 @@
     await populateEmployeeSelects();
     populateStoreSelects();
     const modal = document.getElementById('adminReportModal');
+    const storeSelect = document.getElementById('adminReportStoreSelect');
+    // For non-admin, set store to their assigned store and disable
+    if (!currentEmployee.isAdmin && currentEmployee.store) {
+      storeSelect.value = currentEmployee.store;
+      storeSelect.disabled = true;
+    } else {
+      storeSelect.disabled = false;
+    }
     modal.style.display = 'flex';
     setTimeout(() => {
       updateAdminReport();
     }, 200);
   });
   document.getElementById('closeAdminReportBtn').addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
+  document.getElementById('closeAdminReportModal').addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
   document.getElementById('adminReportStoreSelect').addEventListener('change', updateAdminReport);
   document.getElementById('adminReportEmployeeSelect').addEventListener('change', updateAdminReport);
   document.getElementById('adminReportDateRangeSelect').addEventListener('change', (e) => { document.getElementById('adminReportCustomDateRange').style.display = e.target.value === 'custom' ? 'flex' : 'none'; updateAdminReport(); });
@@ -986,6 +1027,7 @@
 
   document.getElementById('receiptsButton').addEventListener('click', async () => { if (currentEmployee?.isAdmin) await populateEmployeeSelects(); populateStoreSelects(); document.getElementById('receiptsModal').style.display = 'flex'; updateReceipts(); });
   document.getElementById('closeReceiptsBtn').addEventListener('click', () => document.getElementById('receiptsModal').style.display = 'none');
+  document.getElementById('closeReceiptsModal').addEventListener('click', () => document.getElementById('receiptsModal').style.display = 'none');
   document.getElementById('receiptsStoreSelect').addEventListener('change', updateReceipts);
   document.getElementById('receiptsEmployeeSelect').addEventListener('change', updateReceipts);
   document.getElementById('receiptsDateRangeSelect').addEventListener('change', (e) => { document.getElementById('receiptsCustomDateRange').style.display = e.target.value === 'custom' ? 'flex' : 'none'; updateReceipts(); });
@@ -1000,6 +1042,7 @@
   searchInput.addEventListener('input', renderProductGrid);
   categorySelect.addEventListener('change', renderProductGrid);
   document.getElementById('logoutButton').addEventListener('click', () => { currentEmployee = null; document.getElementById('mainContent').style.display = 'none'; document.getElementById('loginModal').style.display = 'flex'; document.getElementById('pinInput').value = ''; document.getElementById('loginError').innerText = ''; cart = []; products = []; });
+  document.getElementById('closeLoginModal').addEventListener('click', () => { /* do nothing, but can be used to close modal if needed */ });
 
   const pinInput = document.getElementById('pinInput');
   document.querySelectorAll('.keypad-btn').forEach(btn => {
