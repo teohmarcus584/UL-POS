@@ -379,7 +379,7 @@
   </div>
 </div>
 
-<!-- My Sales Report Modal (with two charts) -->
+<!-- My Sales Report Modal (with store total) -->
 <div id="mySalesReportModal" class="modal-overlay">
   <div class="modal-container">
     <div class="modal-title">📊 My Sales</div>
@@ -395,6 +395,7 @@
       <div class="stat-item breakdown">📱 Other: <span id="mySalesReportOtherTotal" class="stat-value">RM 0.00</span></div>
       <div class="stat-item">My Transactions: <span id="mySalesReportTransactionCount" class="stat-value">0</span></div>
       <div class="stat-item">My Items Sold: <span id="mySalesReportTotalItems" class="stat-value">0</span></div>
+      <div class="stat-item breakdown" style="border-top: 2px solid #cbd5e1; margin-top: 12px; padding-top: 12px;">🏬 Store Total Sales: <span id="storeTotalSales" class="stat-value">RM 0.00</span></div>
     </div>
     <div class="chart-container"><canvas id="mySalesChart" width="400" height="200"></canvas></div>
     <div class="chart-container"><canvas id="storeEmployeesChart" width="400" height="200"></canvas></div>
@@ -425,7 +426,7 @@
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxZFXmLouzcV6VeFgaHW5i1yvMp6Gxu23EwHAQT7ZF1uM_58CMPSaTxR5uaSMy3KBehjg/exec";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyUI1oWHUXgs1P57m5VzAI1pzf2QVvutFgLC25F47-_1xuXWkyymEaWnplCS3WYGj4LjA/exec";
   let products = [], cart = [], currentStore = "queens", currentEmployee = null;
   let storeChart = null, dayChart = null, mySalesChart = null, storeEmployeesChart = null;
   let pendingTransaction = null;
@@ -512,6 +513,7 @@
           const storeOpt = Array.from(storeSelect.options).find(opt => opt.value === currentEmployee.store);
           if (storeOpt) storeSelect.value = currentEmployee.store;
           currentStore = storeSelect.value;
+          // Set My Sales store dropdown and disable it for non-admin
           const mySalesStoreSelect = document.getElementById('mySalesReportStoreSelect');
           if (mySalesStoreSelect) {
             mySalesStoreSelect.value = currentEmployee.store;
@@ -626,6 +628,64 @@
     } catch (err) { console.error(err); await showAlertModal('Error', 'Failed to load report.'); } finally { hideLoading(); }
   }
 
+  async function fetchMySalesChartData(store, employeeId, from, to) {
+    try {
+      let url = `${APPS_SCRIPT_URL}?action=getSalesChartData&store=${store}&employeeId=${employeeId}`;
+      if (from) url += `&from=${encodeURIComponent(from)}`;
+      if (to) url += `&to=${encodeURIComponent(to)}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        if (mySalesChart) mySalesChart.destroy();
+        const ctx = document.getElementById('mySalesChart').getContext('2d');
+        mySalesChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: result.salesByDay.labels,
+            datasets: [{ label: 'My Sales (RM)', data: result.salesByDay.data, backgroundColor: 'rgba(75,192,192,0.6)', borderColor: 'rgba(75,192,192,1)', borderWidth: 1 }]
+          },
+          options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } }
+        });
+      }
+    } catch (err) { console.error(err); }
+  }
+
+  async function fetchStoreTotalSales(store, from, to) {
+    try {
+      let url = `${APPS_SCRIPT_URL}?action=getStoreTotalSales&store=${store}`;
+      if (from) url += `&from=${encodeURIComponent(from)}`;
+      if (to) url += `&to=${encodeURIComponent(to)}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        document.getElementById('storeTotalSales').innerText = `RM ${result.totalSales.toFixed(2)}`;
+      }
+    } catch (err) { console.error(err); }
+  }
+
+  async function fetchStoreEmployeesSales(store, from, to, excludeEmployeeId = null) {
+    try {
+      let url = `${APPS_SCRIPT_URL}?action=getStoreEmployeesSales&store=${store}`;
+      if (from) url += `&from=${encodeURIComponent(from)}`;
+      if (to) url += `&to=${encodeURIComponent(to)}`;
+      if (excludeEmployeeId) url += `&excludeEmployeeId=${encodeURIComponent(excludeEmployeeId)}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        if (storeEmployeesChart) storeEmployeesChart.destroy();
+        const ctx = document.getElementById('storeEmployeesChart').getContext('2d');
+        storeEmployeesChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: result.labels,
+            datasets: [{ label: 'Sales (RM)', data: result.data, backgroundColor: 'rgba(153,102,255,0.6)', borderColor: 'rgba(153,102,255,1)', borderWidth: 1 }]
+          },
+          options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } }
+        });
+      }
+    } catch (err) { console.error(err); }
+  }
+
   async function fetchSalesChartData(store, employeeId, from, to) {
     try {
       let url = `${APPS_SCRIPT_URL}?action=getSalesChartData&store=${store}&employeeId=${employeeId}`;
@@ -640,36 +700,6 @@
         storeChart = new Chart(storeCtx, { type: 'bar', data: { labels: result.salesByStore.labels, datasets: [{ label: 'Sales (RM)', data: result.salesByStore.data, backgroundColor: 'rgba(54,162,235,0.6)', borderColor: 'rgba(54,162,235,1)', borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } } });
         const dayCtx = document.getElementById('dayChart').getContext('2d');
         dayChart = new Chart(dayCtx, { type: 'bar', data: { labels: result.salesByDay.labels, datasets: [{ label: 'Sales (RM)', data: result.salesByDay.data, backgroundColor: 'rgba(75,192,192,0.6)', borderColor: 'rgba(75,192,192,1)', borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } } });
-      }
-    } catch (err) { console.error(err); }
-  }
-
-  async function fetchMySalesChartData(store, employeeId, from, to) {
-    try {
-      let url = `${APPS_SCRIPT_URL}?action=getSalesChartData&store=${store}&employeeId=${employeeId}`;
-      if (from) url += `&from=${encodeURIComponent(from)}`;
-      if (to) url += `&to=${encodeURIComponent(to)}`;
-      const response = await fetch(url);
-      const result = await response.json();
-      if (result.success) {
-        if (mySalesChart) mySalesChart.destroy();
-        const ctx = document.getElementById('mySalesChart').getContext('2d');
-        mySalesChart = new Chart(ctx, { type: 'bar', data: { labels: result.salesByDay.labels, datasets: [{ label: 'My Sales (RM)', data: result.salesByDay.data, backgroundColor: 'rgba(75,192,192,0.6)', borderColor: 'rgba(75,192,192,1)', borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } } });
-      }
-    } catch (err) { console.error(err); }
-  }
-
-  async function fetchStoreEmployeesSales(store, from, to) {
-    try {
-      let url = `${APPS_SCRIPT_URL}?action=getStoreEmployeesSales&store=${store}`;
-      if (from) url += `&from=${encodeURIComponent(from)}`;
-      if (to) url += `&to=${encodeURIComponent(to)}`;
-      const response = await fetch(url);
-      const result = await response.json();
-      if (result.success) {
-        if (storeEmployeesChart) storeEmployeesChart.destroy();
-        const ctx = document.getElementById('storeEmployeesChart').getContext('2d');
-        storeEmployeesChart = new Chart(ctx, { type: 'bar', data: { labels: result.labels, datasets: [{ label: 'Sales (RM)', data: result.data, backgroundColor: 'rgba(153,102,255,0.6)', borderColor: 'rgba(153,102,255,1)', borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } } });
       }
     } catch (err) { console.error(err); }
   }
@@ -853,7 +883,8 @@
     else if (range === 'custom') { from = document.getElementById('mySalesReportFromDate').value; to = document.getElementById('mySalesReportToDate').value; if (!from || !to) return; }
     fetchSalesReport(store, employeeId, from, to, 'nonAdmin');
     fetchMySalesChartData(store, employeeId, from, to);
-    fetchStoreEmployeesSales(store, from, to);
+    fetchStoreTotalSales(store, from, to);
+    fetchStoreEmployeesSales(store, from, to, employeeId);
   }
 
   function updateReceipts() {
