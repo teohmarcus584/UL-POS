@@ -71,15 +71,34 @@
     .logout-btn:hover { background: #dc2626; }
     .store-selector {
       background: white; border-radius: 28px; padding: 12px 20px; margin-bottom: 20px;
-      display: flex; justify-content: space-between; align-items: center;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       flex-wrap: wrap;
       gap: 12px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
-    .store-selector label { font-weight: 500; }
-    #storeSelect, #soldBySelect {
-      padding: 8px 16px; border-radius: 40px; border: 1px solid #cbd5e1;
-      background: white; font-size: 1rem;
+    .store-selector label { font-weight: 500; margin-right: 8px; }
+    .store-selector select, #soldBySelect {
+      padding: 12px 20px;
+      border-radius: 60px;
+      border: 1px solid #cbd5e1;
+      background: white;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-width: 180px;
+    }
+    .store-selector select:focus, #soldBySelect:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+    }
+    .store-selector select:disabled, #soldBySelect:disabled {
+      background: #f1f5f9;
+      cursor: not-allowed;
+      opacity: 0.7;
     }
     .pos-dashboard { display: flex; flex-wrap: wrap; gap: 20px; }
     .products-panel {
@@ -116,10 +135,14 @@
       color: #0f172a;
     }
     #categorySelect, .search-bar {
-      padding: 12px 16px; border-radius: 60px; border: 1px solid #cbd5e1;
-      font-size: 0.9rem; outline: none;
+      padding: 12px 20px;
+      border-radius: 60px;
+      border: 1px solid #cbd5e1;
+      font-size: 1rem;
+      outline: none;
+      background: white;
     }
-    #categorySelect { flex: 1; background: white; }
+    #categorySelect { flex: 1; }
     .search-bar { flex: 2; }
     .product-grid {
       display: grid;
@@ -232,7 +255,7 @@
     .filter-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 140px; }
     .filter-group label { font-weight: 500; font-size: 0.9rem; }
     .filter-group select, .filter-group input {
-      padding: 10px 12px; border-radius: 40px; border: 1px solid #cbd5e1; font-size: 0.9rem;
+      padding: 12px 16px; border-radius: 60px; border: 1px solid #cbd5e1; font-size: 0.9rem;
     }
     .date-range { display: flex; gap: 12px; flex-wrap: wrap; }
     .report-stats { background: #f8fafc; padding: 16px; border-radius: 20px; margin: 16px 0; }
@@ -269,7 +292,7 @@
     .reprint-btn:hover { background: #7c3aed; }
     .lucky-btn:hover { background: #d97706; }
     .modal-buttons { display: flex; gap: 12px; justify-content: flex-end; margin-top: 16px; }
-    .modal-btn { padding: 10px 20px; border-radius: 40px; border: none; font-weight: 500; cursor: pointer; }
+    .modal-btn { padding: 12px 24px; border-radius: 60px; border: none; font-weight: 500; cursor: pointer; font-size: 1rem; }
     .modal-btn-primary { background: #2c7a4b; color: white; }
     .modal-btn-secondary { background: #e2e8f0; }
     .loading-overlay {
@@ -285,6 +308,7 @@
       .product-list .product-card { flex-direction: column; align-items: stretch; text-align: center; }
       .product-list .product-name, .product-list .product-price, .product-list .product-stock { margin: 4px 0; text-align: center; }
       .product-list .add-btn { width: 100%; }
+      .store-selector { flex-direction: column; align-items: stretch; }
     }
     .payment-buttons { display: flex; gap: 12px; margin: 20px 0; }
     .payment-btn { flex: 1; padding: 12px; border-radius: 40px; font-weight: 600; border: none; cursor: pointer; background: #e2e8f0; transition: 0.1s; }
@@ -310,12 +334,13 @@
     .keypad-btn.clear { background: #ef4444; color: white; }
     .keypad-btn.enter { background: #2c7a4b; color: white; }
     .store-select-modal select {
-      padding: 12px 16px;
-      border-radius: 40px;
+      padding: 14px 20px;
+      border-radius: 60px;
       border: 1px solid #cbd5e1;
       font-size: 1rem;
       width: 100%;
       margin-top: 16px;
+      font-weight: 500;
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -624,13 +649,16 @@
         document.getElementById('loginModal').style.display = 'none';
         document.getElementById('mainContent').style.display = 'block';
         
-        // If employee has an assigned store, override the store selector
-        if (currentEmployee.store && currentEmployee.store !== '') {
-          const storeOpt = Array.from(storeSelect.options).find(opt => opt.value === currentEmployee.store);
-          if (storeOpt) storeSelect.value = currentEmployee.store;
-          currentStore = storeSelect.value;
+        // IMPORTANT: Do NOT override currentStore with employee's assigned store.
+        // Keep the store that was initially selected.
+        // However, if the employee is non-admin, we disable the store dropdown.
+        if (!currentEmployee.isAdmin) {
+          storeSelect.disabled = true;
+        } else {
+          storeSelect.disabled = false;
         }
         
+        // Show/hide employee filter in report modal based on admin status
         const employeeFilterGroup = document.getElementById('employeeFilterGroup');
         if (currentEmployee.isAdmin) {
           employeeFilterGroup.style.display = 'flex';
@@ -1159,7 +1187,13 @@
   document.getElementById('receiptsToDate').addEventListener('change', updateReceipts);
   document.getElementById('receiptsSearch').addEventListener('input', updateReceipts);
 
-  storeSelect.addEventListener('change', async () => { currentStore = storeSelect.value; await fetchProductsFromSheet(); clearCart(); });
+  storeSelect.addEventListener('change', async () => { 
+    if (!storeSelect.disabled) { // only allow change if not disabled (admin)
+      currentStore = storeSelect.value; 
+      await fetchProductsFromSheet(); 
+      clearCart(); 
+    }
+  });
   document.getElementById('checkoutBtn').addEventListener('click', startCheckout);
   document.getElementById('clearCartBtn').addEventListener('click', clearCart);
   document.getElementById('refreshProductsBtn').addEventListener('click', () => fetchProductsFromSheet());
