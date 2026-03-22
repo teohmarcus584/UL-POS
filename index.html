@@ -398,7 +398,6 @@
 <script>
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxIFTiszA4JBjU0jHRGwK43YtdDf6CJufCvudxTwDcTMgIhU1B2Qtcrpv8GR9K8ImFE6Q/exec";
   let products = [], cart = [], currentStore = "queens", currentEmployee = null;
-  let storeChart = null, dayChart = null;
 
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -612,9 +611,15 @@
           console.error('Canvas elements not found');
           return;
         }
-        // Destroy old charts
-        if (window.storeChart) window.storeChart.destroy();
-        if (window.dayChart) window.dayChart.destroy();
+        // Safely destroy existing charts
+        if (window.storeChart && typeof window.storeChart.destroy === 'function') {
+          window.storeChart.destroy();
+          window.storeChart = null;
+        }
+        if (window.dayChart && typeof window.dayChart.destroy === 'function') {
+          window.dayChart.destroy();
+          window.dayChart = null;
+        }
         // Prepare data
         const storeLabels = result.salesByStore?.labels || [];
         const storeData = result.salesByStore?.data || [];
@@ -622,11 +627,13 @@
         const dayData = result.salesByDay?.data || [];
         if (storeLabels.length === 0 && dayLabels.length === 0) {
           console.log('No chart data to display');
-          // Optionally hide charts or show a message
-          document.getElementById('storeChart').style.display = 'none';
-          document.getElementById('dayChart').style.display = 'none';
+          storeCanvas.style.display = 'none';
+          dayCanvas.style.display = 'none';
           return;
         }
+        // Ensure canvases are visible
+        storeCanvas.style.display = 'block';
+        dayCanvas.style.display = 'block';
         // Create store chart
         const storeCtx = storeCanvas.getContext('2d');
         window.storeChart = new Chart(storeCtx, {
