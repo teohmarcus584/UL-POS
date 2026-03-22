@@ -73,10 +73,13 @@
     .logout-btn:hover { background: #dc2626; }
     .store-selector {
       background: white; border-radius: 28px; padding: 12px 20px; margin-bottom: 20px;
-      display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
     .store-selector label { font-weight: 500; }
-    #storeSelect {
+    #storeSelect, #soldBySelect {
       padding: 8px 16px; border-radius: 40px; border: 1px solid #cbd5e1;
       background: white; font-size: 1rem;
     }
@@ -294,17 +297,25 @@
   </div>
 
   <div class="employee-bar">
-    <span class="employee-info">👤 <span id="employeeName"></span></span>
+    <span class="employee-info">👤 Cashier: <span id="employeeName"></span></span>
     <button id="logoutButton" class="logout-btn">Logout</button>
   </div>
 
   <div class="store-selector">
-    <label>🏬 Store:</label>
-    <select id="storeSelect">
-      <option value="queens">Queens</option>
-      <option value="sunshine">Sunshine</option>
-      <option value="gurney_paragon">Gurney Paragon</option>
-    </select>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <label>🏬 Store:</label>
+      <select id="storeSelect">
+        <option value="queens">Queens</option>
+        <option value="sunshine">Sunshine</option>
+        <option value="gurney_paragon">Gurney Paragon</option>
+      </select>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <label>👤 Sold By:</label>
+      <select id="soldBySelect">
+        <option value="">Loading...</option>
+      </select>
+    </div>
   </div>
 
   <div class="pos-dashboard">
@@ -507,7 +518,7 @@
   let currentEmployee = null;
   let storeChart = null;
   let dayChart = null;
-  let pendingTransaction = null; // store transaction data before payment confirmation
+  let pendingTransaction = null;
 
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -516,8 +527,9 @@
   const searchInput = document.getElementById('searchInput');
   const categorySelect = document.getElementById('categorySelect');
   const storeSelect = document.getElementById('storeSelect');
+  const soldBySelect = document.getElementById('soldBySelect');
 
-  // Modal helpers
+  // Modal helpers (unchanged)
   function showAlertModal(title, message) {
     return new Promise((resolve) => {
       const overlay = document.getElementById('alertModal');
@@ -576,7 +588,7 @@
   function showLoading(msg = 'Loading...') { document.getElementById('loadingMessage').innerText = msg; document.getElementById('loadingOverlay').style.display = 'flex'; }
   function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
 
-  // API calls (same as before)
+  // API calls
   async function verifyEmployeeByPin(pin) {
     showLoading('Verifying...');
     try {
@@ -601,6 +613,7 @@
           document.getElementById('adminReportContainer').style.display = 'none';
           document.getElementById('nonAdminReportContainer').style.display = 'block';
         }
+        await populateSoldBySelect();
         await fetchProductsFromSheet();
         updateCartUI();
         return true;
@@ -656,6 +669,9 @@
   async function saveTransactionToSheet(transaction) {
     showLoading('Recording sale...');
     try {
+      const selectedEmployeeId = soldBySelect.value;
+      const employeeIdForRecord = selectedEmployeeId || currentEmployee.id;
+      
       const formData = new URLSearchParams();
       formData.append("action", "saveSale");
       formData.append("transaction_id", transaction.transaction_id);
@@ -665,7 +681,7 @@
       formData.append("cash_received", transaction.cash_received || '');
       formData.append("timestamp", transaction.timestamp);
       formData.append("store", currentStore);
-      formData.append("employee_id", currentEmployee.id);
+      formData.append("employee_id", employeeIdForRecord);
 
       const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
       const result = await response.json();
@@ -693,6 +709,20 @@
       console.error(err);
       return [];
     }
+  }
+
+  async function populateSoldBySelect() {
+    const employees = await fetchEmployees();
+    soldBySelect.innerHTML = '';
+    employees.forEach(emp => {
+      const option = document.createElement('option');
+      option.value = emp.id;
+      option.textContent = `${emp.name} (ID: ${emp.id})`;
+      if (currentEmployee && emp.id == currentEmployee.id) {
+        option.selected = true;
+      }
+      soldBySelect.appendChild(option);
+    });
   }
 
   async function fetchSalesReport(store, employeeId, from, to, reportType = 'admin') {
@@ -966,7 +996,7 @@
     updateCartUI();
   }
 
-  // New checkout with payment buttons
+  // Checkout with payment buttons
   async function startCheckout() {
     if (cart.length === 0) {
       await showAlertModal('Empty Cart', 'No items to checkout.');
@@ -990,12 +1020,10 @@
     const otherOptionsDiv = document.getElementById('otherPaymentOptions');
     const suggestionsContainer = document.getElementById('suggestionsContainer');
 
-    // Reset display
     cashOptionsDiv.style.display = 'none';
     otherOptionsDiv.style.display = 'none';
     modal.style.display = 'flex';
 
-    // Setup payment buttons
     const paymentBtns = document.querySelectorAll('.payment-btn');
     paymentBtns.forEach(btn => {
       btn.classList.remove('selected');
@@ -1006,7 +1034,6 @@
         if (method === 'Cash') {
           cashOptionsDiv.style.display = 'block';
           otherOptionsDiv.style.display = 'none';
-          // Generate suggestions
           const denominations = [100, 50, 20, 10];
           const suggestions = denominations.filter(amt => amt >= totalAmount);
           suggestionsContainer.innerHTML = '';
@@ -1027,7 +1054,6 @@
       });
     });
 
-    // Confirm handlers
     const confirmCash = async () => {
       const cashInput = document.getElementById('customCashInput').value;
       if (!cashInput) {
@@ -1086,7 +1112,6 @@
         await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
       }
       await showAlertModal('✅ Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
-      // Show Lucky Draw modal
       document.getElementById('luckyTxId').innerText = transactionId;
       const luckyModal = document.getElementById('luckyDrawModal');
       luckyModal.style.display = 'flex';
@@ -1102,7 +1127,6 @@
     }
   }
 
-  // Other UI functions (unchanged)
   function renderProductGrid() {
     const searchTerm = searchInput.value.toLowerCase();
     const selectedCategory = categorySelect.value;
@@ -1143,7 +1167,7 @@
 
   function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){ if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; return m;}); }
 
-  // Report generation functions (unchanged)
+  // Report functions (unchanged)
   function updateAdminReport() {
     const store = document.getElementById('adminReportStoreSelect').value;
     const employeeId = document.getElementById('adminReportEmployeeSelect').value;
