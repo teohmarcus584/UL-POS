@@ -555,8 +555,19 @@
       <div class="stat-item">Transactions: <span id="adminReportTransactionCount" class="stat-value">0</span></div>
       <div class="stat-item">Items Sold: <span id="adminReportTotalItems" class="stat-value">0</span></div>
     </div>
+
+    <!-- Sales by Store chart (admin only) -->
+    <div class="chart-container" id="storeChartContainer" style="display: none;">
+      <canvas id="storeChart" width="400" height="200"></canvas>
+    </div>
+
+    <!-- Sales by Day chart (always visible) -->
     <div class="chart-container"><canvas id="dayChart" width="400" height="200"></canvas></div>
-    <div class="chart-container" id="employeeChartContainer"><canvas id="employeeChart" width="400" height="200"></canvas></div>
+
+    <!-- Sales by Employee chart (admin only) -->
+    <div class="chart-container" id="employeeChartContainer" style="display: none;">
+      <canvas id="employeeChart" width="400" height="200"></canvas>
+    </div>
 
     <!-- Product Details Section -->
     <div class="modal-section">
@@ -726,17 +737,20 @@
           storeSelect.disabled = false;
         }
         
-        // Show/hide filters in report modal based on admin status
+        // Show/hide filters and charts in report modal based on admin status
         const reportStoreFilter = document.getElementById('reportStoreFilterGroup');
         const employeeFilterGroup = document.getElementById('employeeFilterGroup');
+        const storeChartContainer = document.getElementById('storeChartContainer');
         const employeeChartContainer = document.getElementById('employeeChartContainer');
         if (currentEmployee.isAdmin) {
           reportStoreFilter.style.display = 'flex';
           employeeFilterGroup.style.display = 'flex';
+          storeChartContainer.style.display = 'block';
           employeeChartContainer.style.display = 'block';
         } else {
           reportStoreFilter.style.display = 'none';
           employeeFilterGroup.style.display = 'none';
+          storeChartContainer.style.display = 'none';
           employeeChartContainer.style.display = 'none';
         }
         
@@ -850,36 +864,66 @@
       const result = await response.json();
       if (result.success) {
         await new Promise(resolve => setTimeout(resolve, 200));
-        const chartCanvas = document.getElementById('dayChart');
-        if (!chartCanvas) return;
-        if (window.dayChart && typeof window.dayChart.destroy === 'function') {
-          window.dayChart.destroy();
-          window.dayChart = null;
+        
+        // Render Store chart (only if admin and data exists)
+        if (currentEmployee.isAdmin && result.salesByStore) {
+          const storeCanvas = document.getElementById('storeChart');
+          if (storeCanvas) {
+            if (window.storeChart && typeof window.storeChart.destroy === 'function') {
+              window.storeChart.destroy();
+              window.storeChart = null;
+            }
+            const storeLabels = result.salesByStore.labels || [];
+            const storeData = result.salesByStore.data || [];
+            if (storeLabels.length > 0) {
+              storeCanvas.style.display = 'block';
+              const ctx = storeCanvas.getContext('2d');
+              window.storeChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                  labels: storeLabels,
+                  datasets: [{ label: 'Sales (RM)', data: storeData, backgroundColor: 'rgba(54,162,235,0.6)', borderColor: 'rgba(54,162,235,1)', borderWidth: 1 }]
+                },
+                options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } }
+              });
+            } else {
+              storeCanvas.style.display = 'none';
+            }
+          }
         }
-        let labels, data, chartTitle;
-        if (result.type === 'hourly') {
-          labels = result.hourly.labels;
-          data = result.hourly.data;
-          chartTitle = 'Hourly Sales (RM)';
-        } else {
-          labels = result.salesByDay?.labels || [];
-          data = result.salesByDay?.data || [];
-          chartTitle = 'Sales by Day (RM)';
+        
+        // Render Day chart
+        const dayCanvas = document.getElementById('dayChart');
+        if (dayCanvas) {
+          if (window.dayChart && typeof window.dayChart.destroy === 'function') {
+            window.dayChart.destroy();
+            window.dayChart = null;
+          }
+          let labels, data, chartTitle;
+          if (result.type === 'hourly') {
+            labels = result.hourly.labels;
+            data = result.hourly.data;
+            chartTitle = 'Hourly Sales (RM)';
+          } else {
+            labels = result.salesByDay?.labels || [];
+            data = result.salesByDay?.data || [];
+            chartTitle = 'Sales by Day (RM)';
+          }
+          if (labels.length > 0) {
+            dayCanvas.style.display = 'block';
+            const ctx = dayCanvas.getContext('2d');
+            window.dayChart = new Chart(ctx, {
+              type: 'bar',
+              data: {
+                labels: labels,
+                datasets: [{ label: chartTitle, data: data, backgroundColor: 'rgba(75,192,192,0.6)', borderColor: 'rgba(75,192,192,1)', borderWidth: 1 }]
+              },
+              options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } }
+            });
+          } else {
+            dayCanvas.style.display = 'none';
+          }
         }
-        if (labels.length === 0) {
-          chartCanvas.style.display = 'none';
-          return;
-        }
-        chartCanvas.style.display = 'block';
-        const ctx = chartCanvas.getContext('2d');
-        window.dayChart = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: labels,
-            datasets: [{ label: chartTitle, data: data, backgroundColor: 'rgba(75,192,192,0.6)', borderColor: 'rgba(75,192,192,1)', borderWidth: 1 }]
-          },
-          options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } }
-        });
       } else {
         console.error('Chart data error:', result);
       }
@@ -905,20 +949,20 @@
         }
         const labels = result.labels || [];
         const data = result.data || [];
-        if (labels.length === 0) {
+        if (labels.length > 0) {
+          employeeCanvas.style.display = 'block';
+          const ctx = employeeCanvas.getContext('2d');
+          window.employeeChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [{ label: 'Sales by Employee (RM)', data: data, backgroundColor: 'rgba(255,99,132,0.6)', borderColor: 'rgba(255,99,132,1)', borderWidth: 1 }]
+            },
+            options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } }
+          });
+        } else {
           employeeCanvas.style.display = 'none';
-          return;
         }
-        employeeCanvas.style.display = 'block';
-        const ctx = employeeCanvas.getContext('2d');
-        window.employeeChart = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: labels,
-            datasets: [{ label: 'Sales by Employee (RM)', data: data, backgroundColor: 'rgba(255,99,132,0.6)', borderColor: 'rgba(255,99,132,1)', borderWidth: 1 }]
-          },
-          options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } }
-        });
       } else {
         console.error('Employee sales data error:', result);
       }
@@ -927,7 +971,7 @@
     }
   }
 
-  // New: fetch product sales breakdown
+  // Product sales breakdown
   async function fetchProductSalesReport(store, employeeId, from, to) {
     try {
       let url = `${APPS_SCRIPT_URL}?action=getProductSalesReport&store=${store}&employeeId=${employeeId}`;
