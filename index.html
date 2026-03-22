@@ -188,6 +188,7 @@
     .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #edf2f7; }
     .cart-item-info { flex: 2; }
     .cart-item-name { font-weight: 500; font-size: 0.9rem; }
+    .cart-item-category { font-size: 0.7rem; color: #64748b; margin-top: 2px; }
     .cart-item-price { font-size: 0.8rem; color: #2c7a4b; }
     .cart-item-qty { display: flex; align-items: center; gap: 8px; margin: 0 12px; }
     .qty-btn { background: #f1f5f9; border: none; width: 28px; height: 28px; border-radius: 30px; font-weight: bold; font-size: 1rem; cursor: pointer; }
@@ -308,12 +309,36 @@
     .keypad-btn:active { transform: scale(0.95); background: #e2e8f0; }
     .keypad-btn.clear { background: #ef4444; color: white; }
     .keypad-btn.enter { background: #2c7a4b; color: white; }
+    .store-select-modal select {
+      padding: 12px 16px;
+      border-radius: 40px;
+      border: 1px solid #cbd5e1;
+      font-size: 1rem;
+      width: 100%;
+      margin-top: 16px;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
-<div id="loginModal" class="modal-overlay" style="display: flex;">
+<!-- Store Selection Modal (shown on page load) -->
+<div id="storeSelectModal" class="modal-overlay" style="display: flex;">
+  <div class="modal-container" style="max-width: 400px;">
+    <div class="modal-title">🏬 Select Store</div>
+    <select id="initialStoreSelect" class="store-select-modal">
+      <option value="queens">Queens</option>
+      <option value="sunshine">Sunshine</option>
+      <option value="gurney_paragon">Gurney Paragon</option>
+    </select>
+    <div class="modal-buttons" style="margin-top: 24px;">
+      <button id="confirmStoreBtn" class="modal-btn modal-btn-primary">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- PIN Login Modal (hidden initially) -->
+<div id="loginModal" class="modal-overlay" style="display: none;">
   <div class="modal-container" style="max-width: 400px;">
     <span class="close-modal" id="closeLoginModal">×</span>
     <div class="modal-title">🔐 Enter PIN</div>
@@ -575,6 +600,17 @@
   function showLoading(msg = 'Loading...') { document.getElementById('loadingMessage').innerText = msg; document.getElementById('loadingOverlay').style.display = 'flex'; }
   function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
 
+  // Store selection first
+  let selectedStore = null;
+  document.getElementById('confirmStoreBtn').addEventListener('click', () => {
+    selectedStore = document.getElementById('initialStoreSelect').value;
+    currentStore = selectedStore;
+    storeSelect.value = selectedStore; // set the main store selector
+    document.getElementById('storeSelectModal').style.display = 'none';
+    document.getElementById('loginModal').style.display = 'flex';
+    document.getElementById('pinInput').focus();
+  });
+
   // Login
   async function verifyEmployeeByPin(pin) {
     showLoading('Verifying...');
@@ -588,6 +624,7 @@
         document.getElementById('loginModal').style.display = 'none';
         document.getElementById('mainContent').style.display = 'block';
         
+        // If employee has an assigned store, override the store selector
         if (currentEmployee.store && currentEmployee.store !== '') {
           const storeOpt = Array.from(storeSelect.options).find(opt => opt.value === currentEmployee.store);
           if (storeOpt) storeSelect.value = currentEmployee.store;
@@ -880,7 +917,21 @@
     cart.forEach((item, idx) => {
       const itemTotal = item.product.price * item.quantity;
       subtotal += itemTotal;
-      html += `<div class="cart-item"><div class="cart-item-info"><div class="cart-item-name">${escapeHtml(item.product.name)}</div><div class="cart-item-price">RM ${item.product.price.toFixed(2)}</div></div><div class="cart-item-qty"><button class="qty-btn" data-index="${idx}" data-delta="-1">−</button><span>${item.quantity}</span><button class="qty-btn" data-index="${idx}" data-delta="1">+</button></div><div class="cart-item-total">RM ${itemTotal.toFixed(2)}</div><button class="remove-item" data-index="${idx}">✕</button></div>`;
+      const categoryDisplay = item.product.category ? `<div class="cart-item-category">${escapeHtml(item.product.category)}</div>` : '';
+      html += `<div class="cart-item">
+        <div class="cart-item-info">
+          <div class="cart-item-name">${escapeHtml(item.product.name)}</div>
+          ${categoryDisplay}
+          <div class="cart-item-price">RM ${item.product.price.toFixed(2)}</div>
+        </div>
+        <div class="cart-item-qty">
+          <button class="qty-btn" data-index="${idx}" data-delta="-1">−</button>
+          <span>${item.quantity}</span>
+          <button class="qty-btn" data-index="${idx}" data-delta="1">+</button>
+        </div>
+        <div class="cart-item-total">RM ${itemTotal.toFixed(2)}</div>
+        <button class="remove-item" data-index="${idx}">✕</button>
+      </div>`;
     });
     cartContainer.innerHTML = html;
     subtotalSpan.innerText = `RM ${subtotal.toFixed(2)}`;
