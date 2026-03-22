@@ -582,10 +582,10 @@
                 <th>Category</th>
                 <th style="text-align: right;">Qty Sold</th>
                 <th style="text-align: right;">Total (RM)</th>
-              </tr>
+               </tr>
             </thead>
             <tbody id="productDetailsBody">
-              <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
+               <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
             </tbody>
           </table>
         </div>
@@ -1424,12 +1424,14 @@
   });
   pinInput.addEventListener('input', () => { if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value); });
 
-  // Printer setup (updated to use employee name)
+  // Printer setup with cash drawer support and receipt cut
   (function setupPrinter() {
     let gattServer = null, printerCharacteristic = null, isConnected = false;
     const connectBtn = document.getElementById('connectPrinterButton'), printerStatusDiv = document.getElementById('printerStatus');
     function formatDateForReceipt(date) { const d = date.getDate().toString().padStart(2,'0'), m = (date.getMonth()+1).toString().padStart(2,'0'), y = date.getFullYear(), h = date.getHours().toString().padStart(2,'0'), min = date.getMinutes().toString().padStart(2,'0'); return `${d}/${m}/${y} ${h}:${min}`; }
-    function generateReceiptData(transaction) {
+    
+    // Generate receipt data with optional cash drawer open
+    function generateReceiptData(transaction, openDrawer = false) {
       const encoder = new TextEncoder();
       const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
       const lines = ['', '    ★ POS INVOICE ★', '-----------------------------', `Txn: ${transaction.transaction_id}`, `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`, `Employee: ${employeeName}`, '-----------------------------'];
@@ -1443,12 +1445,99 @@
       if (transaction.cash_received) lines.push(`Cash: RM ${transaction.cash_received} | Change: RM ${(transaction.cash_received - total).toFixed(2)}`);
       lines.push('-----------------------------', 'Thank you & come again!', '');
       const text = lines.join('\n');
-      return new Uint8Array([0x1B, 0x40, 0x1B, 0x61, 0x01, ...encoder.encode(text), 0x1B, 0x64, 0x03, 0x1D, 0x56, 0x41, 0x00]);
+      
+      // Build command array
+      let commands = [];
+      // Initialize printer (ESC @)
+      commands.push(0x1B, 0x40);
+      // Align center (ESC a 1)
+      commands.push(0x1B, 0x61, 0x01);
+      // Add text
+      commands.push(...encoder.encode(text));
+      // Feed 3 lines (ESC d 3)
+      commands.push(0x1B, 0x64, 0x03);
+      // Full cut (GS V A 0)
+      commands.push(0x1D, 0x56, 0x41, 0x00);
+      
+      // If cash transaction, add cash drawer kick command before the cut (or after receipt)
+      if (openDrawer) {
+        // Standard ESC/POS cash drawer kick: ESC p m t1 t2
+        // Often m=0, t1=0x19, t2=0xFA (pulse 25ms on, 250ms off)
+        const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
+        // Insert drawer command before the cut
+        commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
+      }
+      
+      return new Uint8Array(commands);
     }
-    async function printReceipt(transaction) { if (!isConnected || !printerCharacteristic) { printerStatusDiv.innerText = '❌ Printer not connected'; return false; } try { await printerCharacteristic.writeValue(generateReceiptData(transaction)); printerStatusDiv.innerText = '✅ Receipt printed'; return true; } catch (err) { console.error(err); printerStatusDiv.innerText = `❌ Print error`; return false; } }
-    async function connectPrinter() { try { printerStatusDiv.innerText = '🔍 Scanning...'; connectBtn.disabled = true; const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] }); gattServer = await device.gatt.connect(); const services = await gattServer.getPrimaryServices(); let foundChar = null; for (const service of services) { const chars = await service.getCharacteristics(); for (const char of chars) { if (char.properties.write || char.properties.writeWithoutResponse) { foundChar = char; break; } } if (foundChar) break; } if (!foundChar) throw new Error('No writable characteristic'); printerCharacteristic = foundChar; isConnected = true; window.printerAPI.isConnected = true; printerStatusDiv.innerText = '✅ Printer ready'; connectBtn.innerText = '🔌 Disconnect'; } catch (err) { printerStatusDiv.innerText = `❌ ${err.message}`; gattServer = null; printerCharacteristic = null; } finally { connectBtn.disabled = false; } }
-    async function disconnectPrinter() { if (gattServer) { gattServer.disconnect(); gattServer = null; printerCharacteristic = null; } isConnected = false; window.printerAPI.isConnected = false; printerStatusDiv.innerText = '⚪ Not connected'; connectBtn.innerText = '🖨️ Connect Printer'; }
-    connectBtn.addEventListener('click', () => { if (!isConnected) connectPrinter(); else disconnectPrinter(); });
+    
+    async function printReceipt(transaction) { 
+      if (!isConnected || !printerCharacteristic) { 
+        printerStatusDiv.innerText = '❌ Printer not connected'; 
+        return false; 
+      } 
+      try {
+        const openDrawer = (transaction.payment_method === 'Cash');
+        const data = generateReceiptData(transaction, openDrawer);
+        await printerCharacteristic.writeValue(data); 
+        printerStatusDiv.innerText = '✅ Receipt printed'; 
+        return true; 
+      } catch (err) { 
+        console.error(err); 
+        printerStatusDiv.innerText = `❌ Print error`; 
+        return false; 
+      } 
+    }
+    
+    async function connectPrinter() { 
+      try { 
+        printerStatusDiv.innerText = '🔍 Scanning...'; 
+        connectBtn.disabled = true; 
+        const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] }); 
+        gattServer = await device.gatt.connect(); 
+        const services = await gattServer.getPrimaryServices(); 
+        let foundChar = null; 
+        for (const service of services) { 
+          const chars = await service.getCharacteristics(); 
+          for (const char of chars) { 
+            if (char.properties.write || char.properties.writeWithoutResponse) { 
+              foundChar = char; 
+              break; 
+            } 
+          } 
+          if (foundChar) break; 
+        } 
+        if (!foundChar) throw new Error('No writable characteristic'); 
+        printerCharacteristic = foundChar; 
+        isConnected = true; 
+        window.printerAPI.isConnected = true; 
+        printerStatusDiv.innerText = '✅ Printer ready'; 
+        connectBtn.innerText = '🔌 Disconnect'; 
+      } catch (err) { 
+        printerStatusDiv.innerText = `❌ ${err.message}`; 
+        gattServer = null; 
+        printerCharacteristic = null; 
+      } finally { 
+        connectBtn.disabled = false; 
+      } 
+    }
+    
+    async function disconnectPrinter() { 
+      if (gattServer) { 
+        gattServer.disconnect(); 
+        gattServer = null; 
+        printerCharacteristic = null; 
+      } 
+      isConnected = false; 
+      window.printerAPI.isConnected = false; 
+      printerStatusDiv.innerText = '⚪ Not connected'; 
+      connectBtn.innerText = '🖨️ Connect Printer'; 
+    }
+    
+    connectBtn.addEventListener('click', () => { 
+      if (!isConnected) connectPrinter(); 
+      else disconnectPrinter(); 
+    });
     window.printerAPI = { isConnected: false, printReceipt: printReceipt };
   })();
 </script>
