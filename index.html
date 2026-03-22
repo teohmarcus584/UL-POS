@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
-  <title>POS System | PIN Login</title>
+  <title>POS System | Store‑Specific Sales</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -82,6 +82,10 @@
     #storeSelect, #soldBySelect {
       padding: 8px 16px; border-radius: 40px; border: 1px solid #cbd5e1;
       background: white; font-size: 1rem;
+    }
+    #storeSelect:disabled {
+      background: #f1f5f9;
+      cursor: not-allowed;
     }
     .pos-dashboard { display: flex; flex-wrap: wrap; gap: 20px; }
     .products-panel {
@@ -511,7 +515,7 @@
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHX7gTdZnI-sZIpNbvaDOg5M5spTkkLi5OAS5VeplzNpqdYTLY6sozdeH8OEuOJ4HG7Q/exec"; // Replace with your web app URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXPRs85bSctyhGIBVhmiHqVSz67oR5FCwN3ZwCvlELEigLVxYjBbJhBHDn637-AboSLA/exec"; // Replace with your web app URL
   let products = [];
   let cart = [];
   let currentStore = "queens";
@@ -529,7 +533,7 @@
   const storeSelect = document.getElementById('storeSelect');
   const soldBySelect = document.getElementById('soldBySelect');
 
-  // Modal helpers (unchanged)
+  // Modal helpers
   function showAlertModal(title, message) {
     return new Promise((resolve) => {
       const overlay = document.getElementById('alertModal');
@@ -600,20 +604,32 @@
         document.getElementById('employeeName').innerText = currentEmployee.name;
         document.getElementById('loginModal').style.display = 'none';
         document.getElementById('mainContent').style.display = 'block';
-        if (currentEmployee.store && currentEmployee.store !== '') {
-          const storeOpt = Array.from(storeSelect.options).find(opt => opt.value === currentEmployee.store);
-          if (storeOpt) storeSelect.value = currentEmployee.store;
-          currentStore = storeSelect.value;
-        }
+        
         const isAdmin = currentEmployee.isAdmin;
+        
         if (isAdmin) {
           document.getElementById('adminReportContainer').style.display = 'block';
           document.getElementById('nonAdminReportContainer').style.display = 'none';
+          storeSelect.disabled = false;
+          if (currentEmployee.store && currentEmployee.store !== '') {
+            const storeOpt = Array.from(storeSelect.options).find(opt => opt.value === currentEmployee.store);
+            if (storeOpt) storeSelect.value = currentEmployee.store;
+          }
+          currentStore = storeSelect.value;
         } else {
           document.getElementById('adminReportContainer').style.display = 'none';
           document.getElementById('nonAdminReportContainer').style.display = 'block';
+          if (currentEmployee.store && currentEmployee.store !== '') {
+            storeSelect.value = currentEmployee.store;
+            storeSelect.disabled = true;
+            currentStore = currentEmployee.store;
+          } else {
+            await showAlertModal('Error', 'No store assigned to this employee. Please contact admin.');
+            return false;
+          }
         }
-        await populateSoldBySelect();
+        
+        await fetchEmployeesForStore(currentStore);
         await fetchProductsFromSheet();
         updateCartUI();
         return true;
@@ -627,6 +643,37 @@
       return false;
     } finally {
       hideLoading();
+    }
+  }
+
+  async function fetchEmployeesForStore(store) {
+    try {
+      let url = `${APPS_SCRIPT_URL}?action=getEmployees`;
+      if (store && store !== "all") {
+        url += `&store=${encodeURIComponent(store)}`;
+      }
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        const employees = result.employees;
+        soldBySelect.innerHTML = '';
+        employees.forEach(emp => {
+          const option = document.createElement('option');
+          option.value = emp.id;
+          option.textContent = `${emp.name} (ID: ${emp.id})`;
+          if (currentEmployee && emp.id == currentEmployee.id) {
+            option.selected = true;
+          }
+          soldBySelect.appendChild(option);
+        });
+        if (employees.length === 0) {
+          soldBySelect.innerHTML = '<option value="">No employees found</option>';
+        }
+      } else {
+        console.warn('Could not fetch employees', result.error);
+      }
+    } catch (err) {
+      console.error(err);
     }
   }
 
@@ -692,37 +739,6 @@
     } finally {
       hideLoading();
     }
-  }
-
-  async function fetchEmployees() {
-    try {
-      const url = `${APPS_SCRIPT_URL}?action=getEmployees`;
-      const response = await fetch(url);
-      const result = await response.json();
-      if (result.success) {
-        return result.employees;
-      } else {
-        console.warn('Could not fetch employees', result.error);
-        return [];
-      }
-    } catch (err) {
-      console.error(err);
-      return [];
-    }
-  }
-
-  async function populateSoldBySelect() {
-    const employees = await fetchEmployees();
-    soldBySelect.innerHTML = '';
-    employees.forEach(emp => {
-      const option = document.createElement('option');
-      option.value = emp.id;
-      option.textContent = `${emp.name} (ID: ${emp.id})`;
-      if (currentEmployee && emp.id == currentEmployee.id) {
-        option.selected = true;
-      }
-      soldBySelect.appendChild(option);
-    });
   }
 
   async function fetchSalesReport(store, employeeId, from, to, reportType = 'admin') {
@@ -1167,7 +1183,7 @@
 
   function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){ if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; return m;}); }
 
-  // Report functions (unchanged)
+  // Report generation functions
   function updateAdminReport() {
     const store = document.getElementById('adminReportStoreSelect').value;
     const employeeId = document.getElementById('adminReportEmployeeSelect').value;
@@ -1261,21 +1277,32 @@
 
   async function populateEmployeeSelects() {
     if (!currentEmployee || !currentEmployee.isAdmin) return;
-    const employees = await fetchEmployees();
-    const adminReportEmpSelect = document.getElementById('adminReportEmployeeSelect');
-    const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
-    adminReportEmpSelect.innerHTML = '<option value="all">All Employees</option>';
-    receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
-    employees.forEach(emp => {
-      const opt1 = document.createElement('option');
-      opt1.value = emp.id;
-      opt1.textContent = `${emp.name} (ID: ${emp.id})`;
-      const opt2 = document.createElement('option');
-      opt2.value = emp.id;
-      opt2.textContent = `${emp.name} (ID: ${emp.id})`;
-      adminReportEmpSelect.appendChild(opt1);
-      receiptsEmpSelect.appendChild(opt2);
-    });
+    const employees = await fetchEmployeesForStore(currentStore); // Actually, we need to fetch again without store filter? Wait, we already have a function that fetches by store. We'll use a separate call for all employees for admin.
+    // For admin, we want all employees, not filtered by store
+    try {
+      const url = `${APPS_SCRIPT_URL}?action=getEmployees`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        const employees = result.employees;
+        const adminReportEmpSelect = document.getElementById('adminReportEmployeeSelect');
+        const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
+        adminReportEmpSelect.innerHTML = '<option value="all">All Employees</option>';
+        receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
+        employees.forEach(emp => {
+          const opt1 = document.createElement('option');
+          opt1.value = emp.id;
+          opt1.textContent = `${emp.name} (ID: ${emp.id})`;
+          const opt2 = document.createElement('option');
+          opt2.value = emp.id;
+          opt2.textContent = `${emp.name} (ID: ${emp.id})`;
+          adminReportEmpSelect.appendChild(opt1);
+          receiptsEmpSelect.appendChild(opt2);
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
     document.getElementById('receiptsEmployeeFilter').style.display = currentEmployee.isAdmin ? 'flex' : 'none';
   }
 
@@ -1354,7 +1381,9 @@
   document.getElementById('receiptsSearch').addEventListener('input', updateReceipts);
 
   storeSelect.addEventListener('change', async () => {
+    if (currentEmployee && !currentEmployee.isAdmin) return; // non-admin can't change store
     currentStore = storeSelect.value;
+    await fetchEmployeesForStore(currentStore);
     await fetchProductsFromSheet();
     clearCart();
   });
