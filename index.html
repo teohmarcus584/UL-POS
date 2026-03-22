@@ -702,19 +702,48 @@
     }
   }
 
+  // Helper: get local YYYY-MM-DD from a Date object
+  function getLocalDateString(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
   function updateAdminReport() {
     const store = document.getElementById('adminReportStoreSelect').value;
     let employeeId = document.getElementById('adminReportEmployeeSelect').value;
     if (!currentEmployee.isAdmin) {
-      employeeId = 'all'; // non-admin sees all employees
+      employeeId = 'all';
     }
     const range = document.getElementById('adminReportDateRangeSelect').value;
     let from = null, to = null;
-    const today = new Date(); today.setHours(0,0,0,0);
-    if (range === 'today') { from = today.toISOString().split('T')[0]; to = new Date(today).toISOString().split('T')[0]; }
-    else if (range === 'week') { const start = new Date(today); start.setDate(today.getDate() - today.getDay()); from = start.toISOString().split('T')[0]; const end = new Date(today); end.setDate(today.getDate() + (6 - today.getDay())); to = end.toISOString().split('T')[0]; }
-    else if (range === 'month') { from = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]; to = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0]; }
-    else if (range === 'custom') { from = document.getElementById('adminReportFromDate').value; to = document.getElementById('adminReportToDate').value; if (!from || !to) return; }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // start of today in local time
+
+    if (range === 'today') {
+      from = getLocalDateString(today);
+      to = from;
+    } else if (range === 'week') {
+      const start = new Date(today);
+      const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ...
+      // Adjust to Monday as start of week
+      const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+      start.setDate(today.getDate() - diffToMonday);
+      from = getLocalDateString(start);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      to = getLocalDateString(end);
+    } else if (range === 'month') {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      from = getLocalDateString(start);
+      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      to = getLocalDateString(end);
+    } else if (range === 'custom') {
+      from = document.getElementById('adminReportFromDate').value;
+      to = document.getElementById('adminReportToDate').value;
+      if (!from || !to) return;
+    }
     fetchSalesReport(store, employeeId, from, to);
     fetchSalesChartData(store, employeeId, from, to);
     fetchEmployeeSalesData(store, from, to);
@@ -911,11 +940,30 @@
     const range = document.getElementById('receiptsDateRangeSelect').value;
     const search = document.getElementById('receiptsSearch').value;
     let from = null, to = null;
-    const today = new Date(); today.setHours(0,0,0,0);
-    if (range === 'today') { from = today.toISOString().split('T')[0]; to = new Date(today).toISOString().split('T')[0]; }
-    else if (range === 'week') { const start = new Date(today); start.setDate(today.getDate() - today.getDay()); from = start.toISOString().split('T')[0]; const end = new Date(today); end.setDate(today.getDate() + (6 - today.getDay())); to = end.toISOString().split('T')[0]; }
-    else if (range === 'month') { from = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]; to = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0]; }
-    else if (range === 'custom') { from = document.getElementById('receiptsFromDate').value; to = document.getElementById('receiptsToDate').value; if (!from || !to) return; }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (range === 'today') {
+      from = getLocalDateString(today);
+      to = from;
+    } else if (range === 'week') {
+      const start = new Date(today);
+      const dayOfWeek = today.getDay();
+      const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+      start.setDate(today.getDate() - diffToMonday);
+      from = getLocalDateString(start);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      to = getLocalDateString(end);
+    } else if (range === 'month') {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      from = getLocalDateString(start);
+      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      to = getLocalDateString(end);
+    } else if (range === 'custom') {
+      from = document.getElementById('receiptsFromDate').value;
+      to = document.getElementById('receiptsToDate').value;
+      if (!from || !to) return;
+    }
     fetchReceipts(store, employeeId, from, to, search);
   }
 
@@ -925,7 +973,6 @@
     populateStoreSelects();
     const modal = document.getElementById('adminReportModal');
     modal.style.display = 'flex';
-    // Wait a moment for the modal to become visible and the canvas to be ready
     setTimeout(() => {
       updateAdminReport();
     }, 200);
