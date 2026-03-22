@@ -622,9 +622,10 @@
 <script>
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwTh0IzcaRPgtsZ8JdaliVWK812LYKicEISDnSj01fCN71PqXA2Kip9TR-btmCk7pUcHQ/exec";
   let products = [], cart = [], currentStore = "queens", currentEmployee = null;
-  let viewMode = "grid"; // 'grid' or 'list'
+  let viewMode = "grid";
   let productDetailsVisible = false;
-  let lastProductData = null; // cache to avoid re-fetch on toggle
+  let lastProductData = null;
+  let employeeNameMap = {}; // store employee id -> name mapping
 
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -730,7 +731,6 @@
         document.getElementById('loginModal').style.display = 'none';
         document.getElementById('mainContent').style.display = 'block';
         
-        // Keep the initially selected store; only disable dropdown for non-admin
         if (!currentEmployee.isAdmin) {
           storeSelect.disabled = true;
         } else {
@@ -754,6 +754,8 @@
           employeeChartContainer.style.display = 'none';
         }
         
+        // Load employee name mapping for receipts
+        await loadEmployeeNameMap();
         await populateSoldBySelect();
         await fetchProductsFromSheet();
         updateCartUI();
@@ -767,6 +769,34 @@
       document.getElementById('loginError').innerText = 'Connection error';
       return false;
     } finally { hideLoading(); }
+  }
+
+  async function loadEmployeeNameMap() {
+    const employees = await fetchEmployees();
+    employeeNameMap = {};
+    employees.forEach(emp => {
+      employeeNameMap[emp.id] = emp.name;
+    });
+  }
+
+  async function fetchEmployees() {
+    try {
+      const response = await fetch(`${APPS_SCRIPT_URL}?action=getEmployees`);
+      const result = await response.json();
+      return result.success ? result.employees : [];
+    } catch (err) { console.error(err); return []; }
+  }
+
+  async function populateSoldBySelect() {
+    const employees = await fetchEmployees();
+    soldBySelect.innerHTML = '';
+    employees.forEach(emp => {
+      const option = document.createElement('option');
+      option.value = emp.id;
+      option.textContent = `${emp.name} (ID: ${emp.id})`;
+      if (currentEmployee && emp.id == currentEmployee.id) option.selected = true;
+      soldBySelect.appendChild(option);
+    });
   }
 
   // Products
@@ -815,27 +845,7 @@
     } catch (err) { console.error(err); return false; } finally { hideLoading(); }
   }
 
-  async function fetchEmployees() {
-    try {
-      const response = await fetch(`${APPS_SCRIPT_URL}?action=getEmployees`);
-      const result = await response.json();
-      return result.success ? result.employees : [];
-    } catch (err) { console.error(err); return []; }
-  }
-
-  async function populateSoldBySelect() {
-    const employees = await fetchEmployees();
-    soldBySelect.innerHTML = '';
-    employees.forEach(emp => {
-      const option = document.createElement('option');
-      option.value = emp.id;
-      option.textContent = `${emp.name} (ID: ${emp.id})`;
-      if (currentEmployee && emp.id == currentEmployee.id) option.selected = true;
-      soldBySelect.appendChild(option);
-    });
-  }
-
-  // Report functions – now accept store parameter
+  // Report functions (unchanged but adapted to include store param)
   async function fetchSalesReport(store, employeeId, from, to) {
     showLoading('Loading report...');
     try {
@@ -865,7 +875,6 @@
       if (result.success) {
         await new Promise(resolve => setTimeout(resolve, 200));
         
-        // Render Store chart (only if admin and data exists)
         if (currentEmployee.isAdmin && result.salesByStore) {
           const storeCanvas = document.getElementById('storeChart');
           if (storeCanvas) {
@@ -892,7 +901,6 @@
           }
         }
         
-        // Render Day chart
         const dayCanvas = document.getElementById('dayChart');
         if (dayCanvas) {
           if (window.dayChart && typeof window.dayChart.destroy === 'function') {
@@ -971,7 +979,6 @@
     }
   }
 
-  // Product sales breakdown
   async function fetchProductSalesReport(store, employeeId, from, to) {
     try {
       let url = `${APPS_SCRIPT_URL}?action=getProductSalesReport&store=${store}&employeeId=${employeeId}`;
@@ -1017,13 +1024,12 @@
   }
 
   async function updateAdminReport() {
-    // Determine store and employee based on admin status
     let store, employeeId;
     if (currentEmployee.isAdmin) {
       store = document.getElementById('adminReportStoreSelect').value;
       employeeId = document.getElementById('adminReportEmployeeSelect').value;
     } else {
-      store = 'all'; // non-admin sees all stores (but only their own sales via employeeId)
+      store = 'all';
       employeeId = currentEmployee.id;
     }
     
@@ -1054,21 +1060,19 @@
       if (!from || !to) return;
     }
     
-    // Fetch main report data and charts
     await fetchSalesReport(store, employeeId, from, to);
     await fetchSalesChartData(store, employeeId, from, to);
     if (currentEmployee.isAdmin) {
       await fetchEmployeeSalesData(store, from, to);
     }
     
-    // Fetch product details
     lastProductData = await fetchProductSalesReport(store, employeeId, from, to);
     if (productDetailsVisible) {
       renderProductDetails(lastProductData);
     }
   }
 
-  // Receipts (unchanged)
+  // Receipts
   async function fetchReceipts(store, employeeId, from, to, search) {
     showLoading('Loading receipts...');
     try {
@@ -1089,11 +1093,12 @@
     let html = '';
     receipts.forEach(rec => {
       const date = new Date(rec.timestamp).toLocaleString();
+      const employeeName = employeeNameMap[rec.employee_id] || rec.employee_id;
       const itemsSummary = rec.items.map(i => {
         const displayName = i.category ? `${i.category}: ${i.name}` : i.name;
         return `${displayName} x${i.quantity}`;
       }).join(', ');
-      html += `<div class="receipt-item" data-receipt='${JSON.stringify(rec)}'><div class="receipt-header"><span class="receipt-id">${rec.transaction_id}</span><span class="receipt-date">${date}</span><span class="receipt-total">RM ${rec.total.toFixed(2)}</span></div><div class="receipt-details"><div>Store: ${rec.store} | Payment: ${rec.payment_method} | Employee: ${rec.employee_id}</div><div>Items: ${itemsSummary}</div></div><div class="receipt-actions"><button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>🖨️ Reprint</button><button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button></div></div>`;
+      html += `<div class="receipt-item" data-receipt='${JSON.stringify(rec)}'><div class="receipt-header"><span class="receipt-id">${rec.transaction_id}</span><span class="receipt-date">${date}</span><span class="receipt-total">RM ${rec.total.toFixed(2)}</span></div><div class="receipt-details"><div>Store: ${rec.store} | Payment: ${rec.payment_method} | Employee: ${employeeName}</div><div>Items: ${itemsSummary}</div></div><div class="receipt-actions"><button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>🖨️ Reprint</button><button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button></div></div>`;
     });
     container.innerHTML = html;
     document.querySelectorAll('.reprint-btn').forEach(btn => { btn.addEventListener('click', (e) => { reprintReceipt(JSON.parse(btn.dataset.receipt)); e.stopPropagation(); }); });
@@ -1337,7 +1342,6 @@
   document.getElementById('adminReportFromDate').addEventListener('change', updateAdminReport);
   document.getElementById('adminReportToDate').addEventListener('change', updateAdminReport);
 
-  // Toggle product details visibility
   const toggleBtn = document.getElementById('toggleProductDetailsBtn');
   const productDetailsContainer = document.getElementById('productDetailsContainer');
   toggleBtn.addEventListener('click', () => {
@@ -1393,30 +1397,147 @@
   });
   pinInput.addEventListener('input', () => { if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value); });
 
-  // Printer setup (unchanged)
+  // Printer setup with improved receipt formatting
   (function setupPrinter() {
     let gattServer = null, printerCharacteristic = null, isConnected = false;
     const connectBtn = document.getElementById('connectPrinterButton'), printerStatusDiv = document.getElementById('printerStatus');
-    function formatDateForReceipt(date) { const d = date.getDate().toString().padStart(2,'0'), m = (date.getMonth()+1).toString().padStart(2,'0'), y = date.getFullYear(), h = date.getHours().toString().padStart(2,'0'), min = date.getMinutes().toString().padStart(2,'0'); return `${d}/${m}/${y} ${h}:${min}`; }
+    
+    function formatDateForReceipt(date) {
+      const d = date.getDate().toString().padStart(2,'0');
+      const m = (date.getMonth()+1).toString().padStart(2,'0');
+      const y = date.getFullYear();
+      const h = date.getHours().toString().padStart(2,'0');
+      const min = date.getMinutes().toString().padStart(2,'0');
+      return `${d}/${m}/${y} ${h}:${min}`;
+    }
+    
     function generateReceiptData(transaction) {
       const encoder = new TextEncoder();
-      const lines = ['', '    ★ POS INVOICE ★', '-----------------------------', `Txn: ${transaction.transaction_id}`, `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`, `Employee: ${transaction.employee_id || currentEmployee?.id || 'N/A'}`, '-----------------------------'];
-      let total = 0;
+      const storeName = transaction.store === 'queens' ? 'Queens' :
+                        transaction.store === 'sunshine' ? 'Sunshine' :
+                        transaction.store === 'gurney_paragon' ? 'Gurney Paragon' : transaction.store;
+      const employeeName = employeeNameMap[transaction.employee_id] || transaction.employee_id || 'N/A';
+      const date = new Date(transaction.timestamp);
+      const receiptDate = formatDateForReceipt(date);
+      
+      const lines = [];
+      // Logo / Header
+      lines.push('╔══════════════════════════════╗');
+      lines.push('║         UL PERFUMERIE        ║');
+      lines.push('║                              ║');
+      lines.push('╠══════════════════════════════╣');
+      lines.push(`║ Store : ${storeName.padEnd(25)}║`);
+      lines.push(`║ Cashier: ${employeeName.padEnd(25)}║`);
+      lines.push(`║ Txn: ${transaction.transaction_id.padEnd(25)}║`);
+      lines.push(`║ Date: ${receiptDate.padEnd(25)}║`);
+      lines.push('╠══════════════════════════════╣');
+      lines.push('║ Items                        ║');
+      lines.push('╠══════════════════════════════╣');
+      
       for (let item of transaction.items) {
         const displayName = item.category ? `${item.category}: ${item.name}` : item.name;
-        lines.push(`${displayName} x${item.quantity}`, `  ${item.price.toFixed(2)} x ${item.quantity} = RM ${(item.price * item.quantity).toFixed(2)}`);
-        total += item.price * item.quantity;
+        const qty = item.quantity;
+        const price = item.price;
+        const total = item.total;
+        // Wrap product name if too long (truncate to 25 chars)
+        const nameLine = displayName.length > 25 ? displayName.substring(0,22)+'...' : displayName;
+        lines.push(`║ ${nameLine.padEnd(25)}║`);
+        lines.push(`║   ${qty} x RM ${price.toFixed(2).padStart(6)} = RM ${total.toFixed(2).padStart(6)}   ║`);
       }
-      lines.push('-----------------------------', `TOTAL: RM ${total.toFixed(2)}`, `Payment: ${transaction.payment_method}`);
-      if (transaction.cash_received) lines.push(`Cash: RM ${transaction.cash_received} | Change: RM ${(transaction.cash_received - total).toFixed(2)}`);
-      lines.push('-----------------------------', 'Thank you & come again!', '');
+      
+      lines.push('╠══════════════════════════════╣');
+      const totalLine = `║ TOTAL: RM ${transaction.total.toFixed(2).padStart(10)}           ║`;
+      lines.push(totalLine);
+      lines.push(`║ Payment: ${transaction.payment_method.padEnd(25)}║`);
+      if (transaction.cash_received) {
+        const change = transaction.cash_received - transaction.total;
+        lines.push(`║ Cash: RM ${transaction.cash_received.toFixed(2).padStart(6)}           ║`);
+        lines.push(`║ Change: RM ${change.toFixed(2).padStart(6)}           ║`);
+      }
+      lines.push('╠══════════════════════════════╣');
+      lines.push('║   Thank you & come again!    ║');
+      lines.push('╚══════════════════════════════╝');
+      lines.push('', ''); // extra blank lines for paper feed
+      
       const text = lines.join('\n');
-      return new Uint8Array([0x1B, 0x40, 0x1B, 0x61, 0x01, ...encoder.encode(text), 0x1B, 0x64, 0x03, 0x1D, 0x56, 0x41, 0x00]);
+      // ESC/POS commands: reset, center align, print, cut paper
+      const escPosCommands = [0x1B, 0x40]; // reset
+      // Align center (0x1B 0x61 0x01) but we already used spaces, so we can optionally set center
+      // We'll use left alignment for consistency, but add a cut command at the end
+      const cut = [0x1D, 0x56, 0x41, 0x00]; // full cut
+      
+      return new Uint8Array([...escPosCommands, ...encoder.encode(text), ...cut]);
     }
-    async function printReceipt(transaction) { if (!isConnected || !printerCharacteristic) { printerStatusDiv.innerText = '❌ Printer not connected'; return false; } try { await printerCharacteristic.writeValue(generateReceiptData(transaction)); printerStatusDiv.innerText = '✅ Receipt printed'; return true; } catch (err) { console.error(err); printerStatusDiv.innerText = `❌ Print error`; return false; } }
-    async function connectPrinter() { try { printerStatusDiv.innerText = '🔍 Scanning...'; connectBtn.disabled = true; const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] }); gattServer = await device.gatt.connect(); const services = await gattServer.getPrimaryServices(); let foundChar = null; for (const service of services) { const chars = await service.getCharacteristics(); for (const char of chars) { if (char.properties.write || char.properties.writeWithoutResponse) { foundChar = char; break; } } if (foundChar) break; } if (!foundChar) throw new Error('No writable characteristic'); printerCharacteristic = foundChar; isConnected = true; window.printerAPI.isConnected = true; printerStatusDiv.innerText = '✅ Printer ready'; connectBtn.innerText = '🔌 Disconnect'; } catch (err) { printerStatusDiv.innerText = `❌ ${err.message}`; gattServer = null; printerCharacteristic = null; } finally { connectBtn.disabled = false; } }
-    async function disconnectPrinter() { if (gattServer) { gattServer.disconnect(); gattServer = null; printerCharacteristic = null; } isConnected = false; window.printerAPI.isConnected = false; printerStatusDiv.innerText = '⚪ Not connected'; connectBtn.innerText = '🖨️ Connect Printer'; }
-    connectBtn.addEventListener('click', () => { if (!isConnected) connectPrinter(); else disconnectPrinter(); });
+    
+    async function printReceipt(transaction) {
+      if (!isConnected || !printerCharacteristic) {
+        printerStatusDiv.innerText = '❌ Printer not connected';
+        return false;
+      }
+      try {
+        await printerCharacteristic.writeValue(generateReceiptData(transaction));
+        printerStatusDiv.innerText = '✅ Receipt printed';
+        return true;
+      } catch (err) {
+        console.error(err);
+        printerStatusDiv.innerText = `❌ Print error`;
+        return false;
+      }
+    }
+    
+    async function connectPrinter() {
+      try {
+        printerStatusDiv.innerText = '🔍 Scanning...';
+        connectBtn.disabled = true;
+        const device = await navigator.bluetooth.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+        });
+        gattServer = await device.gatt.connect();
+        const services = await gattServer.getPrimaryServices();
+        let foundChar = null;
+        for (const service of services) {
+          const chars = await service.getCharacteristics();
+          for (const char of chars) {
+            if (char.properties.write || char.properties.writeWithoutResponse) {
+              foundChar = char;
+              break;
+            }
+          }
+          if (foundChar) break;
+        }
+        if (!foundChar) throw new Error('No writable characteristic');
+        printerCharacteristic = foundChar;
+        isConnected = true;
+        window.printerAPI.isConnected = true;
+        printerStatusDiv.innerText = '✅ Printer ready';
+        connectBtn.innerText = '🔌 Disconnect';
+      } catch (err) {
+        printerStatusDiv.innerText = `❌ ${err.message}`;
+        gattServer = null;
+        printerCharacteristic = null;
+      } finally {
+        connectBtn.disabled = false;
+      }
+    }
+    
+    async function disconnectPrinter() {
+      if (gattServer) {
+        gattServer.disconnect();
+        gattServer = null;
+        printerCharacteristic = null;
+      }
+      isConnected = false;
+      window.printerAPI.isConnected = false;
+      printerStatusDiv.innerText = '⚪ Not connected';
+      connectBtn.innerText = '🖨️ Connect Printer';
+    }
+    
+    connectBtn.addEventListener('click', () => {
+      if (!isConnected) connectPrinter();
+      else disconnectPrinter();
+    });
+    
     window.printerAPI = { isConnected: false, printReceipt: printReceipt };
   })();
 </script>
