@@ -379,7 +379,7 @@
   </div>
 </div>
 
-<!-- My Sales Report Modal (with store total) -->
+<!-- My Sales Report Modal -->
 <div id="mySalesReportModal" class="modal-overlay">
   <div class="modal-container">
     <div class="modal-title">📊 My Sales</div>
@@ -426,7 +426,7 @@
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxtVsNCmpBbtob6hvldVSjctUNNU3Ew0Ct4rdnEG7UYaI7btK4gRvYgdNcMMnqcmSoVBw/exec";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwB2uUZnIwRpP6LZXjiiKKoSRnBJWIJvKIMyQfBmM1wy2uT4Vmc4vYnArw9I4UpUAKCHw/exec";
   let products = [], cart = [], currentStore = "queens", currentEmployee = null;
   let storeChart = null, dayChart = null, mySalesChart = null, storeEmployeesChart = null;
   let pendingTransaction = null;
@@ -509,20 +509,35 @@
         document.getElementById('employeeName').innerText = currentEmployee.name;
         document.getElementById('loginModal').style.display = 'none';
         document.getElementById('mainContent').style.display = 'block';
+        
+        // If employee has an assigned store
         if (currentEmployee.store && currentEmployee.store !== '') {
+          // Set main POS store dropdown
           const storeOpt = Array.from(storeSelect.options).find(opt => opt.value === currentEmployee.store);
           if (storeOpt) storeSelect.value = currentEmployee.store;
           currentStore = storeSelect.value;
-          // Set My Sales store dropdown and disable it for non-admin
+          
+          // Set My Sales store dropdown and disable it
           const mySalesStoreSelect = document.getElementById('mySalesReportStoreSelect');
           if (mySalesStoreSelect) {
+            // Populate options first
+            const stores = Array.from(storeSelect.options).map(opt => ({ value: opt.value, text: opt.text }));
+            mySalesStoreSelect.innerHTML = '<option value="all">All Stores</option>';
+            stores.forEach(s => {
+              const opt = document.createElement('option');
+              opt.value = s.value;
+              opt.textContent = s.text;
+              mySalesStoreSelect.appendChild(opt);
+            });
             mySalesStoreSelect.value = currentEmployee.store;
             mySalesStoreSelect.disabled = true;
           }
         }
+        
         const isAdmin = currentEmployee.isAdmin;
         document.getElementById('adminReportContainer').style.display = isAdmin ? 'block' : 'none';
         document.getElementById('nonAdminReportContainer').style.display = isAdmin ? 'none' : 'block';
+        
         await populateSoldBySelect();
         await fetchProductsFromSheet();
         updateCartUI();
@@ -945,7 +960,21 @@
   document.getElementById('adminReportFromDate').addEventListener('change', updateAdminReport);
   document.getElementById('adminReportToDate').addEventListener('change', updateAdminReport);
 
-  document.getElementById('mySalesButton').addEventListener('click', async () => { if (!currentEmployee) return; populateStoreSelects(); document.getElementById('mySalesReportModal').style.display = 'flex'; updateMySalesReport(); });
+  document.getElementById('mySalesButton').addEventListener('click', async () => {
+    if (!currentEmployee) return;
+    // Ensure the store dropdown is set correctly for non-admin
+    if (currentEmployee.store && currentEmployee.store !== '' && currentEmployee.isAdmin === false) {
+      const mySalesStoreSelect = document.getElementById('mySalesReportStoreSelect');
+      if (mySalesStoreSelect && !mySalesStoreSelect.disabled) {
+        // Make sure it's set to their store
+        mySalesStoreSelect.value = currentEmployee.store;
+        mySalesStoreSelect.disabled = true;
+      }
+    }
+    populateStoreSelects();
+    document.getElementById('mySalesReportModal').style.display = 'flex';
+    updateMySalesReport();
+  });
   document.getElementById('closeMySalesReportBtn').addEventListener('click', () => document.getElementById('mySalesReportModal').style.display = 'none');
   document.getElementById('mySalesReportStoreSelect').addEventListener('change', updateMySalesReport);
   document.getElementById('mySalesReportDateRangeSelect').addEventListener('change', (e) => { document.getElementById('mySalesReportCustomDateRange').style.display = e.target.value === 'custom' ? 'flex' : 'none'; updateMySalesReport(); });
