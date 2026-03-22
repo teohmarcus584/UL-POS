@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
   <title>POS System | PIN Login</title>
   <style>
-    /* All styles unchanged from previous version – keep as is */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -87,7 +86,35 @@
       flex: 2; min-width: 260px; background: white; border-radius: 28px; padding: 20px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid #e2e8f0;
     }
-    .filter-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .view-toggle {
+      display: flex;
+      gap: 6px;
+      background: #f1f5f9;
+      border-radius: 40px;
+      padding: 4px;
+    }
+    .view-toggle button {
+      background: transparent;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 32px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.1s;
+    }
+    .view-toggle button.active {
+      background: white;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      color: #0f172a;
+    }
     #categorySelect, .search-bar {
       padding: 12px 16px; border-radius: 60px; border: 1px solid #cbd5e1;
       font-size: 0.9rem; outline: none;
@@ -95,20 +122,59 @@
     #categorySelect { flex: 1; background: white; }
     .search-bar { flex: 2; }
     .product-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 16px; max-height: 65vh; overflow-y: auto; padding-right: 4px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 16px;
+      max-height: 65vh;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .product-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 65vh;
+      overflow-y: auto;
+      padding-right: 4px;
     }
     .product-card {
-      background: #f8fafc; border-radius: 24px; padding: 16px 12px; text-align: center;
-      transition: all 0.2s; border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      border-radius: 24px;
+      padding: 16px 12px;
+      text-align: center;
+      transition: all 0.2s;
+      border: 1px solid #e2e8f0;
+    }
+    .product-list .product-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      text-align: left;
+      padding: 12px 20px;
+      gap: 16px;
+      flex-wrap: wrap;
     }
     .product-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.05); border-color: #cbd5e1; }
     .product-name { font-weight: 600; font-size: 1rem; margin-bottom: 8px; color: #0f172a; }
+    .product-list .product-name { margin-bottom: 0; flex: 2; }
     .product-price { font-weight: 700; color: #2c7a4b; font-size: 1.2rem; margin: 6px 0; }
+    .product-list .product-price { margin: 0; font-size: 1.1rem; min-width: 80px; }
     .product-stock { font-size: 0.7rem; color: #64748b; margin-bottom: 10px; }
+    .product-list .product-stock { margin-bottom: 0; min-width: 80px; font-size: 0.8rem; }
     .add-btn {
-      background: #3b82f6; border: none; color: white; padding: 8px 12px;
-      border-radius: 40px; font-weight: 500; font-size: 0.8rem; width: 100%; cursor: pointer;
+      background: #3b82f6;
+      border: none;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 40px;
+      font-weight: 500;
+      font-size: 0.8rem;
+      width: 100%;
+      cursor: pointer;
+    }
+    .product-list .add-btn {
+      width: auto;
+      padding: 6px 20px;
     }
     .add-btn:active { transform: scale(0.96); background: #2563eb; }
     .add-btn:disabled { background: #94a3b8; cursor: not-allowed; }
@@ -212,7 +278,13 @@
     .loading-spinner { width: 50px; height: 50px; border: 5px solid #e2e8f0; border-top: 5px solid #2c7a4b; border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .loading-text { color: white; margin-top: 12px; }
-    @media (max-width: 780px) { .pos-dashboard { flex-direction: column; } .product-grid { max-height: 40vh; } }
+    @media (max-width: 780px) {
+      .pos-dashboard { flex-direction: column; }
+      .product-grid { max-height: 40vh; }
+      .product-list .product-card { flex-direction: column; align-items: stretch; text-align: center; }
+      .product-list .product-name, .product-list .product-price, .product-list .product-stock { margin: 4px 0; text-align: center; }
+      .product-list .add-btn { width: 100%; }
+    }
     .payment-buttons { display: flex; gap: 12px; margin: 20px 0; }
     .payment-btn { flex: 1; padding: 12px; border-radius: 40px; font-weight: 600; border: none; cursor: pointer; background: #e2e8f0; transition: 0.1s; }
     .payment-btn.selected { background: #2c7a4b; color: white; }
@@ -304,6 +376,10 @@
       <div class="filter-bar">
         <select id="categorySelect"><option value="all">📂 All Categories</option></select>
         <input type="text" id="searchInput" class="search-bar" placeholder="🔍 Search product...">
+        <div class="view-toggle">
+          <button id="gridViewBtn" class="active">Grid View</button>
+          <button id="listViewBtn">List View</button>
+        </div>
       </div>
       <div id="productGrid" class="product-grid">Loading products...</div>
     </div>
@@ -417,6 +493,7 @@
 <script>
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzh2L3SVlpxN8o_pIbPqrQGPH4rL1V_s-E_Tezd4h_2gW9ogTCghLN7GsvxELyKmS3YtA/exec";
   let products = [], cart = [], currentStore = "queens", currentEmployee = null;
+  let viewMode = "grid"; // 'grid' or 'list'
 
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -427,7 +504,7 @@
   const storeSelect = document.getElementById('storeSelect');
   const soldBySelect = document.getElementById('soldBySelect');
 
-  // Helper functions for modals (unchanged)
+  // Helper functions for modals
   function showAlertModal(title, message) {
     return new Promise((resolve) => {
       const overlay = document.getElementById('alertModal');
@@ -511,14 +588,12 @@
         document.getElementById('loginModal').style.display = 'none';
         document.getElementById('mainContent').style.display = 'block';
         
-        // If employee has an assigned store
         if (currentEmployee.store && currentEmployee.store !== '') {
           const storeOpt = Array.from(storeSelect.options).find(opt => opt.value === currentEmployee.store);
           if (storeOpt) storeSelect.value = currentEmployee.store;
           currentStore = storeSelect.value;
         }
         
-        // Show/hide employee filter in report modal based on admin status
         const employeeFilterGroup = document.getElementById('employeeFilterGroup');
         if (currentEmployee.isAdmin) {
           employeeFilterGroup.style.display = 'flex';
@@ -549,7 +624,10 @@
       const response = await fetch(url);
       const result = await response.json();
       if (result.success && Array.isArray(result.products)) {
-        products = result.products.map(p => ({ id: p.id, name: p.name, price: parseFloat(p.price), stock: parseInt(p.stock) || 0, category: p.category || "Uncategorized" }));
+        // Sort alphabetically by name (case-insensitive)
+        products = result.products
+          .map(p => ({ id: p.id, name: p.name, price: parseFloat(p.price), stock: parseInt(p.stock) || 0, category: p.category || "Uncategorized" }))
+          .sort((a, b) => a.name.localeCompare(b.name));
         const categories = [...new Set(products.map(p => p.category))].sort();
         categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
         categories.forEach(cat => { const option = document.createElement('option'); option.value = cat; option.textContent = cat; categorySelect.appendChild(option); });
@@ -563,7 +641,7 @@
     } finally { hideLoading(); }
   }
 
-  // Sales transaction
+  // Sales transaction (unchanged)
   async function saveTransactionToSheet(transaction) {
     showLoading('Recording sale...');
     try {
@@ -605,7 +683,7 @@
     });
   }
 
-  // Report functions (unified)
+  // Report functions (unchanged)
   async function fetchSalesReport(store, employeeId, from, to) {
     showLoading('Loading report...');
     try {
@@ -630,21 +708,16 @@
       let url = `${APPS_SCRIPT_URL}?action=getSalesChartData&store=${store}&employeeId=${employeeId}`;
       if (from) url += `&from=${encodeURIComponent(from)}`;
       if (to) url += `&to=${encodeURIComponent(to)}`;
-      console.log('Fetching chart data:', url);
       const response = await fetch(url);
       const result = await response.json();
       if (result.success) {
         await new Promise(resolve => setTimeout(resolve, 200));
         const chartCanvas = document.getElementById('dayChart');
         if (!chartCanvas) return;
-        
-        // Destroy old chart
         if (window.dayChart && typeof window.dayChart.destroy === 'function') {
           window.dayChart.destroy();
           window.dayChart = null;
         }
-        
-        // Prepare data based on type (hourly or daily)
         let labels, data, chartTitle;
         if (result.type === 'hourly') {
           labels = result.hourly.labels;
@@ -655,12 +728,10 @@
           data = result.salesByDay?.data || [];
           chartTitle = 'Sales by Day (RM)';
         }
-        
         if (labels.length === 0) {
           chartCanvas.style.display = 'none';
           return;
         }
-        
         chartCanvas.style.display = 'block';
         const ctx = chartCanvas.getContext('2d');
         window.dayChart = new Chart(ctx, {
@@ -718,7 +789,6 @@
     }
   }
 
-  // Helper: get local YYYY-MM-DD from a Date object
   function getLocalDateString(date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -729,14 +799,11 @@
   function updateAdminReport() {
     let store = document.getElementById('adminReportStoreSelect').value;
     let employeeId = document.getElementById('adminReportEmployeeSelect').value;
-    if (!currentEmployee.isAdmin) {
-      employeeId = 'all';
-    }
+    if (!currentEmployee.isAdmin) employeeId = 'all';
     const range = document.getElementById('adminReportDateRangeSelect').value;
     let from = null, to = null;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
     if (range === 'today') {
       from = getLocalDateString(today);
       to = from;
@@ -764,7 +831,7 @@
     fetchEmployeeSalesData(store, from, to);
   }
 
-  // Receipts
+  // Receipts (unchanged)
   async function fetchReceipts(store, employeeId, from, to, search) {
     showLoading('Loading receipts...');
     try {
@@ -802,7 +869,7 @@
 
   function openLuckyDraw(transactionId) { window.open(`https://teohmarcus584.github.io/LUCKYDRAW/?receipt=${encodeURIComponent(transactionId)}`, '_blank'); }
 
-  // Cart functions (unchanged)
+  // Cart functions
   function updateCartUI() {
     if (!cartContainer) return;
     if (cart.length === 0) { cartContainer.innerHTML = '<div style="color:#94a3b8; text-align:center;">Cart is empty</div>'; subtotalSpan.innerText = `RM 0.00`; totalSpan.innerText = `RM 0.00`; return; }
@@ -902,6 +969,7 @@
     } else await showAlertModal('Error', 'Failed to record sale. Check network / Apps Script.');
   }
 
+  // Product rendering with sorting and view mode
   function renderProductGrid() {
     const searchTerm = searchInput.value.toLowerCase();
     const selectedCategory = categorySelect.value;
@@ -912,10 +980,26 @@
     let html = '';
     filtered.forEach(prod => {
       const stockStatus = prod.stock > 0 ? `📦 Stock: ${prod.stock}` : '❌ Out of stock';
-      html += `<div class="product-card"><div class="product-name">${escapeHtml(prod.name)}</div><div class="product-price">RM ${prod.price.toFixed(2)}</div><div class="product-stock">${stockStatus}</div><button class="add-btn" data-id="${prod.id}" ${prod.stock <= 0 ? 'disabled' : ''}>+ Add to cart</button></div>`;
+      html += `<div class="product-card">
+        <div class="product-name">${escapeHtml(prod.name)}</div>
+        <div class="product-price">RM ${prod.price.toFixed(2)}</div>
+        <div class="product-stock">${stockStatus}</div>
+        <button class="add-btn" data-id="${prod.id}" ${prod.stock <= 0 ? 'disabled' : ''}>+ Add to cart</button>
+      </div>`;
     });
     productGridEl.innerHTML = html;
+    // Set the correct container class based on viewMode
+    productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
     document.querySelectorAll('.add-btn').forEach(btn => { btn.addEventListener('click', (e) => { const product = products.find(p => p.id == btn.dataset.id); if (product && product.stock > 0) addToCart(product); e.stopPropagation(); }); });
+  }
+
+  function setViewMode(mode) {
+    viewMode = mode;
+    // Update button active states
+    document.getElementById('gridViewBtn').classList.toggle('active', mode === 'grid');
+    document.getElementById('listViewBtn').classList.toggle('active', mode === 'list');
+    // Re-render with new class
+    renderProductGrid();
   }
 
   function escapeHtml(str) { return String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
@@ -990,7 +1074,6 @@
     populateStoreSelects();
     const modal = document.getElementById('adminReportModal');
     const storeSelect = document.getElementById('adminReportStoreSelect');
-    // For non-admin, set store to their assigned store and disable
     if (!currentEmployee.isAdmin && currentEmployee.store) {
       storeSelect.value = currentEmployee.store;
       storeSelect.disabled = true;
@@ -998,9 +1081,7 @@
       storeSelect.disabled = false;
     }
     modal.style.display = 'flex';
-    setTimeout(() => {
-      updateAdminReport();
-    }, 200);
+    setTimeout(() => { updateAdminReport(); }, 200);
   });
   document.getElementById('closeAdminReportBtn').addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
   document.getElementById('closeAdminReportModal').addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
@@ -1027,7 +1108,11 @@
   searchInput.addEventListener('input', renderProductGrid);
   categorySelect.addEventListener('change', renderProductGrid);
   document.getElementById('logoutButton').addEventListener('click', () => { currentEmployee = null; document.getElementById('mainContent').style.display = 'none'; document.getElementById('loginModal').style.display = 'flex'; document.getElementById('pinInput').value = ''; document.getElementById('loginError').innerText = ''; cart = []; products = []; });
-  document.getElementById('closeLoginModal').addEventListener('click', () => { /* do nothing, but can be used to close modal if needed */ });
+  document.getElementById('closeLoginModal').addEventListener('click', () => { /* optional */ });
+
+  // View toggle buttons
+  document.getElementById('gridViewBtn').addEventListener('click', () => setViewMode('grid'));
+  document.getElementById('listViewBtn').addEventListener('click', () => setViewMode('list'));
 
   const pinInput = document.getElementById('pinInput');
   document.querySelectorAll('.keypad-btn').forEach(btn => {
