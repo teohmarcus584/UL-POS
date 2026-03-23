@@ -690,17 +690,17 @@
         <div id="productDetailsTable" style="max-height: 300px; overflow-y: auto;">
           <table class="product-details-table">
             <thead>
-                 …
-                <th>Product</th>
-                <th>Category</th>
-                <th style="text-align: right;">Qty Sold</th>
-                <th style="text-align: right;">Total (RM)</th>
-                …
+                <tr>
+                  <th>Product</th>
+                  <th>Category</th>
+                  <th style="text-align: right;">Qty Sold</th>
+                  <th style="text-align: right;">Total (RM)</th>
+                 </tr>
             </thead>
             <tbody id="productDetailsBody">
-                 …<td colspan="4" style="text-align: center;">Loading...… …
+                 <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
             </tbody>
-           …
+           </table>
         </div>
       </div>
     </div>
@@ -1191,11 +1191,11 @@
     let html = '';
     productsData.forEach(p => {
       html += `<tr>
-          <td>${escapeHtml(p.name)}</td>
-          <td>${escapeHtml(p.category)}</td>
-          <td style="text-align: right;">${p.quantity}</td>
-          <td style="text-align: right;">RM ${p.total.toFixed(2)}</td>
-        </tr>`;
+         <td>${escapeHtml(p.name)}</td>
+         <td>${escapeHtml(p.category)}</td>
+        <td style="text-align: right;">${p.quantity}</td>
+        <td style="text-align: right;">RM ${p.total.toFixed(2)}</td>
+       </tr>`;
     });
     tbody.innerHTML = html;
   }
@@ -1393,11 +1393,6 @@
     const recordBtn = document.getElementById('recordSettlementBtn');
     recordBtn.disabled = true;
     showLoading('Recording settlement...');
-    
-    // Set a timeout to abort the fetch if it takes too long
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
-    
     try {
       const formData = new URLSearchParams();
       formData.append("action", "recordSettlement");
@@ -1413,7 +1408,7 @@
       formData.append("card_actual", actualCard);
       formData.append("qr_actual", actualQR);
       
-      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData, signal: controller.signal });
+      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
       const result = await response.json();
       if (result.success) {
         await showAlertModal('Settlement Recorded', 'Settlement has been successfully recorded.');
@@ -1423,13 +1418,8 @@
       }
     } catch (err) {
       console.error(err);
-      let errorMsg = 'Connection error while recording settlement.';
-      if (err.name === 'AbortError') {
-        errorMsg = 'Request timed out. Please check your network and try again.';
-      }
-      await showAlertModal('Error', errorMsg);
+      await showAlertModal('Error', 'Connection error while recording settlement.');
     } finally {
-      clearTimeout(timeoutId);
       hideLoading();
       recordBtn.disabled = false;
     }
