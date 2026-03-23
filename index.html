@@ -1465,7 +1465,7 @@
     // Disable button to prevent double click
     const recordBtn = document.getElementById('recordSettlementBtn');
     recordBtn.disabled = true;
-    showLoading('Recording settlement...');
+    
     try {
       const formData = new URLSearchParams();
       formData.append("action", "recordSettlement");
@@ -1578,7 +1578,7 @@
   document.getElementById('collectSelectedBtn').addEventListener('click', async () => {
     const selectedIds = Array.from(document.querySelectorAll('.collection-checkbox:checked')).map(cb => cb.value);
     if (selectedIds.length === 0) return;
-    showLoading('Marking as collected...');
+    
     try {
       const formData = new URLSearchParams();
       formData.append("action", "markCashCollected");
