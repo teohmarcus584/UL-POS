@@ -1486,8 +1486,10 @@
       if (result.success) {
         await showAlertModal('Settlement Recorded', 'Settlement has been successfully recorded.');
         document.getElementById('settlementModal').style.display = 'none';
+        hideLoading();
       } else {
         await showAlertModal('Error', 'Failed to record settlement: ' + (result.error || 'Unknown error'));
+        hideLoading();
       }
     } catch (err) {
       console.error(err);
@@ -1585,9 +1587,11 @@
       const result = await response.json();
       if (result.success) {
         await showAlertModal('Success', `${selectedIds.length} cash record(s) marked as collected.`);
+        hideLoading();
         await loadUnsettledCash(); // refresh list
       } else {
         await showAlertModal('Error', 'Failed to mark as collected: ' + (result.error || 'Unknown error'));
+        hideLoading();
       }
     } catch (err) {
       console.error(err);
