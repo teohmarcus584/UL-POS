@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
   <title>POS System | PIN Login</title>
   <style>
-    /* All existing styles remain unchanged */
+    /* All existing styles remain unchanged – kept from previous version */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -690,17 +690,17 @@
         <div id="productDetailsTable" style="max-height: 300px; overflow-y: auto;">
           <table class="product-details-table">
             <thead>
-               <tr>
-                <th>Product</th>
-                <th>Category</th>
-                <th style="text-align: right;">Qty Sold</th>
-                <th style="text-align: right;">Total (RM)</th>
-               </tr>
+                <tr>
+                  <th>Product</th>
+                  <th>Category</th>
+                  <th style="text-align: right;">Qty Sold</th>
+                  <th style="text-align: right;">Total (RM)</th>
+                </tr>
             </thead>
             <tbody id="productDetailsBody">
-               <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
+                <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
             </tbody>
-           </table>
+          </table>
         </div>
       </div>
     </div>
@@ -747,7 +747,7 @@
     <div id="settlementError" style="color:#ef4444; margin: 12px 0; display: none;"></div>
     <div class="modal-buttons">
       <button id="checkSettlementBtn" class="modal-btn modal-btn-primary">Check</button>
-      <button id="recordSettlementBtn" class="modal-btn modal-btn-primary" disabled>Record Settlement</button>
+      <button id="recordSettlementBtn" class="modal-btn modal-btn-primary" style="display: none;">Record Settlement</button>
       <button id="closeSettlementModalBtn" class="modal-btn modal-btn-secondary">Cancel</button>
     </div>
   </div>
@@ -1289,7 +1289,9 @@
       document.getElementById('actualQR').value = '';
       document.getElementById('pettyCashFloat').value = '0.00';
       document.getElementById('settlementError').style.display = 'none';
-      document.getElementById('recordSettlementBtn').disabled = true;
+      // Hide Record button, show Check button
+      document.getElementById('recordSettlementBtn').style.display = 'none';
+      document.getElementById('checkSettlementBtn').style.display = 'block';
       document.getElementById('checkSettlementBtn').disabled = false;
       
       // Remove error highlighting
@@ -1333,8 +1335,9 @@
     
     if (cashOk && cardOk && qrOk) {
       document.getElementById('settlementError').style.display = 'none';
+      document.getElementById('checkSettlementBtn').style.display = 'none';
+      document.getElementById('recordSettlementBtn').style.display = 'block';
       document.getElementById('recordSettlementBtn').disabled = false;
-      document.getElementById('checkSettlementBtn').disabled = true;
     } else {
       const errorMessages = [];
       if (!cashOk) errorMessages.push(`Cash (System: RM ${currentSettlementTotals.cash.toFixed(2)}, Entered: RM ${actualCash.toFixed(2)})`);
@@ -1342,8 +1345,6 @@
       if (!qrOk) errorMessages.push(`QR (System: RM ${currentSettlementTotals.qr.toFixed(2)}, Entered: RM ${actualQR.toFixed(2)})`);
       document.getElementById('settlementError').innerHTML = `❌ Mismatch in:<br>${errorMessages.join('<br>')}<br>Please correct and try again.`;
       document.getElementById('settlementError').style.display = 'block';
-      document.getElementById('recordSettlementBtn').disabled = true;
-      document.getElementById('checkSettlementBtn').disabled = false;
     }
   });
 
