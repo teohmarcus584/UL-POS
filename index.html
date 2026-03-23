@@ -721,12 +721,12 @@
         <div id="productDetailsTable" style="max-height: 300px; overflow-y: auto;">
           <table class="product-details-table">
             <thead>
-              <tr>
+               <tr>
                 <th>Product</th>
                 <th>Category</th>
                 <th style="text-align: right;">Qty Sold</th>
                 <th style="text-align: right;">Total (RM)</th>
-              </tr>
+               </tr>
             </thead>
             <tbody id="productDetailsBody">
               <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
@@ -804,12 +804,12 @@
     <div style="overflow-x: auto;">
       <table class="collection-table" id="collectionTable">
         <thead>
-          <tr>
+           <tr>
             <th><input type="checkbox" id="selectAllCheckbox"></th>
             <th>Date</th>
             <th>Employee</th>
             <th style="text-align: right;">Cash Amount (RM)</th>
-          </tr>
+           </tr>
         </thead>
         <tbody id="collectionTableBody">
           <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
@@ -847,13 +847,14 @@
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwS7NEslloZgBW6oANN-gCgktRAkfsinuAkUY3qDB2fBWoM1wSPhJ4vmn2qpFmeyJd_vQ/exec";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxivv7XLn9aA3MJXzjzaijy61SheIrqCVAilBbFI1Yd8d7d5YNZOQ14fhakVr5yAKlL0g/exec";
   let products = [], cart = [], currentStore = "queens", currentEmployee = null;
   let viewMode = "grid"; // 'grid' or 'list'
   let productDetailsVisible = false;
   let lastProductData = null; // cache to avoid re-fetch on toggle
   let employeeNameMap = {}; // map employee ID -> name
   let initialStore = null; // store selected at the very beginning
+  let pendingTransaction = null; // declared here
 
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -1335,6 +1336,19 @@
   // Settlement functions
   let currentSettlementTotals = null;
 
+  // Check if settlement already exists for a store/date
+  async function checkSettlementStatus(store, date) {
+    try {
+      const url = `${APPS_SCRIPT_URL}?action=getSettlementStatus&store=${store}&date=${date}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      return result.success && result.settled;
+    } catch (err) {
+      console.error(err);
+      return false;
+    }
+  }
+
   // Helper to refresh settlement totals for a given store and reset UI
   async function refreshSettlementTotals(store) {
     const todayStr = getLocalDateString(new Date());
@@ -1349,21 +1363,29 @@
       document.getElementById('sysCard').innerText = `RM ${currentSettlementTotals.card.toFixed(2)}`;
       document.getElementById('sysQR').innerText = `RM ${currentSettlementTotals.qr.toFixed(2)}`;
       
-      // Reset input fields and enable them
-      setSettlementFieldsEnabled(true);
-      document.getElementById('actualCash').value = '';
-      document.getElementById('actualCard').value = '';
-      document.getElementById('actualQR').value = '';
-      document.getElementById('pettyCashFloat').value = '0.00';
-      document.getElementById('settlementError').style.display = 'none';
-      // Reset buttons
-      document.getElementById('recordSettlementBtn').style.display = 'none';
-      document.getElementById('checkSettlementBtn').style.display = 'block';
-      document.getElementById('checkSettlementBtn').disabled = false;
-      // Remove error highlighting
-      document.getElementById('actualCash').classList.remove('error-field');
-      document.getElementById('actualCard').classList.remove('error-field');
-      document.getElementById('actualQR').classList.remove('error-field');
+      // Check if already settled
+      const alreadySettled = await checkSettlementStatus(store, todayStr);
+      if (alreadySettled) {
+        document.getElementById('settlementError').innerHTML = '⚠️ Settlement has already been recorded for today. No further settlement allowed.';
+        document.getElementById('settlementError').style.display = 'block';
+        document.getElementById('checkSettlementBtn').disabled = true;
+        document.getElementById('recordSettlementBtn').style.display = 'none';
+        setSettlementFieldsEnabled(false); // disable all inputs
+      } else {
+        // Reset UI as before
+        setSettlementFieldsEnabled(true);
+        document.getElementById('actualCash').value = '';
+        document.getElementById('actualCard').value = '';
+        document.getElementById('actualQR').value = '';
+        document.getElementById('pettyCashFloat').value = '0.00';
+        document.getElementById('settlementError').style.display = 'none';
+        document.getElementById('recordSettlementBtn').style.display = 'none';
+        document.getElementById('checkSettlementBtn').style.display = 'block';
+        document.getElementById('checkSettlementBtn').disabled = false;
+        document.getElementById('actualCash').classList.remove('error-field');
+        document.getElementById('actualCard').classList.remove('error-field');
+        document.getElementById('actualQR').classList.remove('error-field');
+      }
     }
   }
 
@@ -1596,6 +1618,8 @@
     } catch (err) {
       console.error(err);
       await showAlertModal('Error', 'Connection error while marking collected.');
+    } finally {
+      hideLoading();
     }
   });
 
