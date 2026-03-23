@@ -72,7 +72,7 @@
       gap: 12px;
       align-items: center;
     }
-    .logout-btn, .drawer-btn, .settlement-btn {
+    .logout-btn, .drawer-btn, .settlement-btn, .collection-btn {
       background: #ef4444;
       border: none;
       border-radius: 40px;
@@ -87,9 +87,13 @@
     .settlement-btn {
       background: #8b5cf6;
     }
+    .collection-btn {
+      background: #10b981;
+    }
     .drawer-btn:hover { background: #d97706; }
     .settlement-btn:hover { background: #7c3aed; }
-    .drawer-btn:disabled, .settlement-btn:disabled {
+    .collection-btn:hover { background: #059669; }
+    .drawer-btn:disabled, .settlement-btn:disabled, .collection-btn:disabled {
       background: #cbd5e1;
       cursor: not-allowed;
       opacity: 0.6;
@@ -483,6 +487,32 @@
       border-color: #ef4444 !important;
       background-color: #fee2e2;
     }
+    .collection-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+    .collection-table th,
+    .collection-table td {
+      padding: 12px 8px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .collection-table th {
+      background: #f1f5f9;
+      position: sticky;
+      top: 0;
+    }
+    .collection-table tr:hover {
+      background: #f8fafc;
+    }
+    .collection-table td:last-child,
+    .collection-table th:last-child {
+      text-align: right;
+    }
+    .collection-table td:nth-child(4) {
+      text-align: right;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -545,6 +575,7 @@
     <div class="employee-actions">
       <button id="openDrawerBtn" class="drawer-btn" disabled>💰 Open Drawer</button>
       <button id="settlementBtn" class="settlement-btn">💰 Settlement</button>
+      <button id="collectionBtn" class="collection-btn" style="display: none;">💵 Cash Collection</button>
       <button id="logoutButton" class="logout-btn">Logout</button>
     </div>
   </div>
@@ -690,17 +721,17 @@
         <div id="productDetailsTable" style="max-height: 300px; overflow-y: auto;">
           <table class="product-details-table">
             <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>Category</th>
-                  <th style="text-align: right;">Qty Sold</th>
-                  <th style="text-align: right;">Total (RM)</th>
-                 </tr>
+              <tr>
+                <th>Product</th>
+                <th>Category</th>
+                <th style="text-align: right;">Qty Sold</th>
+                <th style="text-align: right;">Total (RM)</th>
+              </tr>
             </thead>
             <tbody id="productDetailsBody">
-                 <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
+              <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
             </tbody>
-           </table>
+          </table>
         </div>
       </div>
     </div>
@@ -753,6 +784,45 @@
   </div>
 </div>
 
+<!-- Cash Collection Modal -->
+<div id="collectionModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 800px;">
+    <span class="close-modal" id="closeCollectionModal">×</span>
+    <div class="modal-title">💵 Cash Collection</div>
+    <div class="filter-group">
+      <label>Store</label>
+      <select id="collectionStoreSelect">
+        <option value="all">All Stores</option>
+        <option value="queens">Queens</option>
+        <option value="sunshine">Sunshine</option>
+        <option value="gurney_paragon">Gurney Paragon</option>
+      </select>
+    </div>
+    <div id="collectionTotal" class="settlement-stats" style="margin-top: 12px;">
+      <p>💰 Total Outstanding Cash: <strong id="totalOutstandingCash">RM 0.00</strong></p>
+    </div>
+    <div style="overflow-x: auto;">
+      <table class="collection-table" id="collectionTable">
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="selectAllCheckbox"></th>
+            <th>Date</th>
+            <th>Employee</th>
+            <th style="text-align: right;">Cash Amount (RM)</th>
+          </tr>
+        </thead>
+        <tbody id="collectionTableBody">
+          <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="modal-buttons" style="margin-top: 16px;">
+      <button id="collectSelectedBtn" class="modal-btn modal-btn-primary" disabled>Collect Selected</button>
+      <button id="closeCollectionModalBtn" class="modal-btn modal-btn-secondary">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Receipts Modal -->
 <div id="receiptsModal" class="modal-overlay">
   <div class="modal-container">
@@ -777,7 +847,7 @@
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw0g1szhw_ZWy_zqZJ70TcTSuwpa2_FXAj3phTGY9KRIxgrwJ1DhSowLH0uwo0-EjWiRw/exec";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPcEhxNOpXfry5n8PQPOf53Vx10ZV2TO9zFmSZ3j3dFPjs-h_ibt5a3Zqxd-mMnh4kVw/exec";
   let products = [], cart = [], currentStore = "queens", currentEmployee = null;
   let viewMode = "grid"; // 'grid' or 'list'
   let productDetailsVisible = false;
@@ -900,16 +970,19 @@
         const employeeFilterGroup = document.getElementById('employeeFilterGroup');
         const storeChartContainer = document.getElementById('storeChartContainer');
         const employeeChartContainer = document.getElementById('employeeChartContainer');
+        const collectionBtn = document.getElementById('collectionBtn');
         if (currentEmployee.isAdmin) {
           reportStoreFilter.style.display = 'flex';
           employeeFilterGroup.style.display = 'flex';
           storeChartContainer.style.display = 'block';
           employeeChartContainer.style.display = 'block';
+          collectionBtn.style.display = 'flex'; // show collection button for admin
         } else {
           reportStoreFilter.style.display = 'none';
           employeeFilterGroup.style.display = 'none';
           storeChartContainer.style.display = 'none';
           employeeChartContainer.style.display = 'none';
+          collectionBtn.style.display = 'none';
         }
         
         // For non-admin, lock settlement store to the initial store (from login modal)
@@ -1191,11 +1264,11 @@
     let html = '';
     productsData.forEach(p => {
       html += `<tr>
-         <td>${escapeHtml(p.name)}</td>
-         <td>${escapeHtml(p.category)}</td>
+        <td>${escapeHtml(p.name)}</td>
+        <td>${escapeHtml(p.category)}</td>
         <td style="text-align: right;">${p.quantity}</td>
         <td style="text-align: right;">RM ${p.total.toFixed(2)}</td>
-       </tr>`;
+      </tr>`;
     });
     tbody.innerHTML = html;
   }
@@ -1412,6 +1485,7 @@
       const result = await response.json();
       if (result.success) {
         await showAlertModal('Settlement Recorded', 'Settlement has been successfully recorded.');
+        loadingOverlay.style.display = 'none';
         document.getElementById('settlementModal').style.display = 'none';
       } else {
         await showAlertModal('Error', 'Failed to record settlement: ' + (result.error || 'Unknown error'));
@@ -1424,6 +1498,109 @@
       recordBtn.disabled = false;
     }
   });
+
+  // Cash Collection functions
+  let currentUnsettledCash = [];
+
+  async function openCollectionModal() {
+    await loadUnsettledCash();
+    document.getElementById('collectionModal').style.display = 'flex';
+  }
+
+  async function loadUnsettledCash() {
+    const store = document.getElementById('collectionStoreSelect').value;
+    showLoading('Loading unsettled cash...');
+    try {
+      let url = `${APPS_SCRIPT_URL}?action=getUnsettledCash&store=${store}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        currentUnsettledCash = result.records;
+        renderCollectionTable();
+        updateTotalOutstanding();
+        document.getElementById('collectSelectedBtn').disabled = true;
+        document.getElementById('selectAllCheckbox').checked = false;
+      } else {
+        await showAlertModal('Error', 'Failed to load unsettled cash: ' + (result.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error(err);
+      await showAlertModal('Error', 'Connection error while loading unsettled cash.');
+    } finally {
+      hideLoading();
+    }
+  }
+
+  function renderCollectionTable() {
+    const tbody = document.getElementById('collectionTableBody');
+    if (!currentUnsettledCash.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No unsettled cash records found.</td></tr>';
+      return;
+    }
+    let html = '';
+    currentUnsettledCash.forEach(rec => {
+      const date = new Date(rec.timestamp).toLocaleDateString();
+      html += `<tr data-id="${rec.id}">
+        <td><input type="checkbox" class="collection-checkbox" value="${rec.id}"></td>
+        <td>${date}</td>
+        <td>${getEmployeeName(rec.employee_id)}</td>
+        <td style="text-align: right;">RM ${rec.cash_actual.toFixed(2)}</td>
+      </tr>`;
+    });
+    tbody.innerHTML = html;
+    // Attach checkbox change listeners
+    document.querySelectorAll('.collection-checkbox').forEach(cb => {
+      cb.addEventListener('change', updateCollectionButtonState);
+    });
+  }
+
+  function updateTotalOutstanding() {
+    const total = currentUnsettledCash.reduce((sum, rec) => sum + rec.cash_actual, 0);
+    document.getElementById('totalOutstandingCash').innerText = `RM ${total.toFixed(2)}`;
+  }
+
+  function updateCollectionButtonState() {
+    const anyChecked = document.querySelectorAll('.collection-checkbox:checked').length > 0;
+    document.getElementById('collectSelectedBtn').disabled = !anyChecked;
+  }
+
+  document.getElementById('selectAllCheckbox').addEventListener('change', (e) => {
+    const checkboxes = document.querySelectorAll('.collection-checkbox');
+    checkboxes.forEach(cb => cb.checked = e.target.checked);
+    updateCollectionButtonState();
+  });
+
+  document.getElementById('collectionStoreSelect').addEventListener('change', () => {
+    loadUnsettledCash();
+  });
+
+  document.getElementById('collectSelectedBtn').addEventListener('click', async () => {
+    const selectedIds = Array.from(document.querySelectorAll('.collection-checkbox:checked')).map(cb => cb.value);
+    if (selectedIds.length === 0) return;
+    showLoading('Marking as collected...');
+    try {
+      const formData = new URLSearchParams();
+      formData.append("action", "markCashCollected");
+      formData.append("ids", JSON.stringify(selectedIds));
+      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+      const result = await response.json();
+      if (result.success) {
+        await showAlertModal('Success', `${selectedIds.length} cash record(s) marked as collected.`);
+        await loadUnsettledCash(); // refresh list
+      } else {
+        await showAlertModal('Error', 'Failed to mark as collected: ' + (result.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error(err);
+      await showAlertModal('Error', 'Connection error while marking collected.');
+    } finally {
+      hideLoading();
+    }
+  });
+
+  document.getElementById('collectionBtn').addEventListener('click', openCollectionModal);
+  document.getElementById('closeCollectionModal').addEventListener('click', () => document.getElementById('collectionModal').style.display = 'none');
+  document.getElementById('closeCollectionModalBtn').addEventListener('click', () => document.getElementById('collectionModal').style.display = 'none');
 
   // Receipts
   async function fetchReceipts(store, employeeId, from, to, search) {
