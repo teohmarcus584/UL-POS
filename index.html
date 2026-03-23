@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
   <title>POS System | PIN Login</title>
   <style>
+    /* All existing styles remain unchanged */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -543,7 +544,7 @@
     <span class="employee-info">👤 Cashier: <span id="employeeName"></span></span>
     <div class="employee-actions">
       <button id="openDrawerBtn" class="drawer-btn" disabled>💰 Open Drawer</button>
-      <button id="settlementBtn" class="settlement-btn" style="display: none;">💰 Settlement</button>
+      <button id="settlementBtn" class="settlement-btn">💰 Settlement</button>
       <button id="logoutButton" class="logout-btn">Logout</button>
     </div>
   </div>
@@ -708,13 +709,25 @@
   </div>
 </div>
 
-<!-- Settlement Modal -->
+<!-- Settlement Modal (with store location and petty cash) -->
 <div id="settlementModal" class="modal-overlay">
   <div class="modal-container" style="max-width: 500px;">
     <span class="close-modal" id="closeSettlementModal">×</span>
     <div class="modal-title">💰 Daily Settlement</div>
+    <div class="filter-group">
+      <label>Store Location</label>
+      <select id="settlementStoreSelect">
+        <option value="queens">Queens</option>
+        <option value="sunshine">Sunshine</option>
+        <option value="gurney_paragon">Gurney Paragon</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Petty Cash Float (Starting Cash)</label>
+      <input type="number" id="pettyCashFloat" class="modal-input" placeholder="Enter starting cash float" step="0.01" value="0.00">
+    </div>
     <div class="settlement-stats" id="systemTotalsDisplay">
-      <p>📊 System totals for today:</p>
+      <p>📊 System totals for today (all employees):</p>
       <p>💵 Cash: <strong id="sysCash">RM 0.00</strong></p>
       <p>💳 Card: <strong id="sysCard">RM 0.00</strong></p>
       <p>📱 QR Pay: <strong id="sysQR">RM 0.00</strong></p>
@@ -764,7 +777,7 @@
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-sg1bn8ojIpYQZ0fJJjxU8h3gm1BEgpe7SfBMMl34XwMk4VU_AIs9SqRcPo_Pn-uEzQ/exec";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw0g1szhw_ZWy_zqZJ70TcTSuwpa2_FXAj3phTGY9KRIxgrwJ1DhSowLH0uwo0-EjWiRw/exec";
   let products = [], cart = [], currentStore = "queens", currentEmployee = null;
   let viewMode = "grid"; // 'grid' or 'list'
   let productDetailsVisible = false;
@@ -887,19 +900,25 @@
         const employeeFilterGroup = document.getElementById('employeeFilterGroup');
         const storeChartContainer = document.getElementById('storeChartContainer');
         const employeeChartContainer = document.getElementById('employeeChartContainer');
-        const settlementBtn = document.getElementById('settlementBtn');
         if (currentEmployee.isAdmin) {
           reportStoreFilter.style.display = 'flex';
           employeeFilterGroup.style.display = 'flex';
           storeChartContainer.style.display = 'block';
           employeeChartContainer.style.display = 'block';
-          settlementBtn.style.display = 'none'; // settlement only for non-admin
         } else {
           reportStoreFilter.style.display = 'none';
           employeeFilterGroup.style.display = 'none';
           storeChartContainer.style.display = 'none';
           employeeChartContainer.style.display = 'none';
-          settlementBtn.style.display = 'flex'; // show settlement button for cashiers
+        }
+        
+        // For non-admin, set settlement store selector to their assigned store and disable
+        const settlementStoreSelect = document.getElementById('settlementStoreSelect');
+        if (!currentEmployee.isAdmin && currentEmployee.store) {
+          settlementStoreSelect.value = currentEmployee.store;
+          settlementStoreSelect.disabled = true;
+        } else {
+          settlementStoreSelect.disabled = false;
         }
         
         // Fetch employee name map for receipt display
@@ -1244,9 +1263,16 @@
   let currentSettlementTotals = null;
 
   async function openSettlementModal() {
-    // Fetch today's system totals for the current employee
+    // Determine which store to use: admin can select, non-admin uses their assigned store
+    let store = document.getElementById('settlementStoreSelect').value;
+    if (!currentEmployee.isAdmin && currentEmployee.store) {
+      store = currentEmployee.store;
+      document.getElementById('settlementStoreSelect').value = store;
+    }
+    
+    // Fetch today's system totals for the selected store (all employees)
     const todayStr = getLocalDateString(new Date());
-    const report = await fetchSalesReport('all', currentEmployee.id, todayStr, todayStr);
+    const report = await fetchSalesReport(store, 'all', todayStr, todayStr);
     if (report) {
       currentSettlementTotals = {
         cash: report.cashTotal,
@@ -1261,6 +1287,7 @@
       document.getElementById('actualCash').value = '';
       document.getElementById('actualCard').value = '';
       document.getElementById('actualQR').value = '';
+      document.getElementById('pettyCashFloat').value = '0.00';
       document.getElementById('settlementError').style.display = 'none';
       document.getElementById('recordSettlementBtn').disabled = true;
       document.getElementById('checkSettlementBtn').disabled = false;
@@ -1321,6 +1348,8 @@
   });
 
   document.getElementById('recordSettlementBtn').addEventListener('click', async () => {
+    const store = document.getElementById('settlementStoreSelect').value;
+    const pettyCash = parseFloat(document.getElementById('pettyCashFloat').value) || 0;
     const actualCash = parseFloat(document.getElementById('actualCash').value);
     const actualCard = parseFloat(document.getElementById('actualCard').value);
     const actualQR = parseFloat(document.getElementById('actualQR').value);
@@ -1331,6 +1360,8 @@
       formData.append("action", "recordSettlement");
       formData.append("employee_id", currentEmployee.id);
       formData.append("employee_name", currentEmployee.name);
+      formData.append("store", store);
+      formData.append("petty_cash_float", pettyCash);
       formData.append("date", getLocalDateString(new Date()));
       formData.append("cash_system", currentSettlementTotals.cash);
       formData.append("card_system", currentSettlementTotals.card);
@@ -1395,7 +1426,7 @@
     else await showAlertModal('Error', 'Print failed.');
   }
 
-  function openLuckyDraw(transactionId) { window.open(`https://teohmarcus584.github.io/LUCKYDRAW/?receipt=${encodeURIComponent(transactionId)}`, '_blank'); }
+  function openLuckyDraw(transactionId) { window.open(`https://teohmarcus584.github.io/salesanalysis/?receipt=${encodeURIComponent(transactionId)}`, '_blank'); }
 
   // Cart functions (unchanged)
   function updateCartUI() {
