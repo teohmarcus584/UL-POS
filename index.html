@@ -1355,6 +1355,9 @@
     const actualCard = parseFloat(document.getElementById('actualCard').value);
     const actualQR = parseFloat(document.getElementById('actualQR').value);
     
+    // Disable button to prevent double click
+    const recordBtn = document.getElementById('recordSettlementBtn');
+    recordBtn.disabled = true;
     showLoading('Recording settlement...');
     try {
       const formData = new URLSearchParams();
@@ -1384,6 +1387,8 @@
       await showAlertModal('Error', 'Connection error while recording settlement.');
     } finally {
       hideLoading();
+      recordBtn.disabled = false;
+      // Reset the modal for next use (optional)
     }
   });
 
@@ -1427,7 +1432,7 @@
     else await showAlertModal('Error', 'Print failed.');
   }
 
-  function openLuckyDraw(transactionId) { window.open(`https://teohmarcus584.github.io/salesanalysis/?receipt=${encodeURIComponent(transactionId)}`, '_blank'); }
+  function openLuckyDraw(transactionId) { window.open(`https://teohmarcus584.github.io/LUCKYDRAW/?receipt=${encodeURIComponent(transactionId)}`, '_blank'); }
 
   // Cart functions (unchanged)
   function updateCartUI() {
