@@ -71,7 +71,7 @@
       gap: 12px;
       align-items: center;
     }
-    .logout-btn, .drawer-btn {
+    .logout-btn, .drawer-btn, .settlement-btn {
       background: #ef4444;
       border: none;
       border-radius: 40px;
@@ -83,8 +83,12 @@
     .drawer-btn {
       background: #f59e0b;
     }
+    .settlement-btn {
+      background: #8b5cf6;
+    }
     .drawer-btn:hover { background: #d97706; }
-    .drawer-btn:disabled {
+    .settlement-btn:hover { background: #7c3aed; }
+    .drawer-btn:disabled, .settlement-btn:disabled {
       background: #cbd5e1;
       cursor: not-allowed;
       opacity: 0.6;
@@ -461,6 +465,23 @@
     .product-details-table td:nth-child(3) {
       text-align: right;
     }
+    .settlement-stats {
+      background: #f1f5f9;
+      padding: 12px;
+      border-radius: 20px;
+      margin: 16px 0;
+    }
+    .settlement-stats p {
+      margin: 8px 0;
+      font-size: 1rem;
+    }
+    .settlement-stats strong {
+      color: #0f172a;
+    }
+    .error-field {
+      border-color: #ef4444 !important;
+      background-color: #fee2e2;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -522,6 +543,7 @@
     <span class="employee-info">👤 Cashier: <span id="employeeName"></span></span>
     <div class="employee-actions">
       <button id="openDrawerBtn" class="drawer-btn" disabled>💰 Open Drawer</button>
+      <button id="settlementBtn" class="settlement-btn" style="display: none;">💰 Settlement</button>
       <button id="logoutButton" class="logout-btn">Logout</button>
     </div>
   </div>
@@ -667,22 +689,54 @@
         <div id="productDetailsTable" style="max-height: 300px; overflow-y: auto;">
           <table class="product-details-table">
             <thead>
-              <tr>
+               <tr>
                 <th>Product</th>
                 <th>Category</th>
                 <th style="text-align: right;">Qty Sold</th>
                 <th style="text-align: right;">Total (RM)</th>
-              </tr>
+               </tr>
             </thead>
             <tbody id="productDetailsBody">
-              <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
+               <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
             </tbody>
-          </table>
+           </table>
         </div>
       </div>
     </div>
 
     <div class="modal-buttons"><button id="closeAdminReportBtn" class="modal-btn modal-btn-secondary">Close</button></div>
+  </div>
+</div>
+
+<!-- Settlement Modal -->
+<div id="settlementModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 500px;">
+    <span class="close-modal" id="closeSettlementModal">×</span>
+    <div class="modal-title">💰 Daily Settlement</div>
+    <div class="settlement-stats" id="systemTotalsDisplay">
+      <p>📊 System totals for today:</p>
+      <p>💵 Cash: <strong id="sysCash">RM 0.00</strong></p>
+      <p>💳 Card: <strong id="sysCard">RM 0.00</strong></p>
+      <p>📱 QR Pay: <strong id="sysQR">RM 0.00</strong></p>
+    </div>
+    <div class="filter-group">
+      <label>Cash Count (Actual)</label>
+      <input type="number" id="actualCash" class="modal-input" placeholder="Enter actual cash count" step="0.01">
+    </div>
+    <div class="filter-group">
+      <label>Card Settlement (Actual)</label>
+      <input type="number" id="actualCard" class="modal-input" placeholder="Enter actual card settlement" step="0.01">
+    </div>
+    <div class="filter-group">
+      <label>QR Settlement (Actual)</label>
+      <input type="number" id="actualQR" class="modal-input" placeholder="Enter actual QR settlement" step="0.01">
+    </div>
+    <div id="settlementError" style="color:#ef4444; margin: 12px 0; display: none;"></div>
+    <div class="modal-buttons">
+      <button id="checkSettlementBtn" class="modal-btn modal-btn-primary">Check</button>
+      <button id="recordSettlementBtn" class="modal-btn modal-btn-primary" disabled>Record Settlement</button>
+      <button id="closeSettlementModalBtn" class="modal-btn modal-btn-secondary">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -710,7 +764,7 @@
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwTh0IzcaRPgtsZ8JdaliVWK812LYKicEISDnSj01fCN71PqXA2Kip9TR-btmCk7pUcHQ/exec";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-sg1bn8ojIpYQZ0fJJjxU8h3gm1BEgpe7SfBMMl34XwMk4VU_AIs9SqRcPo_Pn-uEzQ/exec";
   let products = [], cart = [], currentStore = "queens", currentEmployee = null;
   let viewMode = "grid"; // 'grid' or 'list'
   let productDetailsVisible = false;
@@ -833,16 +887,19 @@
         const employeeFilterGroup = document.getElementById('employeeFilterGroup');
         const storeChartContainer = document.getElementById('storeChartContainer');
         const employeeChartContainer = document.getElementById('employeeChartContainer');
+        const settlementBtn = document.getElementById('settlementBtn');
         if (currentEmployee.isAdmin) {
           reportStoreFilter.style.display = 'flex';
           employeeFilterGroup.style.display = 'flex';
           storeChartContainer.style.display = 'block';
           employeeChartContainer.style.display = 'block';
+          settlementBtn.style.display = 'none'; // settlement only for non-admin
         } else {
           reportStoreFilter.style.display = 'none';
           employeeFilterGroup.style.display = 'none';
           storeChartContainer.style.display = 'none';
           employeeChartContainer.style.display = 'none';
+          settlementBtn.style.display = 'flex'; // show settlement button for cashiers
         }
         
         // Fetch employee name map for receipt display
@@ -965,8 +1022,9 @@
         document.getElementById('adminReportOtherTotal').innerText = `RM ${result.otherTotal.toFixed(2)}`;
         document.getElementById('adminReportTransactionCount').innerText = result.transactionCount;
         document.getElementById('adminReportTotalItems').innerText = result.totalItems;
+        return result;
       } else throw new Error('Report data error');
-    } catch (err) { console.error(err); await showAlertModal('Error', 'Failed to load report.'); } finally { hideLoading(); }
+    } catch (err) { console.error(err); await showAlertModal('Error', 'Failed to load report.'); return null; } finally { hideLoading(); }
   }
 
   async function fetchSalesChartData(store, employeeId, from, to) {
@@ -1182,6 +1240,121 @@
     }
   }
 
+  // Settlement functions
+  let currentSettlementTotals = null;
+
+  async function openSettlementModal() {
+    // Fetch today's system totals for the current employee
+    const todayStr = getLocalDateString(new Date());
+    const report = await fetchSalesReport('all', currentEmployee.id, todayStr, todayStr);
+    if (report) {
+      currentSettlementTotals = {
+        cash: report.cashTotal,
+        card: report.cardTotal,
+        qr: report.otherTotal
+      };
+      document.getElementById('sysCash').innerText = `RM ${currentSettlementTotals.cash.toFixed(2)}`;
+      document.getElementById('sysCard').innerText = `RM ${currentSettlementTotals.card.toFixed(2)}`;
+      document.getElementById('sysQR').innerText = `RM ${currentSettlementTotals.qr.toFixed(2)}`;
+      
+      // Reset fields and errors
+      document.getElementById('actualCash').value = '';
+      document.getElementById('actualCard').value = '';
+      document.getElementById('actualQR').value = '';
+      document.getElementById('settlementError').style.display = 'none';
+      document.getElementById('recordSettlementBtn').disabled = true;
+      document.getElementById('checkSettlementBtn').disabled = false;
+      
+      // Remove error highlighting
+      document.getElementById('actualCash').classList.remove('error-field');
+      document.getElementById('actualCard').classList.remove('error-field');
+      document.getElementById('actualQR').classList.remove('error-field');
+      
+      document.getElementById('settlementModal').style.display = 'flex';
+    }
+  }
+
+  document.getElementById('settlementBtn').addEventListener('click', openSettlementModal);
+  document.getElementById('closeSettlementModal').addEventListener('click', () => document.getElementById('settlementModal').style.display = 'none');
+  document.getElementById('closeSettlementModalBtn').addEventListener('click', () => document.getElementById('settlementModal').style.display = 'none');
+
+  document.getElementById('checkSettlementBtn').addEventListener('click', async () => {
+    const actualCash = parseFloat(document.getElementById('actualCash').value);
+    const actualCard = parseFloat(document.getElementById('actualCard').value);
+    const actualQR = parseFloat(document.getElementById('actualQR').value);
+    const errors = [];
+    
+    // Validate numbers
+    if (isNaN(actualCash)) errors.push('Cash Count');
+    if (isNaN(actualCard)) errors.push('Card Settlement');
+    if (isNaN(actualQR)) errors.push('QR Settlement');
+    
+    if (errors.length > 0) {
+      document.getElementById('settlementError').innerText = `Please enter valid numbers for: ${errors.join(', ')}`;
+      document.getElementById('settlementError').style.display = 'block';
+      return;
+    }
+    
+    // Compare with system totals
+    const cashOk = Math.abs(actualCash - currentSettlementTotals.cash) < 0.01;
+    const cardOk = Math.abs(actualCard - currentSettlementTotals.card) < 0.01;
+    const qrOk = Math.abs(actualQR - currentSettlementTotals.qr) < 0.01;
+    
+    document.getElementById('actualCash').classList.toggle('error-field', !cashOk);
+    document.getElementById('actualCard').classList.toggle('error-field', !cardOk);
+    document.getElementById('actualQR').classList.toggle('error-field', !qrOk);
+    
+    if (cashOk && cardOk && qrOk) {
+      document.getElementById('settlementError').style.display = 'none';
+      document.getElementById('recordSettlementBtn').disabled = false;
+      document.getElementById('checkSettlementBtn').disabled = true;
+    } else {
+      const errorMessages = [];
+      if (!cashOk) errorMessages.push(`Cash (System: RM ${currentSettlementTotals.cash.toFixed(2)}, Entered: RM ${actualCash.toFixed(2)})`);
+      if (!cardOk) errorMessages.push(`Card (System: RM ${currentSettlementTotals.card.toFixed(2)}, Entered: RM ${actualCard.toFixed(2)})`);
+      if (!qrOk) errorMessages.push(`QR (System: RM ${currentSettlementTotals.qr.toFixed(2)}, Entered: RM ${actualQR.toFixed(2)})`);
+      document.getElementById('settlementError').innerHTML = `❌ Mismatch in:<br>${errorMessages.join('<br>')}<br>Please correct and try again.`;
+      document.getElementById('settlementError').style.display = 'block';
+      document.getElementById('recordSettlementBtn').disabled = true;
+      document.getElementById('checkSettlementBtn').disabled = false;
+    }
+  });
+
+  document.getElementById('recordSettlementBtn').addEventListener('click', async () => {
+    const actualCash = parseFloat(document.getElementById('actualCash').value);
+    const actualCard = parseFloat(document.getElementById('actualCard').value);
+    const actualQR = parseFloat(document.getElementById('actualQR').value);
+    
+    showLoading('Recording settlement...');
+    try {
+      const formData = new URLSearchParams();
+      formData.append("action", "recordSettlement");
+      formData.append("employee_id", currentEmployee.id);
+      formData.append("employee_name", currentEmployee.name);
+      formData.append("date", getLocalDateString(new Date()));
+      formData.append("cash_system", currentSettlementTotals.cash);
+      formData.append("card_system", currentSettlementTotals.card);
+      formData.append("qr_system", currentSettlementTotals.qr);
+      formData.append("cash_actual", actualCash);
+      formData.append("card_actual", actualCard);
+      formData.append("qr_actual", actualQR);
+      
+      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+      const result = await response.json();
+      if (result.success) {
+        await showAlertModal('Settlement Recorded', 'Settlement has been successfully recorded.');
+        document.getElementById('settlementModal').style.display = 'none';
+      } else {
+        await showAlertModal('Error', 'Failed to record settlement: ' + (result.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error(err);
+      await showAlertModal('Error', 'Connection error while recording settlement.');
+    } finally {
+      hideLoading();
+    }
+  });
+
   // Receipts
   async function fetchReceipts(store, employeeId, from, to, search) {
     showLoading('Loading receipts...');
@@ -1222,7 +1395,7 @@
     else await showAlertModal('Error', 'Print failed.');
   }
 
-  function openLuckyDraw(transactionId) { window.open(`https://teohmarcus584.github.io/salesanalysis/?receipt=${encodeURIComponent(transactionId)}`, '_blank'); }
+  function openLuckyDraw(transactionId) { window.open(`https://teohmarcus584.github.io/LUCKYDRAW/?receipt=${encodeURIComponent(transactionId)}`, '_blank'); }
 
   // Cart functions (unchanged)
   function updateCartUI() {
