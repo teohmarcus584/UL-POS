@@ -1407,20 +1407,27 @@
   }
 
   async function openSettlementModal() {
-    // For non‑admin, use the initial store (locked)
-    let store;
-    if (!currentEmployee.isAdmin) {
-      store = initialStore;
-      document.getElementById('settlementStoreSelect').value = store;
-      document.getElementById('settlementStoreSelect').disabled = true;
-    } else {
-      store = document.getElementById('settlementStoreSelect').value;
-      document.getElementById('settlementStoreSelect').disabled = false;
-    }
-    
-    await refreshSettlementTotals(store);
-    document.getElementById('settlementModal').style.display = 'flex';
+  let store;
+  if (!currentEmployee.isAdmin) {
+    store = initialStore;
+    document.getElementById('settlementStoreSelect').value = store;
+    document.getElementById('settlementStoreSelect').disabled = true;
+  } else {
+    store = document.getElementById('settlementStoreSelect').value;
+    document.getElementById('settlementStoreSelect').disabled = false;
   }
+  
+  // Check if already settled before opening
+  const todayStr = getLocalDateString(new Date());
+  const alreadySettled = await checkSettlementStatus(store, todayStr);
+  if (alreadySettled) {
+    await showAlertModal('Settlement Already Done', 'Settlement has already been recorded for today. No further settlement allowed.');
+    return;
+  }
+  
+  await refreshSettlementTotals(store);
+  document.getElementById('settlementModal').style.display = 'flex';
+}
 
   // Add change listener for store selector (admin only)
   document.getElementById('settlementStoreSelect').addEventListener('change', async () => {
@@ -1477,51 +1484,50 @@
     }
   });
 
-  document.getElementById('recordSettlementBtn').addEventListener('click', async () => {
-    const store = document.getElementById('settlementStoreSelect').value;
-    const pettyCash = parseFloat(document.getElementById('pettyCashFloat').value) || 0;
-    const actualCash = parseFloat(document.getElementById('actualCash').value);
-    const actualCard = parseFloat(document.getElementById('actualCard').value);
-    const actualQR = parseFloat(document.getElementById('actualQR').value);
+document.getElementById('recordSettlementBtn').addEventListener('click', async () => {
+  const store = document.getElementById('settlementStoreSelect').value;
+  const pettyCash = parseFloat(document.getElementById('pettyCashFloat').value) || 0;
+  const actualCash = parseFloat(document.getElementById('actualCash').value);
+  const actualCard = parseFloat(document.getElementById('actualCard').value);
+  const actualQR = parseFloat(document.getElementById('actualQR').value);
+  
+  const recordBtn = document.getElementById('recordSettlementBtn');
+  recordBtn.disabled = true;
+  showLoading('Recording settlement...');
+  
+  try {
+    const formData = new URLSearchParams();
+    formData.append("action", "recordSettlement");
+    formData.append("employee_id", currentEmployee.id);
+    formData.append("employee_name", currentEmployee.name);
+    formData.append("store", store);
+    formData.append("petty_cash_float", pettyCash);
+    formData.append("date", getLocalDateString(new Date()));
+    formData.append("cash_system", currentSettlementTotals.cash);
+    formData.append("card_system", currentSettlementTotals.card);
+    formData.append("qr_system", currentSettlementTotals.qr);
+    formData.append("cash_actual", actualCash);
+    formData.append("card_actual", actualCard);
+    formData.append("qr_actual", actualQR);
     
-    // Disable button to prevent double click
-    const recordBtn = document.getElementById('recordSettlementBtn');
-    recordBtn.disabled = true;
-    
-    try {
-      const formData = new URLSearchParams();
-      formData.append("action", "recordSettlement");
-      formData.append("employee_id", currentEmployee.id);
-      formData.append("employee_name", currentEmployee.name);
-      formData.append("store", store);
-      formData.append("petty_cash_float", pettyCash);
-      formData.append("date", getLocalDateString(new Date()));
-      formData.append("cash_system", currentSettlementTotals.cash);
-      formData.append("card_system", currentSettlementTotals.card);
-      formData.append("qr_system", currentSettlementTotals.qr);
-      formData.append("cash_actual", actualCash);
-      formData.append("card_actual", actualCard);
-      formData.append("qr_actual", actualQR);
-      
-      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
-      const result = await response.json();
-      if (result.success) {
-        await showAlertModal('Settlement Recorded', 'Settlement has been successfully recorded.');
-        document.getElementById('settlementModal').style.display = 'none';
-        hideLoading();
-      } else {
-        await showAlertModal('Error', 'Failed to record settlement: ' + (result.error || 'Unknown error'));
-        hideLoading();
-      }
-    } catch (err) {
-      console.error(err);
-      await showAlertModal('Error', 'Connection error while recording settlement.');
-    } finally {
-      hideLoading();
-      recordBtn.disabled = false;
+    const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+    const result = await response.json();
+    if (result.success) {
+      await showAlertModal('Settlement Recorded', 'Settlement has been successfully recorded.');
+      // Refresh totals to disable UI
+      await refreshSettlementTotals(store);
+      document.getElementById('settlementModal').style.display = 'none';
+    } else {
+      await showAlertModal('Error', 'Failed to record settlement: ' + (result.error || 'Unknown error'));
     }
-  });
-
+  } catch (err) {
+    console.error(err);
+    await showAlertModal('Error', 'Connection error while recording settlement.');
+  } finally {
+    hideLoading();
+    recordBtn.disabled = false;
+  }
+});
   // Cash Collection functions
   let currentUnsettledCash = [];
 
