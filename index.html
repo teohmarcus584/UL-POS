@@ -668,12 +668,12 @@
         <div id="productDetailsTable" style="max-height: 300px; overflow-y: auto;">
           <table class="product-details-table">
             <thead>
-                 <tr>
-                  <th>Product</th>
-                  <th>Category</th>
-                  <th style="text-align: right;">Qty Sold</th>
-                  <th style="text-align: right;">Total (RM)</th>
-                 </tr>
+                  <tr>
+                    <th>Product</th>
+                    <th>Category</th>
+                    <th style="text-align: right;">Qty Sold</th>
+                    <th style="text-align: right;">Total (RM)</th>
+                  </tr>
             </thead>
             <tbody id="productDetailsBody">
               <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
@@ -1535,9 +1535,10 @@
   });
   pinInput.addEventListener('input', () => { if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value); });
 
-  // ================== FAST PRINTER WITH CHUNKED WRITES (no delay) ==================
+  // ================== ULTRA‑FAST PRINTER (chunked writes, no delay) ==================
   (function setupPrinter() {
     let gattServer = null, printerCharacteristic = null, isConnected = false;
+    let useWriteWithoutResponse = false;
     const connectBtn = document.getElementById('connectPrinterButton'), printerStatusDiv = document.getElementById('printerStatus');
     const openDrawerBtn = document.getElementById('openDrawerBtn');
 
@@ -1580,7 +1581,7 @@
     // Load logo from URL (with CORS attempt)
     async function loadLogo() {
       if (logoRaster) return true;
-      const imgUrl = "https://imgur.com/a/23w73qK.png";
+      const imgUrl = "https://i.imgur.com/VArFMSh.png";
       const img = new Image();
       img.crossOrigin = "Anonymous";
       return new Promise((resolve) => {
@@ -1631,13 +1632,21 @@
       return `${d}/${m}/${y} ${h}:${min}`;
     }
 
-    // Write data in safe chunks (max 512 bytes per write) – no delay between chunks
+    // Write data in chunks (max 512 bytes) – use writeWithoutResponse if available, else writeValue
     async function writeChunked(data, chunkSize = 512) {
       if (!printerCharacteristic) throw new Error('No characteristic');
       for (let i = 0; i < data.length; i += chunkSize) {
         const chunk = data.slice(i, i + chunkSize);
-        await printerCharacteristic.writeValue(chunk);
-        // No extra delay – the promise resolves when the write is queued
+        if (useWriteWithoutResponse) {
+          // Fire and forget – fastest
+          printerCharacteristic.writeValueWithoutResponse(chunk);
+        } else {
+          await printerCharacteristic.writeValue(chunk);
+        }
+      }
+      // If using writeWithoutResponse, give a tiny delay to let the last chunk send
+      if (useWriteWithoutResponse) {
+        await new Promise(resolve => setTimeout(resolve, 10));
       }
     }
 
@@ -1776,6 +1785,7 @@
           for (const char of chars) {
             if (char.properties.write || char.properties.writeWithoutResponse) {
               foundChar = char;
+              useWriteWithoutResponse = char.properties.writeWithoutResponse;
               break;
             }
           }
