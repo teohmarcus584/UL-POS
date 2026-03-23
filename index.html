@@ -1536,6 +1536,7 @@
   pinInput.addEventListener('input', () => { if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value); });
 
   // ================== ENHANCED PRINTER WITH LOGO ==================
+ // ================== ENHANCED PRINTER WITH LOGO ==================
   (function setupPrinter() {
     let gattServer = null, printerCharacteristic = null, isConnected = false;
     const connectBtn = document.getElementById('connectPrinterButton'), printerStatusDiv = document.getElementById('printerStatus');
@@ -1633,64 +1634,78 @@
 
     // Generate full receipt data with logo
     async function generateReceiptData(transaction, openDrawer = false) {
-      const encoder = new TextEncoder();
-      const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
-      let commands = [];
+      try {
+        const encoder = new TextEncoder();
+        const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
+        let commands = [];
 
-      // Try to load logo (cached)
-      await loadLogo();
+        // Try to load logo (cached)
+        await loadLogo();
 
-      // Print logo if available
-      if (logoRaster) {
-        const logoCmds = generateLogoCommands();
-        commands.push(...logoCmds);
-        commands.push(0x0A); // line feed after logo
-      } else {
-        // Fallback text banner
-        commands.push(...encoder.encode("\n  ★ MY STORE ★\n"));
+        // Print logo if available
+        if (logoRaster) {
+          const logoCmds = generateLogoCommands();
+          commands.push(...logoCmds);
+          commands.push(0x0A); // line feed after logo
+        } else {
+          // Fallback text banner
+          commands.push(...encoder.encode("\n  ★ MY STORE ★\n"));
+        }
+
+        // Initialize printer and set center alignment
+        commands.push(0x1B, 0x40);          // Initialize
+        commands.push(0x1B, 0x61, 0x01);   // Center align
+
+        const lines = [
+          '    ★ POS INVOICE ★',
+          '-----------------------------',
+          `Txn: ${transaction.transaction_id}`,
+          `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`,
+          `Employee: ${employeeName}`,
+          '-----------------------------'
+        ];
+        let total = 0;
+        for (let item of transaction.items) {
+          const displayName = item.category ? `${item.category}: ${item.name}` : item.name;
+          lines.push(`${displayName} x${item.quantity}`);
+          lines.push(`  ${item.price.toFixed(2)} x ${item.quantity} = RM ${(item.price * item.quantity).toFixed(2)}`);
+          total += item.price * item.quantity;
+        }
+        lines.push('-----------------------------');
+        lines.push(`TOTAL: RM ${total.toFixed(2)}`);
+        lines.push(`Payment: ${transaction.payment_method}`);
+        if (transaction.cash_received) {
+          lines.push(`Cash: RM ${transaction.cash_received} | Change: RM ${(transaction.cash_received - total).toFixed(2)}`);
+        }
+        lines.push('-----------------------------');
+        lines.push('Thank you & come again!');
+        lines.push('');
+
+        const text = lines.join('\n');
+        commands.push(...encoder.encode(text));
+        commands.push(0x1B, 0x64, 0x03);    // Feed 3 lines
+        commands.push(0x1D, 0x56, 0x41, 0x00); // Full cut
+
+        if (openDrawer) {
+          const drawerCmd = [0x1B, 0x70, 0x00, 0x19, 0xFA];
+          // Insert drawer command before cut (last 4 bytes)
+          commands = commands.slice(0, -4).concat(drawerCmd, commands.slice(-4));
+        }
+
+        return new Uint8Array(commands);
+      } catch (err) {
+        console.error("Error generating receipt data:", err);
+        // Fallback: simple text receipt without logo
+        const fallbackCmds = [];
+        const encoder = new TextEncoder();
+        fallbackCmds.push(0x1B, 0x40);
+        fallbackCmds.push(0x1B, 0x61, 0x01);
+        const fallbackText = "⚠️ Receipt generation error\nPlease contact support.\n";
+        fallbackCmds.push(...encoder.encode(fallbackText));
+        fallbackCmds.push(0x1B, 0x64, 0x03);
+        fallbackCmds.push(0x1D, 0x56, 0x41, 0x00);
+        return new Uint8Array(fallbackCmds);
       }
-
-      // Initialize printer and set center alignment
-      commands.push(0x1B, 0x40);          // Initialize
-      commands.push(0x1B, 0x61, 0x01);   // Center align
-
-      const lines = [
-        '    ★ POS INVOICE ★',
-        '-----------------------------',
-        `Txn: ${transaction.transaction_id}`,
-        `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`,
-        `Employee: ${employeeName}`,
-        '-----------------------------'
-      ];
-      let total = 0;
-      for (let item of transaction.items) {
-        const displayName = item.category ? `${item.category}: ${item.name}` : item.name;
-        lines.push(`${displayName} x${item.quantity}`);
-        lines.push(`  ${item.price.toFixed(2)} x ${item.quantity} = RM ${(item.price * item.quantity).toFixed(2)}`);
-        total += item.price * item.quantity;
-      }
-      lines.push('-----------------------------');
-      lines.push(`TOTAL: RM ${total.toFixed(2)}`);
-      lines.push(`Payment: ${transaction.payment_method}`);
-      if (transaction.cash_received) {
-        lines.push(`Cash: RM ${transaction.cash_received} | Change: RM ${(transaction.cash_received - total).toFixed(2)}`);
-      }
-      lines.push('-----------------------------');
-      lines.push('Thank you & come again!');
-      lines.push('');
-
-      const text = lines.join('\n');
-      commands.push(...encoder.encode(text));
-      commands.push(0x1B, 0x64, 0x03);    // Feed 3 lines
-      commands.push(0x1D, 0x56, 0x41, 0x00); // Full cut
-
-      if (openDrawer) {
-        const drawerCmd = [0x1B, 0x70, 0x00, 0x19, 0xFA];
-        // Insert drawer command before cut (last 4 bytes)
-        commands = commands.slice(0, -4).concat(drawerCmd, commands.slice(-4));
-      }
-
-      return new Uint8Array(commands);
     }
 
     async function openCashDrawer() {
@@ -1721,6 +1736,10 @@
       try {
         const openDrawer = (transaction.payment_method === 'Cash');
         const data = await generateReceiptData(transaction, openDrawer);
+        if (!(data instanceof Uint8Array)) {
+          console.error("generateReceiptData did not return Uint8Array");
+          return false;
+        }
         await printerCharacteristic.writeValue(data);
         printerStatusDiv.innerText = '✅ Receipt printed';
         return true;
