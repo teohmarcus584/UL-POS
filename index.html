@@ -726,7 +726,7 @@
                 <th>Category</th>
                 <th style="text-align: right;">Qty Sold</th>
                 <th style="text-align: right;">Total (RM)</th>
-              </tr>
+               </tr>
             </thead>
             <tbody id="productDetailsBody">
               <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
@@ -804,12 +804,12 @@
     <div style="overflow-x: auto;">
       <table class="collection-table" id="collectionTable">
         <thead>
-          <tr>
+           <tr>
             <th><input type="checkbox" id="selectAllCheckbox"></th>
             <th>Date</th>
             <th>Employee</th>
             <th style="text-align: right;">Cash Amount (RM)</th>
-          </tr>
+           </tr>
         </thead>
         <tbody id="collectionTableBody">
           <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
@@ -1268,7 +1268,7 @@
         <td>${escapeHtml(p.category)}</td>
         <td style="text-align: right;">${p.quantity}</td>
         <td style="text-align: right;">RM ${p.total.toFixed(2)}</td>
-      </tr>`;
+       </tr>`;
     });
     tbody.innerHTML = html;
   }
@@ -1485,7 +1485,6 @@
       const result = await response.json();
       if (result.success) {
         await showAlertModal('Settlement Recorded', 'Settlement has been successfully recorded.');
-        loadingOverlay.style.display = 'none';
         document.getElementById('settlementModal').style.display = 'none';
       } else {
         await showAlertModal('Error', 'Failed to record settlement: ' + (result.error || 'Unknown error'));
@@ -1545,7 +1544,7 @@
         <td>${date}</td>
         <td>${getEmployeeName(rec.employee_id)}</td>
         <td style="text-align: right;">RM ${rec.cash_actual.toFixed(2)}</td>
-      </tr>`;
+       </tr>`;
     });
     tbody.innerHTML = html;
     // Attach checkbox change listeners
@@ -1582,8 +1581,8 @@
       const formData = new URLSearchParams();
       formData.append("action", "markCashCollected");
       formData.append("ids", JSON.stringify(selectedIds));
-          formData.append("employee_id", currentEmployee.id);
-    formData.append("employee_name", currentEmployee.name);
+      formData.append("employee_id", currentEmployee.id);
+      formData.append("employee_name", currentEmployee.name);
       const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
       const result = await response.json();
       if (result.success) {
