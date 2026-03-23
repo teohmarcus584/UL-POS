@@ -1583,19 +1583,21 @@
       const formData = new URLSearchParams();
       formData.append("action", "markCashCollected");
       formData.append("ids", JSON.stringify(selectedIds));
-      formData.append("employee_id", currentEmployee.id);
-      formData.append("employee_name", currentEmployee.name);
       const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
       const result = await response.json();
       if (result.success) {
         await showAlertModal('Success', `${selectedIds.length} cash record(s) marked as collected.`);
+        hideLoading();
         await loadUnsettledCash(); // refresh list
       } else {
         await showAlertModal('Error', 'Failed to mark as collected: ' + (result.error || 'Unknown error'));
+        hideLoading();
       }
     } catch (err) {
       console.error(err);
       await showAlertModal('Error', 'Connection error while marking collected.');
+    } finally {
+      hideLoading();
     }
   });
 
