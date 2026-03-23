@@ -847,7 +847,7 @@
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxAYM0xQYyxasIhYx99IIT82MDJ82xzZJHxdSn2Z3srgatzYWr9Ll4nc6fgOrGDPkEY6Q/exec";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx3I6amNl6NskBb-DbB8DEVMJeeeUhxVfPRkIT_Q1JP-QqcdjfsMQdYh9m8wpkyJG80ag/exec";
   let products = [], cart = [], currentStore = "queens", currentEmployee = null;
   let viewMode = "grid"; // 'grid' or 'list'
   let productDetailsVisible = false;
@@ -1100,25 +1100,35 @@
   }
 
   // Report functions – now accept store parameter
-  async function fetchSalesReport(store, employeeId, from, to) {
-    showLoading('Loading report...');
-    try {
-      let url = `${APPS_SCRIPT_URL}?action=getSalesReport&store=${store}&employeeId=${employeeId}`;
-      if (from) url += `&from=${encodeURIComponent(from)}`;
-      if (to) url += `&to=${encodeURIComponent(to)}`;
-      const response = await fetch(url);
-      const result = await response.json();
-      if (result.success) {
-        document.getElementById('adminReportTotalSales').innerText = `RM ${result.totalSales.toFixed(2)}`;
-        document.getElementById('adminReportCashTotal').innerText = `RM ${result.cashTotal.toFixed(2)}`;
-        document.getElementById('adminReportCardTotal').innerText = `RM ${result.cardTotal.toFixed(2)}`;
-        document.getElementById('adminReportOtherTotal').innerText = `RM ${result.otherTotal.toFixed(2)}`;
-        document.getElementById('adminReportTransactionCount').innerText = result.transactionCount;
-        document.getElementById('adminReportTotalItems').innerText = result.totalItems;
-        return result;
-      } else throw new Error('Report data error');
-    } catch (err) { console.error(err); await showAlertModal('Error', 'Failed to load report.'); return null; } finally { hideLoading(); }
+async function fetchSalesReport(store, employeeId, from, to, unsettledOnly) {
+  showLoading('Loading report...');
+  try {
+    let url = `${APPS_SCRIPT_URL}?action=getSalesReport&store=${store}&employeeId=${employeeId}`;
+    if (from) url += `&from=${encodeURIComponent(from)}`;
+    if (to) url += `&to=${encodeURIComponent(to)}`;
+    if (unsettledOnly) url += `&unsettledOnly=true`; // Add the unsettledOnly flag
+
+    const response = await fetch(url);
+    const result = await response.json();
+    if (result.success) {
+      document.getElementById('adminReportTotalSales').innerText = `RM ${result.totalSales.toFixed(2)}`;
+      document.getElementById('adminReportCashTotal').innerText = `RM ${result.cashTotal.toFixed(2)}`;
+      document.getElementById('adminReportCardTotal').innerText = `RM ${result.cardTotal.toFixed(2)}`;
+      document.getElementById('adminReportOtherTotal').innerText = `RM ${result.otherTotal.toFixed(2)}`;
+      document.getElementById('adminReportTransactionCount').innerText = result.transactionCount;
+      document.getElementById('adminReportTotalItems').innerText = result.totalItems;
+      return result;
+    } else {
+      throw new Error('Report data error');
+    }
+  } catch (err) {
+    console.error(err);
+    await showAlertModal('Error', 'Failed to load report.');
+    return null;
+  } finally {
+    hideLoading();
   }
+}
 
   async function fetchSalesChartData(store, employeeId, from, to) {
     try {
@@ -1351,9 +1361,10 @@
 
   // Helper to refresh settlement totals for a given store and reset UI
   async function refreshSettlementTotals(store) {
-    const todayStr = getLocalDateString(new Date());
-    const report = await fetchSalesReport(store, 'all', todayStr, todayStr);
-    if (report) {
+  const todayStr = getLocalDateString(new Date());
+  // Pass unsettledOnly=true to get only unsettled sales
+  const report = await fetchSalesReport(store, 'all', todayStr, todayStr, true);
+  if (report) {
       currentSettlementTotals = {
         cash: report.cashTotal,
         card: report.cardTotal,
