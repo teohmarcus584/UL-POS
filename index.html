@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
   <title>POS System | PIN Login</title>
   <style>
-    /* ========== ALL STYLES (unchanged) ========== */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -668,12 +667,12 @@
         <div id="productDetailsTable" style="max-height: 300px; overflow-y: auto;">
           <table class="product-details-table">
             <thead>
-                  <tr>
-                    <th>Product</th>
-                    <th>Category</th>
-                    <th style="text-align: right;">Qty Sold</th>
-                    <th style="text-align: right;">Total (RM)</th>
-                  </tr>
+              <tr>
+                <th>Product</th>
+                <th>Category</th>
+                <th style="text-align: right;">Qty Sold</th>
+                <th style="text-align: right;">Total (RM)</th>
+              </tr>
             </thead>
             <tbody id="productDetailsBody">
               <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
@@ -1223,7 +1222,7 @@
     else await showAlertModal('Error', 'Print failed.');
   }
 
-  function openLuckyDraw(transactionId) { window.open(`https://teohmarcus584.github.io/LUCKYDRAW/?receipt=${encodeURIComponent(transactionId)}`, '_blank'); }
+  function openLuckyDraw(transactionId) { window.open(`https://teohmarcus584.github.io/salesanalysis/?receipt=${encodeURIComponent(transactionId)}`, '_blank'); }
 
   // Cart functions (unchanged)
   function updateCartUI() {
@@ -1535,205 +1534,65 @@
   });
   pinInput.addEventListener('input', () => { if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value); });
 
-  // ================== ULTRA‑FAST PRINTER (chunked writes, no delay) ==================
+  // Printer setup with cash drawer support and receipt cut, plus open drawer button
   (function setupPrinter() {
     let gattServer = null, printerCharacteristic = null, isConnected = false;
-    let useWriteWithoutResponse = false;
     const connectBtn = document.getElementById('connectPrinterButton'), printerStatusDiv = document.getElementById('printerStatus');
     const openDrawerBtn = document.getElementById('openDrawerBtn');
-
-    // Logo data – will be fetched and cached
-    let logoRaster = null;
-    let logoWidth = 0, logoHeight = 0;
-
-    // Helper: convert image element to monochrome raster
-    async function imgToRaster(img) {
-      const maxWidth = 384;
-      let width = img.width;
-      let height = img.height;
-      if (width > maxWidth) {
-        height = Math.floor(height * (maxWidth / width));
-        width = maxWidth;
+    
+    function formatDateForReceipt(date) { const d = date.getDate().toString().padStart(2,'0'), m = (date.getMonth()+1).toString().padStart(2,'0'), y = date.getFullYear(), h = date.getHours().toString().padStart(2,'0'), min = date.getMinutes().toString().padStart(2,'0'); return `${d}/${m}/${y} ${h}:${min}`; }
+    
+    // Generate receipt data with optional cash drawer open
+    function generateReceiptData(transaction, openDrawer = false) {
+      const encoder = new TextEncoder();
+      const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
+      const lines = ['', '    ★ POS INVOICE ★', '-----------------------------', `Txn: ${transaction.transaction_id}`, `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`, `Employee: ${employeeName}`, '-----------------------------'];
+      let total = 0;
+      for (let item of transaction.items) {
+        const displayName = item.category ? `${item.category}: ${item.name}` : item.name;
+        lines.push(`${displayName} x${item.quantity}`, `  ${item.price.toFixed(2)} x ${item.quantity} = RM ${(item.price * item.quantity).toFixed(2)}`);
+        total += item.price * item.quantity;
       }
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-      const imageData = ctx.getImageData(0, 0, width, height);
-      const data = imageData.data;
-      const bytesPerRow = Math.ceil(width / 8);
-      const raster = new Uint8Array(bytesPerRow * height);
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-          const idx = (y * width + x) * 4;
-          const brightness = (data[idx] + data[idx+1] + data[idx+2]) / 3;
-          const bit = (brightness > 128) ? 1 : 0;
-          const byteIdx = y * bytesPerRow + Math.floor(x / 8);
-          if (bit === 0) {
-            raster[byteIdx] |= (1 << (7 - (x % 8)));
-          }
-        }
+      lines.push('-----------------------------', `TOTAL: RM ${total.toFixed(2)}`, `Payment: ${transaction.payment_method}`);
+      if (transaction.cash_received) lines.push(`Cash: RM ${transaction.cash_received} | Change: RM ${(transaction.cash_received - total).toFixed(2)}`);
+      lines.push('-----------------------------', 'Thank you & come again!', '');
+      const text = lines.join('\n');
+      
+      // Build command array
+      let commands = [];
+      // Initialize printer (ESC @)
+      commands.push(0x1B, 0x40);
+      // Align center (ESC a 1)
+      commands.push(0x1B, 0x61, 0x01);
+      // Add text
+      commands.push(...encoder.encode(text));
+      // Feed 3 lines (ESC d 3)
+      commands.push(0x1B, 0x64, 0x03);
+      // Full cut (GS V A 0)
+      commands.push(0x1D, 0x56, 0x41, 0x00);
+      
+      // If cash transaction, add cash drawer kick command BEFORE the cut
+      if (openDrawer) {
+        // Standard ESC/POS cash drawer kick: ESC p m t1 t2
+        // m=0, t1=0x19, t2=0xFA (pulse 25ms on, 250ms off)
+        const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
+        // Insert drawer command before the cut (the last 4 bytes)
+        commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
       }
-      return { raster, width, height };
+      
+      return new Uint8Array(commands);
     }
-
-    // Load logo from URL (with CORS attempt)
-    async function loadLogo() {
-      if (logoRaster) return true;
-      const imgUrl = "https://i.imgur.com/VArFMSh.png";
-      const img = new Image();
-      img.crossOrigin = "Anonymous";
-      return new Promise((resolve) => {
-        img.onload = async () => {
-          try {
-            const { raster, width, height } = await imgToRaster(img);
-            logoRaster = raster;
-            logoWidth = width;
-            logoHeight = height;
-            console.log("Logo loaded successfully");
-            resolve(true);
-          } catch (e) {
-            console.warn("Logo conversion failed", e);
-            resolve(false);
-          }
-        };
-        img.onerror = () => {
-          console.warn("Could not load logo from URL – will use text fallback");
-          resolve(false);
-        };
-        img.src = imgUrl;
-      });
-    }
-
-    // Generate ESC/POS commands for raster logo (GS v 0)
-    function generateLogoCommands() {
-      if (!logoRaster) return new Uint8Array(0);
-      const cmds = [];
-      cmds.push(0x1D, 0x76, 0x30, 0x00); // GS v 0 m=0
-      const wLow = logoWidth & 0xFF;
-      const wHigh = (logoWidth >> 8) & 0xFF;
-      cmds.push(wLow, wHigh);
-      const hLow = logoHeight & 0xFF;
-      const hHigh = (logoHeight >> 8) & 0xFF;
-      cmds.push(hLow, hHigh);
-      for (let i = 0; i < logoRaster.length; i++) {
-        cmds.push(logoRaster[i]);
-      }
-      return new Uint8Array(cmds);
-    }
-
-    function formatDateForReceipt(date) {
-      const d = date.getDate().toString().padStart(2,'0');
-      const m = (date.getMonth()+1).toString().padStart(2,'0');
-      const y = date.getFullYear();
-      const h = date.getHours().toString().padStart(2,'0');
-      const min = date.getMinutes().toString().padStart(2,'0');
-      return `${d}/${m}/${y} ${h}:${min}`;
-    }
-
-    // Write data in chunks (max 512 bytes) – use writeWithoutResponse if available, else writeValue
-    async function writeChunked(data, chunkSize = 512) {
-      if (!printerCharacteristic) throw new Error('No characteristic');
-      for (let i = 0; i < data.length; i += chunkSize) {
-        const chunk = data.slice(i, i + chunkSize);
-        if (useWriteWithoutResponse) {
-          // Fire and forget – fastest
-          printerCharacteristic.writeValueWithoutResponse(chunk);
-        } else {
-          await printerCharacteristic.writeValue(chunk);
-        }
-      }
-      // If using writeWithoutResponse, give a tiny delay to let the last chunk send
-      if (useWriteWithoutResponse) {
-        await new Promise(resolve => setTimeout(resolve, 10));
-      }
-    }
-
-    // Generate full receipt data with logo
-    async function generateReceiptData(transaction, openDrawer = false) {
-      try {
-        const encoder = new TextEncoder();
-        const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
-        let commands = [];
-
-        // Try to load logo (cached)
-        await loadLogo();
-
-        // Print logo if available
-        if (logoRaster) {
-          const logoCmds = generateLogoCommands();
-          commands.push(...logoCmds);
-          commands.push(0x0A); // line feed after logo
-        } else {
-          // Fallback text banner
-          commands.push(...encoder.encode("\n  ★ MY STORE ★\n"));
-        }
-
-        // Initialize printer and set center alignment
-        commands.push(0x1B, 0x40);          // Initialize
-        commands.push(0x1B, 0x61, 0x01);   // Center align
-
-        const lines = [
-          '    ★ POS INVOICE ★',
-          '-----------------------------',
-          `Txn: ${transaction.transaction_id}`,
-          `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`,
-          `Employee: ${employeeName}`,
-          '-----------------------------'
-        ];
-        let total = 0;
-        for (let item of transaction.items) {
-          const displayName = item.category ? `${item.category}: ${item.name}` : item.name;
-          lines.push(`${displayName} x${item.quantity}`);
-          lines.push(`  ${item.price.toFixed(2)} x ${item.quantity} = RM ${(item.price * item.quantity).toFixed(2)}`);
-          total += item.price * item.quantity;
-        }
-        lines.push('-----------------------------');
-        lines.push(`TOTAL: RM ${total.toFixed(2)}`);
-        lines.push(`Payment: ${transaction.payment_method}`);
-        if (transaction.cash_received) {
-          lines.push(`Cash: RM ${transaction.cash_received} | Change: RM ${(transaction.cash_received - total).toFixed(2)}`);
-        }
-        lines.push('-----------------------------');
-        lines.push('Thank you & come again!');
-        lines.push('');
-
-        const text = lines.join('\n');
-        commands.push(...encoder.encode(text));
-        commands.push(0x1B, 0x64, 0x03);    // Feed 3 lines
-        commands.push(0x1D, 0x56, 0x41, 0x00); // Full cut
-
-        if (openDrawer) {
-          const drawerCmd = [0x1B, 0x70, 0x00, 0x19, 0xFA];
-          // Insert drawer command before cut (last 4 bytes)
-          commands = commands.slice(0, -4).concat(drawerCmd, commands.slice(-4));
-        }
-
-        return new Uint8Array(commands);
-      } catch (err) {
-        console.error("Error generating receipt data:", err);
-        // Fallback: simple text receipt without logo
-        const fallbackCmds = [];
-        const encoder = new TextEncoder();
-        fallbackCmds.push(0x1B, 0x40);
-        fallbackCmds.push(0x1B, 0x61, 0x01);
-        const fallbackText = "⚠️ Receipt generation error\nPlease contact support.\n";
-        fallbackCmds.push(...encoder.encode(fallbackText));
-        fallbackCmds.push(0x1B, 0x64, 0x03);
-        fallbackCmds.push(0x1D, 0x56, 0x41, 0x00);
-        return new Uint8Array(fallbackCmds);
-      }
-    }
-
+    
+    // Open cash drawer only (no receipt)
     async function openCashDrawer() {
       if (!isConnected || !printerCharacteristic) {
         printerStatusDiv.innerText = '❌ Printer not connected';
         return false;
       }
       try {
-        const drawerCmd = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]);
-        await printerCharacteristic.writeValue(drawerCmd);
+        // Just send the drawer kick command
+        const drawerCommand = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]);
+        await printerCharacteristic.writeValue(drawerCommand);
         printerStatusDiv.innerText = '💰 Drawer opened';
         setTimeout(() => {
           if (isConnected) printerStatusDiv.innerText = '✅ Printer ready';
@@ -1745,91 +1604,77 @@
         return false;
       }
     }
-
-    async function printReceipt(transaction) {
-      if (!isConnected || !printerCharacteristic) {
-        printerStatusDiv.innerText = '❌ Printer not connected';
-        return false;
-      }
+    
+    async function printReceipt(transaction) { 
+      if (!isConnected || !printerCharacteristic) { 
+        printerStatusDiv.innerText = '❌ Printer not connected'; 
+        return false; 
+      } 
       try {
         const openDrawer = (transaction.payment_method === 'Cash');
-        const data = await generateReceiptData(transaction, openDrawer);
-        if (!(data instanceof Uint8Array)) {
-          console.error("generateReceiptData did not return Uint8Array");
-          return false;
-        }
-        await writeChunked(data);
-        printerStatusDiv.innerText = '✅ Receipt printed';
-        return true;
-      } catch (err) {
-        console.error(err);
-        printerStatusDiv.innerText = `❌ Print error: ${err.message}`;
-        return false;
-      }
+        const data = generateReceiptData(transaction, openDrawer);
+        await printerCharacteristic.writeValue(data); 
+        printerStatusDiv.innerText = '✅ Receipt printed'; 
+        return true; 
+      } catch (err) { 
+        console.error(err); 
+        printerStatusDiv.innerText = `❌ Print error`; 
+        return false; 
+      } 
     }
-
-    async function connectPrinter() {
-      try {
-        printerStatusDiv.innerText = '🔍 Scanning...';
-        connectBtn.disabled = true;
-        const device = await navigator.bluetooth.requestDevice({
-          acceptAllDevices: true,
-          optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
-        });
-        printerStatusDiv.innerText = `✅ Device selected: ${device.name || 'Unnamed'}\nConnecting...`;
-        gattServer = await device.gatt.connect();
-        const services = await gattServer.getPrimaryServices();
-        let foundChar = null;
-        for (const service of services) {
-          const chars = await service.getCharacteristics();
-          for (const char of chars) {
-            if (char.properties.write || char.properties.writeWithoutResponse) {
-              foundChar = char;
-              useWriteWithoutResponse = char.properties.writeWithoutResponse;
-              break;
-            }
-          }
-          if (foundChar) break;
-        }
-        if (!foundChar) throw new Error('No writable characteristic');
-        printerCharacteristic = foundChar;
-        isConnected = true;
-        window.printerAPI.isConnected = true;
-        printerStatusDiv.innerText = '✅ Printer ready!';
+    
+    async function connectPrinter() { 
+      try { 
+        printerStatusDiv.innerText = '🔍 Scanning...'; 
+        connectBtn.disabled = true; 
+        const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] }); 
+        gattServer = await device.gatt.connect(); 
+        const services = await gattServer.getPrimaryServices(); 
+        let foundChar = null; 
+        for (const service of services) { 
+          const chars = await service.getCharacteristics(); 
+          for (const char of chars) { 
+            if (char.properties.write || char.properties.writeWithoutResponse) { 
+              foundChar = char; 
+              break; 
+            } 
+          } 
+          if (foundChar) break; 
+        } 
+        if (!foundChar) throw new Error('No writable characteristic'); 
+        printerCharacteristic = foundChar; 
+        isConnected = true; 
+        window.printerAPI.isConnected = true; 
+        printerStatusDiv.innerText = '✅ Printer ready'; 
         connectBtn.innerText = '🔌 Disconnect';
         openDrawerBtn.disabled = false;
-      } catch (err) {
-        console.error(err);
-        printerStatusDiv.innerText = `❌ Failed: ${err.message}`;
-        gattServer = null;
-        printerCharacteristic = null;
-      } finally {
-        connectBtn.disabled = false;
-      }
+      } catch (err) { 
+        printerStatusDiv.innerText = `❌ ${err.message}`; 
+        gattServer = null; 
+        printerCharacteristic = null; 
+      } finally { 
+        connectBtn.disabled = false; 
+      } 
     }
-
-    async function disconnectPrinter() {
-      try {
-        if (gattServer) {
-          gattServer.disconnect();
-          gattServer = null;
-          printerCharacteristic = null;
-        }
-        isConnected = false;
-        window.printerAPI.isConnected = false;
-        printerStatusDiv.innerText = '⚪ Not connected';
-        connectBtn.innerText = '🖨️ Connect Printer';
-        openDrawerBtn.disabled = true;
-      } catch (err) {
-        console.error(err);
-        printerStatusDiv.innerText = '❌ Disconnect failed';
-      }
+    
+    async function disconnectPrinter() { 
+      if (gattServer) { 
+        gattServer.disconnect(); 
+        gattServer = null; 
+        printerCharacteristic = null; 
+      } 
+      isConnected = false; 
+      window.printerAPI.isConnected = false; 
+      printerStatusDiv.innerText = '⚪ Not connected'; 
+      connectBtn.innerText = '🖨️ Connect Printer';
+      openDrawerBtn.disabled = true;
     }
-
-    connectBtn.addEventListener('click', () => {
-      if (!isConnected) connectPrinter();
-      else disconnectPrinter();
+    
+    connectBtn.addEventListener('click', () => { 
+      if (!isConnected) connectPrinter(); 
+      else disconnectPrinter(); 
     });
+    
     openDrawerBtn.addEventListener('click', async () => {
       if (!isConnected) {
         await showAlertModal('Printer not connected', 'Please connect a printer first.');
@@ -1837,7 +1682,7 @@
       }
       await openCashDrawer();
     });
-
+    
     window.printerAPI = { isConnected: false, printReceipt: printReceipt };
   })();
 </script>
