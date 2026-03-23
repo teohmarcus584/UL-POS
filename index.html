@@ -695,12 +695,12 @@
                   <th>Category</th>
                   <th style="text-align: right;">Qty Sold</th>
                   <th style="text-align: right;">Total (RM)</th>
-                </tr>
+                 </tr>
             </thead>
             <tbody id="productDetailsBody">
-                <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
+                 <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
             </tbody>
-          </table>
+           </table>
         </div>
       </div>
     </div>
@@ -783,6 +783,7 @@
   let productDetailsVisible = false;
   let lastProductData = null; // cache to avoid re-fetch on toggle
   let employeeNameMap = {}; // map employee ID -> name
+  let initialStore = null; // store selected at the very beginning
 
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -865,11 +866,10 @@
   function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
 
   // Store selection first
-  let selectedStore = null;
   document.getElementById('confirmStoreBtn').addEventListener('click', () => {
-    selectedStore = document.getElementById('initialStoreSelect').value;
-    currentStore = selectedStore;
-    storeSelect.value = selectedStore;
+    initialStore = document.getElementById('initialStoreSelect').value;
+    currentStore = initialStore;
+    storeSelect.value = initialStore;
     document.getElementById('storeSelectModal').style.display = 'none';
     document.getElementById('loginModal').style.display = 'flex';
     document.getElementById('pinInput').focus();
@@ -912,10 +912,10 @@
           employeeChartContainer.style.display = 'none';
         }
         
-        // For non-admin, set settlement store selector to their assigned store and disable
+        // For non-admin, lock settlement store to the initial store (from login modal)
         const settlementStoreSelect = document.getElementById('settlementStoreSelect');
-        if (!currentEmployee.isAdmin && currentEmployee.store) {
-          settlementStoreSelect.value = currentEmployee.store;
+        if (!currentEmployee.isAdmin) {
+          settlementStoreSelect.value = initialStore;
           settlementStoreSelect.disabled = true;
         } else {
           settlementStoreSelect.disabled = false;
@@ -1191,11 +1191,11 @@
     let html = '';
     productsData.forEach(p => {
       html += `<tr>
-        <td>${escapeHtml(p.name)}</td>
-        <td>${escapeHtml(p.category)}</td>
+         <td>${escapeHtml(p.name)}</td>
+         <td>${escapeHtml(p.category)}</td>
         <td style="text-align: right;">${p.quantity}</td>
         <td style="text-align: right;">RM ${p.total.toFixed(2)}</td>
-      </tr>`;
+       </tr>`;
     });
     tbody.innerHTML = html;
   }
@@ -1262,23 +1262,8 @@
   // Settlement functions
   let currentSettlementTotals = null;
 
-  function setSettlementFieldsEnabled(enabled) {
-    const fields = ['settlementStoreSelect', 'pettyCashFloat', 'actualCash', 'actualCard', 'actualQR'];
-    fields.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.disabled = !enabled;
-    });
-  }
-
-  async function openSettlementModal() {
-    // Determine which store to use: admin can select, non-admin uses their assigned store
-    let store = document.getElementById('settlementStoreSelect').value;
-    if (!currentEmployee.isAdmin && currentEmployee.store) {
-      store = currentEmployee.store;
-      document.getElementById('settlementStoreSelect').value = store;
-    }
-    
-    // Fetch today's system totals for the selected store (all employees)
+  // Helper to refresh settlement totals for a given store and reset UI
+  async function refreshSettlementTotals(store) {
     const todayStr = getLocalDateString(new Date());
     const report = await fetchSalesReport(store, 'all', todayStr, todayStr);
     if (report) {
@@ -1291,27 +1276,64 @@
       document.getElementById('sysCard').innerText = `RM ${currentSettlementTotals.card.toFixed(2)}`;
       document.getElementById('sysQR').innerText = `RM ${currentSettlementTotals.qr.toFixed(2)}`;
       
-      // Reset fields and errors
+      // Reset input fields and enable them
+      setSettlementFieldsEnabled(true);
       document.getElementById('actualCash').value = '';
       document.getElementById('actualCard').value = '';
       document.getElementById('actualQR').value = '';
       document.getElementById('pettyCashFloat').value = '0.00';
       document.getElementById('settlementError').style.display = 'none';
-      // Enable all fields
-      setSettlementFieldsEnabled(true);
-      // Hide Record button, show Check button
+      // Reset buttons
       document.getElementById('recordSettlementBtn').style.display = 'none';
       document.getElementById('checkSettlementBtn').style.display = 'block';
       document.getElementById('checkSettlementBtn').disabled = false;
-      
       // Remove error highlighting
       document.getElementById('actualCash').classList.remove('error-field');
       document.getElementById('actualCard').classList.remove('error-field');
       document.getElementById('actualQR').classList.remove('error-field');
-      
-      document.getElementById('settlementModal').style.display = 'flex';
     }
   }
+
+  function setSettlementFieldsEnabled(enabled) {
+    const fields = ['settlementStoreSelect', 'pettyCashFloat', 'actualCash', 'actualCard', 'actualQR'];
+    // For non‑admin, the store selector is always disabled, so we don't change it.
+    const isNonAdmin = !currentEmployee?.isAdmin;
+    fields.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        if (id === 'settlementStoreSelect' && isNonAdmin) {
+          // never enable for non-admin
+          el.disabled = true;
+        } else {
+          el.disabled = !enabled;
+        }
+      }
+    });
+  }
+
+  async function openSettlementModal() {
+    // For non‑admin, use the initial store (locked)
+    let store;
+    if (!currentEmployee.isAdmin) {
+      store = initialStore;
+      document.getElementById('settlementStoreSelect').value = store;
+      document.getElementById('settlementStoreSelect').disabled = true;
+    } else {
+      store = document.getElementById('settlementStoreSelect').value;
+      document.getElementById('settlementStoreSelect').disabled = false;
+    }
+    
+    await refreshSettlementTotals(store);
+    document.getElementById('settlementModal').style.display = 'flex';
+  }
+
+  // Add change listener for store selector (admin only)
+  document.getElementById('settlementStoreSelect').addEventListener('change', async () => {
+    if (currentEmployee?.isAdmin) {
+      const newStore = document.getElementById('settlementStoreSelect').value;
+      await refreshSettlementTotals(newStore);
+    }
+  });
 
   document.getElementById('settlementBtn').addEventListener('click', openSettlementModal);
   document.getElementById('closeSettlementModal').addEventListener('click', () => document.getElementById('settlementModal').style.display = 'none');
