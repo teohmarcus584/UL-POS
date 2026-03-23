@@ -1262,6 +1262,14 @@
   // Settlement functions
   let currentSettlementTotals = null;
 
+  function setSettlementFieldsEnabled(enabled) {
+    const fields = ['settlementStoreSelect', 'pettyCashFloat', 'actualCash', 'actualCard', 'actualQR'];
+    fields.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = !enabled;
+    });
+  }
+
   async function openSettlementModal() {
     // Determine which store to use: admin can select, non-admin uses their assigned store
     let store = document.getElementById('settlementStoreSelect').value;
@@ -1289,6 +1297,8 @@
       document.getElementById('actualQR').value = '';
       document.getElementById('pettyCashFloat').value = '0.00';
       document.getElementById('settlementError').style.display = 'none';
+      // Enable all fields
+      setSettlementFieldsEnabled(true);
       // Hide Record button, show Check button
       document.getElementById('recordSettlementBtn').style.display = 'none';
       document.getElementById('checkSettlementBtn').style.display = 'block';
@@ -1335,6 +1345,8 @@
     
     if (cashOk && cardOk && qrOk) {
       document.getElementById('settlementError').style.display = 'none';
+      // Disable all input fields (block editing)
+      setSettlementFieldsEnabled(false);
       document.getElementById('checkSettlementBtn').style.display = 'none';
       document.getElementById('recordSettlementBtn').style.display = 'block';
       document.getElementById('recordSettlementBtn').disabled = false;
@@ -1388,7 +1400,6 @@
     } finally {
       hideLoading();
       recordBtn.disabled = false;
-      // Reset the modal for next use (optional)
     }
   });
 
