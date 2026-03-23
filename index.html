@@ -1535,7 +1535,7 @@
   });
   pinInput.addEventListener('input', () => { if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value); });
 
-  // ================== ENHANCED PRINTER WITH LOGO & CASH DRAWER ==================
+  // ================== ENHANCED PRINTER WITH CHUNKED WRITES ==================
   (function setupPrinter() {
     let gattServer = null, printerCharacteristic = null, isConnected = false;
     const connectBtn = document.getElementById('connectPrinterButton'), printerStatusDiv = document.getElementById('printerStatus');
@@ -1629,6 +1629,18 @@
       const h = date.getHours().toString().padStart(2,'0');
       const min = date.getMinutes().toString().padStart(2,'0');
       return `${d}/${m}/${y} ${h}:${min}`;
+    }
+
+    // Write data in chunks (max 512 bytes per write)
+    async function writeChunked(data, chunkSize = 512) {
+      if (!printerCharacteristic) throw new Error('No characteristic');
+      const total = data.length;
+      for (let i = 0; i < total; i += chunkSize) {
+        const chunk = data.slice(i, i + chunkSize);
+        await printerCharacteristic.writeValue(chunk);
+        // Small delay to let printer process (optional)
+        await new Promise(resolve => setTimeout(resolve, 20));
+      }
     }
 
     // Generate full receipt data with logo
@@ -1739,7 +1751,7 @@
           console.error("generateReceiptData did not return Uint8Array");
           return false;
         }
-        await printerCharacteristic.writeValue(data);
+        await writeChunked(data);
         printerStatusDiv.innerText = '✅ Receipt printed';
         return true;
       } catch (err) {
