@@ -331,29 +331,95 @@
       .product-list .add-btn { width: 100%; }
       .store-selector { flex-direction: column; align-items: stretch; }
     }
-    .payment-buttons { display: flex; gap: 12px; margin: 20px 0; }
-    .payment-btn { flex: 1; padding: 12px; border-radius: 40px; font-weight: 600; border: none; cursor: pointer; background: #e2e8f0; transition: 0.1s; }
-    .payment-btn.selected { background: #2c7a4b; color: white; }
-    .suggestions { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
-    .suggestion-btn { background: #f1f5f9; border: none; padding: 8px 16px; border-radius: 40px; font-weight: 500; cursor: pointer; }
-    .suggestion-btn:hover { background: #e2e8f0; }
+    .payment-buttons {
+      display: flex;
+      gap: 12px;
+      margin: 20px 0;
+    }
+    .payment-btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: 40px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      background: #e2e8f0;
+      transition: 0.1s;
+    }
+    .payment-btn.selected {
+      background: #2c7a4b;
+      color: white;
+    }
+    .suggestions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 16px 0;
+    }
+    .suggestion-btn {
+      background: #f1f5f9;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 40px;
+      font-weight: 500;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    .suggestion-btn:hover {
+      background: #e2e8f0;
+    }
+    .custom-cash-input {
+      width: 100%;
+      padding: 16px 20px;
+      font-size: 1.2rem;
+      border: 2px solid #cbd5e1;
+      border-radius: 60px;
+      margin: 12px 0;
+      text-align: right;
+      font-weight: 500;
+    }
+    .custom-cash-input:focus {
+      outline: none;
+      border-color: #2c7a4b;
+    }
     .pin-input {
-      width: 100%; text-align: center; font-size: 2rem; letter-spacing: 8px;
-      padding: 12px; border-radius: 60px; border: 1px solid #cbd5e1;
+      width: 100%;
+      text-align: center;
+      font-size: 2rem;
+      letter-spacing: 8px;
+      padding: 12px;
+      border-radius: 60px;
+      border: 1px solid #cbd5e1;
       font-family: monospace;
     }
     .pin-keypad {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
       margin-top: 20px;
     }
     .keypad-btn {
-      background: #f1f5f9; border: none; padding: 16px; border-radius: 60px;
-      font-size: 1.5rem; font-weight: 600; cursor: pointer;
+      background: #f1f5f9;
+      border: none;
+      padding: 16px;
+      border-radius: 60px;
+      font-size: 1.5rem;
+      font-weight: 600;
+      cursor: pointer;
       transition: 0.1s;
     }
-    .keypad-btn:active { transform: scale(0.95); background: #e2e8f0; }
-    .keypad-btn.clear { background: #ef4444; color: white; }
-    .keypad-btn.enter { background: #2c7a4b; color: white; }
+    .keypad-btn:active {
+      transform: scale(0.95);
+      background: #e2e8f0;
+    }
+    .keypad-btn.clear {
+      background: #ef4444;
+      color: white;
+    }
+    .keypad-btn.enter {
+      background: #2c7a4b;
+      color: white;
+    }
     .store-select-modal select {
       padding: 14px 20px;
       border-radius: 60px;
@@ -518,7 +584,7 @@
     </div>
     <div id="cashOptions" style="display: none;">
       <div class="suggestions" id="suggestionsContainer"></div>
-      <input type="number" id="customCashInput" class="modal-input" placeholder="Enter amount received (RM)" step="0.01">
+      <input type="number" id="customCashInput" class="custom-cash-input" placeholder="Enter amount received (RM)" step="0.01">
       <div class="modal-buttons">
         <button id="confirmCashBtn" class="modal-btn modal-btn-primary">Confirm</button>
         <button id="cancelPaymentBtn" class="modal-btn modal-btn-secondary">Cancel</button>
@@ -601,7 +667,7 @@
         <div id="productDetailsTable" style="max-height: 300px; overflow-y: auto;">
           <table class="product-details-table">
             <thead>
-               <tr>
+              <tr>
                 <th>Product</th>
                 <th>Category</th>
                 <th style="text-align: right;">Qty Sold</th>
@@ -1156,7 +1222,7 @@
     else await showAlertModal('Error', 'Print failed.');
   }
 
-  function openLuckyDraw(transactionId) { window.open(`https://teohmarcus584.github.io/salesanalysis/?receipt=${encodeURIComponent(transactionId)}`, '_blank'); }
+  function openLuckyDraw(transactionId) { window.open(`https://teohmarcus584.github.io/LUCKYDRAW/?receipt=${encodeURIComponent(transactionId)}`, '_blank'); }
 
   // Cart functions (unchanged)
   function updateCartUI() {
@@ -1231,11 +1297,32 @@
         btn.classList.add('selected');
         if (btn.dataset.method === 'Cash') {
           cashOptionsDiv.style.display = 'block'; otherOptionsDiv.style.display = 'none';
-          const suggestions = [100, 50, 20, 10].filter(amt => amt >= totalAmount);
+          
+          // Generate suggestion amounts: nearest round-up to 10 or 50, plus common values
+          const suggestions = new Set();
+          // Add common denominations
+          [100, 50, 20, 10].forEach(amt => { if (amt >= totalAmount) suggestions.add(amt); });
+          // Add round-up to next 10
+          const roundedUp10 = Math.ceil(totalAmount / 10) * 10;
+          if (roundedUp10 >= totalAmount) suggestions.add(roundedUp10);
+          // Add round-up to next 50
+          const roundedUp50 = Math.ceil(totalAmount / 50) * 50;
+          if (roundedUp50 >= totalAmount) suggestions.add(roundedUp50);
+          // Also add totalAmount itself as an option
+          suggestions.add(totalAmount);
+          
           suggestionsContainer.innerHTML = '';
-          suggestions.forEach(amt => { const btn = document.createElement('button'); btn.className = 'suggestion-btn'; btn.innerText = `RM ${amt}`; btn.onclick = () => { document.getElementById('customCashInput').value = amt; }; suggestionsContainer.appendChild(btn); });
+          Array.from(suggestions).sort((a,b) => a-b).forEach(amt => {
+            const btn = document.createElement('button');
+            btn.className = 'suggestion-btn';
+            btn.innerText = `RM ${amt.toFixed(2)}`;
+            btn.onclick = () => { document.getElementById('customCashInput').value = amt.toFixed(2); };
+            suggestionsContainer.appendChild(btn);
+          });
           document.getElementById('customCashInput').value = '';
-        } else { cashOptionsDiv.style.display = 'none'; otherOptionsDiv.style.display = 'block'; }
+        } else {
+          cashOptionsDiv.style.display = 'none'; otherOptionsDiv.style.display = 'block';
+        }
       });
     });
     document.getElementById('confirmCashBtn').onclick = async () => {
@@ -1447,49 +1534,180 @@
   });
   pinInput.addEventListener('input', () => { if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value); });
 
-  // Printer setup with cash drawer support and receipt cut, plus open drawer button
+  // Printer setup with logo support
   (function setupPrinter() {
     let gattServer = null, printerCharacteristic = null, isConnected = false;
     const connectBtn = document.getElementById('connectPrinterButton'), printerStatusDiv = document.getElementById('printerStatus');
     const openDrawerBtn = document.getElementById('openDrawerBtn');
     
-    function formatDateForReceipt(date) { const d = date.getDate().toString().padStart(2,'0'), m = (date.getMonth()+1).toString().padStart(2,'0'), y = date.getFullYear(), h = date.getHours().toString().padStart(2,'0'), min = date.getMinutes().toString().padStart(2,'0'); return `${d}/${m}/${y} ${h}:${min}`; }
+    // Optional: store logo as a pre‑converted base64 bitmap (see instructions below)
+    let logoData = null; // Will be filled if we can fetch/convert
     
-    // Generate receipt data with optional cash drawer open
-    function generateReceiptData(transaction, openDrawer = false) {
+    function formatDateForReceipt(date) {
+      const d = date.getDate().toString().padStart(2,'0');
+      const m = (date.getMonth()+1).toString().padStart(2,'0');
+      const y = date.getFullYear();
+      const h = date.getHours().toString().padStart(2,'0');
+      const min = date.getMinutes().toString().padStart(2,'0');
+      return `${d}/${m}/${y} ${h}:${min}`;
+    }
+    
+    // Helper: convert an image element to ESC/POS raster data
+    async function imgToRaster(img) {
+      // Scale image to max width 384 pixels (common printer width)
+      const maxWidth = 384;
+      let width = img.width;
+      let height = img.height;
+      if (width > maxWidth) {
+        height = Math.floor(height * (maxWidth / width));
+        width = maxWidth;
+      }
+      
+      // Draw to canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      // Get pixel data
+      const imageData = ctx.getImageData(0, 0, width, height);
+      const data = imageData.data;
+      
+      // Convert to 1-bit monochrome (simple threshold)
+      const threshold = 128;
+      const bytesPerRow = Math.ceil(width / 8);
+      const rasterData = new Uint8Array(bytesPerRow * height);
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const idx = (y * width + x) * 4;
+          const brightness = (data[idx] + data[idx+1] + data[idx+2]) / 3;
+          const bit = (brightness > threshold) ? 1 : 0; // 1 = white, 0 = black
+          const byteIdx = y * bytesPerRow + Math.floor(x / 8);
+          if (bit === 0) {
+            rasterData[byteIdx] |= (1 << (7 - (x % 8)));
+          }
+        }
+      }
+      return { rasterData, width, height };
+    }
+    
+    // Generate ESC/POS commands for a raster logo (GS v 0)
+    function generateLogoCommands(raster, width, height) {
+      const cmds = [];
+      // Set line spacing to default (optional)
+      cmds.push(0x1B, 0x33, 0x18); // ESC 3 24
+      // Print raster image (GS v 0)
+      cmds.push(0x1D, 0x76, 0x30, 0x00); // GS v 0 m=0 (normal)
+      // Width in dots (2 bytes, little endian)
+      const wLow = width & 0xFF;
+      const wHigh = (width >> 8) & 0xFF;
+      cmds.push(wLow, wHigh);
+      // Height in dots (2 bytes)
+      const hLow = height & 0xFF;
+      const hHigh = (height >> 8) & 0xFF;
+      cmds.push(hLow, hHigh);
+      // Raster data
+      for (let i = 0; i < raster.length; i++) {
+        cmds.push(raster[i]);
+      }
+      return new Uint8Array(cmds);
+    }
+    
+    // Try to load logo from URL (or fallback to embedded data)
+    async function loadLogo() {
+      return new Promise((resolve) => {
+        // If we already have a cached data URL, use it
+        if (logoData) {
+          resolve(logoData);
+          return;
+        }
+        
+        // Attempt to fetch from Imgur (may fail due to CORS)
+        const imgUrl = "https://i.imgur.com/6nswz5L.png";
+        const img = new Image();
+        img.crossOrigin = "Anonymous"; // try to avoid CORS, but Imgur may not allow
+        img.onload = async () => {
+          try {
+            const { rasterData, width, height } = await imgToRaster(img);
+            logoData = { raster: rasterData, width, height };
+            resolve(logoData);
+          } catch (e) {
+            console.warn("Logo conversion failed", e);
+            resolve(null);
+          }
+        };
+        img.onerror = () => {
+          console.warn("Could not load logo from URL. Using text fallback.");
+          resolve(null);
+        };
+        img.src = imgUrl;
+      });
+    }
+    
+    // Generate complete receipt data with logo
+    async function generateReceiptData(transaction, openDrawer = false) {
       const encoder = new TextEncoder();
       const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
-      const lines = ['', '    ★ POS INVOICE ★', '-----------------------------', `Txn: ${transaction.transaction_id}`, `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`, `Employee: ${employeeName}`, '-----------------------------'];
+      
+      let commands = [];
+      
+      // Print logo if available
+      const logo = await loadLogo();
+      if (logo) {
+        const logoCommands = generateLogoCommands(logo.raster, logo.width, logo.height);
+        commands.push(...logoCommands);
+        // Add a line feed after logo
+        commands.push(0x0A);
+      } else {
+        // Fallback: print a text banner
+        commands.push(...encoder.encode("\n  ★ MY STORE ★\n"));
+      }
+      
+      // Initialize printer
+      commands.push(0x1B, 0x40);
+      // Align center
+      commands.push(0x1B, 0x61, 0x01);
+      
+      // Build text lines
+      const lines = [
+        '    ★ POS INVOICE ★',
+        '-----------------------------',
+        `Txn: ${transaction.transaction_id}`,
+        `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`,
+        `Employee: ${employeeName}`,
+        '-----------------------------'
+      ];
       let total = 0;
       for (let item of transaction.items) {
         const displayName = item.category ? `${item.category}: ${item.name}` : item.name;
-        lines.push(`${displayName} x${item.quantity}`, `  ${item.price.toFixed(2)} x ${item.quantity} = RM ${(item.price * item.quantity).toFixed(2)}`);
+        lines.push(`${displayName} x${item.quantity}`);
+        lines.push(`  ${item.price.toFixed(2)} x ${item.quantity} = RM ${(item.price * item.quantity).toFixed(2)}`);
         total += item.price * item.quantity;
       }
-      lines.push('-----------------------------', `TOTAL: RM ${total.toFixed(2)}`, `Payment: ${transaction.payment_method}`);
-      if (transaction.cash_received) lines.push(`Cash: RM ${transaction.cash_received} | Change: RM ${(transaction.cash_received - total).toFixed(2)}`);
-      lines.push('-----------------------------', 'Thank you & come again!', '');
-      const text = lines.join('\n');
+      lines.push('-----------------------------');
+      lines.push(`TOTAL: RM ${total.toFixed(2)}`);
+      lines.push(`Payment: ${transaction.payment_method}`);
+      if (transaction.cash_received) {
+        lines.push(`Cash: RM ${transaction.cash_received} | Change: RM ${(transaction.cash_received - total).toFixed(2)}`);
+      }
+      lines.push('-----------------------------');
+      lines.push('Thank you & come again!');
+      lines.push('');
       
-      // Build command array
-      let commands = [];
-      // Initialize printer (ESC @)
-      commands.push(0x1B, 0x40);
-      // Align center (ESC a 1)
-      commands.push(0x1B, 0x61, 0x01);
-      // Add text
+      const text = lines.join('\n');
       commands.push(...encoder.encode(text));
-      // Feed 3 lines (ESC d 3)
+      
+      // Feed 3 lines
       commands.push(0x1B, 0x64, 0x03);
-      // Full cut (GS V A 0)
+      // Full cut
       commands.push(0x1D, 0x56, 0x41, 0x00);
       
-      // If cash transaction, add cash drawer kick command before the cut
+      // If cash transaction, add cash drawer kick before cut
       if (openDrawer) {
-        // Standard ESC/POS cash drawer kick: ESC p m t1 t2
-        // Often m=0, t1=0x19, t2=0xFA (pulse 25ms on, 250ms off)
         const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
-        // Insert drawer command before the cut
+        // Insert before the cut (last 4 bytes)
         commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
       }
       
