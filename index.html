@@ -1535,231 +1535,229 @@
   });
   pinInput.addEventListener('input', () => { if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value); });
 
-// ================== FULL PRINTER SETUP ==================
-(function setupPrinter() {
+  // ================== FAST PRINTER WITH CHUNKED WRITES (no delay) ==================
+  (function setupPrinter() {
+    let gattServer = null, printerCharacteristic = null, isConnected = false;
+    const connectBtn = document.getElementById('connectPrinterButton'), printerStatusDiv = document.getElementById('printerStatus');
+    const openDrawerBtn = document.getElementById('openDrawerBtn');
 
-  let gattServer = null;
-  let printerCharacteristic = null;
-  let isConnected = false;
+    // Logo data – will be fetched and cached
+    let logoRaster = null;
+    let logoWidth = 0, logoHeight = 0;
 
-  const printerStatusDiv = document.getElementById('printerStatus');
-
-  // ===== LOGO CACHE =====
-  let logoRaster = null;
-  let logoWidth = 0;
-  let logoHeight = 0;
-
-  // ===== CONVERT IMAGE TO ESC/POS =====
-  async function imgToRaster(img) {
-    const maxWidth = 384;
-
-    let width = img.width;
-    let height = img.height;
-
-    if (width > maxWidth) {
-      height = Math.floor(height * (maxWidth / width));
-      width = maxWidth;
+    // Helper: convert image element to monochrome raster
+    async function imgToRaster(img) {
+      const maxWidth = 384;
+      let width = img.width;
+      let height = img.height;
+      if (width > maxWidth) {
+        height = Math.floor(height * (maxWidth / width));
+        width = maxWidth;
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      const imageData = ctx.getImageData(0, 0, width, height);
+      const data = imageData.data;
+      const bytesPerRow = Math.ceil(width / 8);
+      const raster = new Uint8Array(bytesPerRow * height);
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const idx = (y * width + x) * 4;
+          const brightness = (data[idx] + data[idx+1] + data[idx+2]) / 3;
+          const bit = (brightness > 128) ? 1 : 0;
+          const byteIdx = y * bytesPerRow + Math.floor(x / 8);
+          if (bit === 0) {
+            raster[byteIdx] |= (1 << (7 - (x % 8)));
+          }
+        }
+      }
+      return { raster, width, height };
     }
 
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
+    // Load logo from URL (with CORS attempt)
+    async function loadLogo() {
+      if (logoRaster) return true;
+      const imgUrl = "https://i.imgur.com/6nswz5L.png";
+      const img = new Image();
+      img.crossOrigin = "Anonymous";
+      return new Promise((resolve) => {
+        img.onload = async () => {
+          try {
+            const { raster, width, height } = await imgToRaster(img);
+            logoRaster = raster;
+            logoWidth = width;
+            logoHeight = height;
+            console.log("Logo loaded successfully");
+            resolve(true);
+          } catch (e) {
+            console.warn("Logo conversion failed", e);
+            resolve(false);
+          }
+        };
+        img.onerror = () => {
+          console.warn("Could not load logo from URL – will use text fallback");
+          resolve(false);
+        };
+        img.src = imgUrl;
+      });
+    }
 
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, width, height);
+    // Generate ESC/POS commands for raster logo (GS v 0)
+    function generateLogoCommands() {
+      if (!logoRaster) return new Uint8Array(0);
+      const cmds = [];
+      cmds.push(0x1D, 0x76, 0x30, 0x00); // GS v 0 m=0
+      const wLow = logoWidth & 0xFF;
+      const wHigh = (logoWidth >> 8) & 0xFF;
+      cmds.push(wLow, wHigh);
+      const hLow = logoHeight & 0xFF;
+      const hHigh = (logoHeight >> 8) & 0xFF;
+      cmds.push(hLow, hHigh);
+      for (let i = 0; i < logoRaster.length; i++) {
+        cmds.push(logoRaster[i]);
+      }
+      return new Uint8Array(cmds);
+    }
 
-    const imageData = ctx.getImageData(0, 0, width, height);
-    const data = imageData.data;
+    function formatDateForReceipt(date) {
+      const d = date.getDate().toString().padStart(2,'0');
+      const m = (date.getMonth()+1).toString().padStart(2,'0');
+      const y = date.getFullYear();
+      const h = date.getHours().toString().padStart(2,'0');
+      const min = date.getMinutes().toString().padStart(2,'0');
+      return `${d}/${m}/${y} ${h}:${min}`;
+    }
 
-    const bytesPerRow = Math.ceil(width / 8);
-    const raster = new Uint8Array(bytesPerRow * height);
-
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-
-        const i = (y * width + x) * 4;
-        const brightness = (data[i] + data[i+1] + data[i+2]) / 3;
-
-        const byteIndex = y * bytesPerRow + Math.floor(x / 8);
-
-        if (brightness < 128) {
-          raster[byteIndex] |= (1 << (7 - (x % 8)));
-        }
+    // Write data in safe chunks (max 512 bytes per write) – no delay between chunks
+    async function writeChunked(data, chunkSize = 512) {
+      if (!printerCharacteristic) throw new Error('No characteristic');
+      for (let i = 0; i < data.length; i += chunkSize) {
+        const chunk = data.slice(i, i + chunkSize);
+        await printerCharacteristic.writeValue(chunk);
+        // No extra delay – the promise resolves when the write is queued
       }
     }
 
-    return { raster, width, height };
-  }
+    // Generate full receipt data with logo
+    async function generateReceiptData(transaction, openDrawer = false) {
+      try {
+        const encoder = new TextEncoder();
+        const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
+        let commands = [];
 
-  // ===== LOAD LOGO =====
-  async function loadLogo() {
-    if (logoRaster) return true;
+        // Try to load logo (cached)
+        await loadLogo();
 
-    const img = new Image();
-    img.crossOrigin = "Anonymous";
-
-    return new Promise((resolve) => {
-
-      img.onload = async () => {
-        try {
-          const result = await imgToRaster(img);
-          logoRaster = result.raster;
-          logoWidth = result.width;
-          logoHeight = result.height;
-
-          console.log("✅ Logo ready");
-          resolve(true);
-        } catch (e) {
-          console.warn("❌ Logo convert failed", e);
-          resolve(false);
+        // Print logo if available
+        if (logoRaster) {
+          const logoCmds = generateLogoCommands();
+          commands.push(...logoCmds);
+          commands.push(0x0A); // line feed after logo
+        } else {
+          // Fallback text banner
+          commands.push(...encoder.encode("\n  ★ MY STORE ★\n"));
         }
-      };
 
-      img.onerror = () => {
-        console.warn("❌ Logo load failed");
-        resolve(false);
-      };
+        // Initialize printer and set center alignment
+        commands.push(0x1B, 0x40);          // Initialize
+        commands.push(0x1B, 0x61, 0x01);   // Center align
 
-      // 🔥 YOUR IMAGE HERE
-      img.src = "https://i.imgur.com/6nswz5L.png";
-    });
-  }
+        const lines = [
+          '    ★ POS INVOICE ★',
+          '-----------------------------',
+          `Txn: ${transaction.transaction_id}`,
+          `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`,
+          `Employee: ${employeeName}`,
+          '-----------------------------'
+        ];
+        let total = 0;
+        for (let item of transaction.items) {
+          const displayName = item.category ? `${item.category}: ${item.name}` : item.name;
+          lines.push(`${displayName} x${item.quantity}`);
+          lines.push(`  ${item.price.toFixed(2)} x ${item.quantity} = RM ${(item.price * item.quantity).toFixed(2)}`);
+          total += item.price * item.quantity;
+        }
+        lines.push('-----------------------------');
+        lines.push(`TOTAL: RM ${total.toFixed(2)}`);
+        lines.push(`Payment: ${transaction.payment_method}`);
+        if (transaction.cash_received) {
+          lines.push(`Cash: RM ${transaction.cash_received} | Change: RM ${(transaction.cash_received - total).toFixed(2)}`);
+        }
+        lines.push('-----------------------------');
+        lines.push('Thank you & come again!');
+        lines.push('');
 
-  // ===== GENERATE LOGO COMMAND =====
-  function generateLogoCommands() {
-    if (!logoRaster) return new Uint8Array();
+        const text = lines.join('\n');
+        commands.push(...encoder.encode(text));
+        commands.push(0x1B, 0x64, 0x03);    // Feed 3 lines
+        commands.push(0x1D, 0x56, 0x41, 0x00); // Full cut
 
-    const bytesPerRow = Math.ceil(logoWidth / 8);
+        if (openDrawer) {
+          const drawerCmd = [0x1B, 0x70, 0x00, 0x19, 0xFA];
+          // Insert drawer command before cut (last 4 bytes)
+          commands = commands.slice(0, -4).concat(drawerCmd, commands.slice(-4));
+        }
 
-    const cmds = [];
-
-    cmds.push(0x1D, 0x76, 0x30, 0x00);
-    cmds.push(bytesPerRow & 0xFF, (bytesPerRow >> 8) & 0xFF);
-    cmds.push(logoHeight & 0xFF, (logoHeight >> 8) & 0xFF);
-
-    cmds.push(...logoRaster);
-
-    return new Uint8Array(cmds);
-  }
-
-  // ===== DATE FORMAT =====
-  function formatDateForReceipt(date) {
-    const d = String(date.getDate()).padStart(2,'0');
-    const m = String(date.getMonth()+1).padStart(2,'0');
-    const y = date.getFullYear();
-    const h = String(date.getHours()).padStart(2,'0');
-    const min = String(date.getMinutes()).padStart(2,'0');
-
-    return `${d}/${m}/${y} ${h}:${min}`;
-  }
-
-  // ===== CHUNK WRITE (BLE SAFE) =====
-  async function writeChunked(data, chunkSize = 256) {
-    for (let i = 0; i < data.length; i += chunkSize) {
-      const chunk = data.slice(i, i + chunkSize);
-      await printerCharacteristic.writeValue(chunk);
-      await new Promise(r => setTimeout(r, 20));
-    }
-  }
-
-  // ===== GENERATE RECEIPT =====
-  async function generateReceiptData(transaction, openDrawer = false) {
-
-    const encoder = new TextEncoder();
-    let commands = [];
-
-    // 🔥 IMPORTANT: INIT FIRST
-    commands.push(0x1B, 0x40);
-
-    // 🔥 CENTER ALIGN
-    commands.push(0x1B, 0x61, 0x01);
-
-    // ===== LOAD LOGO =====
-    await loadLogo();
-
-    if (logoRaster) {
-      commands.push(...generateLogoCommands());
-      commands.push(0x0A);
-    } else {
-      commands.push(...encoder.encode("★ MY STORE ★\n"));
+        return new Uint8Array(commands);
+      } catch (err) {
+        console.error("Error generating receipt data:", err);
+        // Fallback: simple text receipt without logo
+        const fallbackCmds = [];
+        const encoder = new TextEncoder();
+        fallbackCmds.push(0x1B, 0x40);
+        fallbackCmds.push(0x1B, 0x61, 0x01);
+        const fallbackText = "⚠️ Receipt generation error\nPlease contact support.\n";
+        fallbackCmds.push(...encoder.encode(fallbackText));
+        fallbackCmds.push(0x1B, 0x64, 0x03);
+        fallbackCmds.push(0x1D, 0x56, 0x41, 0x00);
+        return new Uint8Array(fallbackCmds);
+      }
     }
 
-    const employeeName =
-      transaction.employee_name ||
-      getEmployeeName(transaction.employee_id) ||
-      'N/A';
-
-    let lines = [
-      '-----------------------------',
-      `Txn: ${transaction.transaction_id}`,
-      `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`,
-      `Employee: ${employeeName}`,
-      '-----------------------------'
-    ];
-
-    let total = 0;
-
-    for (let item of transaction.items) {
-      const name = item.category
-        ? `${item.category}: ${item.name}`
-        : item.name;
-
-      lines.push(`${name} x${item.quantity}`);
-      lines.push(`  ${item.price.toFixed(2)} x ${item.quantity} = RM ${(item.price * item.quantity).toFixed(2)}`);
-
-      total += item.price * item.quantity;
+    async function openCashDrawer() {
+      if (!isConnected || !printerCharacteristic) {
+        printerStatusDiv.innerText = '❌ Printer not connected';
+        return false;
+      }
+      try {
+        const drawerCmd = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]);
+        await printerCharacteristic.writeValue(drawerCmd);
+        printerStatusDiv.innerText = '💰 Drawer opened';
+        setTimeout(() => {
+          if (isConnected) printerStatusDiv.innerText = '✅ Printer ready';
+        }, 2000);
+        return true;
+      } catch (err) {
+        console.error(err);
+        printerStatusDiv.innerText = `❌ Drawer error`;
+        return false;
+      }
     }
 
-    lines.push('-----------------------------');
-    lines.push(`TOTAL: RM ${total.toFixed(2)}`);
-    lines.push(`Payment: ${transaction.payment_method}`);
-
-    if (transaction.cash_received) {
-      lines.push(`Cash: RM ${transaction.cash_received}`);
-      lines.push(`Change: RM ${(transaction.cash_received - total).toFixed(2)}`);
+    async function printReceipt(transaction) {
+      if (!isConnected || !printerCharacteristic) {
+        printerStatusDiv.innerText = '❌ Printer not connected';
+        return false;
+      }
+      try {
+        const openDrawer = (transaction.payment_method === 'Cash');
+        const data = await generateReceiptData(transaction, openDrawer);
+        if (!(data instanceof Uint8Array)) {
+          console.error("generateReceiptData did not return Uint8Array");
+          return false;
+        }
+        await writeChunked(data);
+        printerStatusDiv.innerText = '✅ Receipt printed';
+        return true;
+      } catch (err) {
+        console.error(err);
+        printerStatusDiv.innerText = `❌ Print error: ${err.message}`;
+        return false;
+      }
     }
-
-    lines.push('-----------------------------');
-    lines.push('Thank you & come again!\n');
-
-    commands.push(...encoder.encode(lines.join('\n')));
-
-    // ===== DRAWER =====
-    if (openDrawer) {
-      commands.push(0x1B, 0x70, 0x00, 0x19, 0xFA);
-    }
-
-    // ===== FEED + CUT =====
-    commands.push(0x1B, 0x64, 0x03);
-    commands.push(0x1D, 0x56, 0x41, 0x00);
-
-    return new Uint8Array(commands);
-  }
-
-  // ===== PRINT =====
-  async function printReceipt(transaction) {
-
-    if (!printerCharacteristic) {
-      printerStatusDiv.innerText = '❌ Printer not connected';
-      return;
-    }
-
-    try {
-      const openDrawer = transaction.payment_method === 'Cash';
-
-      const data = await generateReceiptData(transaction, openDrawer);
-
-      await writeChunked(data);
-
-      printerStatusDiv.innerText = '✅ Printed';
-
-    } catch (err) {
-      console.error(err);
-      printerStatusDiv.innerText = '❌ Print failed';
-    }
-  }
-
-})();
 
     async function connectPrinter() {
       try {
