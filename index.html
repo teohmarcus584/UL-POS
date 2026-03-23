@@ -601,17 +601,17 @@
         <div id="productDetailsTable" style="max-height: 300px; overflow-y: auto;">
           <table class="product-details-table">
             <thead>
-              <tr>
+               <tr>
                 <th>Product</th>
                 <th>Category</th>
                 <th style="text-align: right;">Qty Sold</th>
                 <th style="text-align: right;">Total (RM)</th>
-               </tr>
+              </tr>
             </thead>
             <tbody id="productDetailsBody">
-               <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
+              <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
             </tbody>
-           </table>
+          </table>
         </div>
       </div>
     </div>
@@ -755,12 +755,14 @@
         document.getElementById('loginModal').style.display = 'none';
         document.getElementById('mainContent').style.display = 'block';
         
+        // Keep the initially selected store; only disable dropdown for non-admin
         if (!currentEmployee.isAdmin) {
           storeSelect.disabled = true;
         } else {
           storeSelect.disabled = false;
         }
         
+        // Show/hide filters and charts in report modal based on admin status
         const reportStoreFilter = document.getElementById('reportStoreFilterGroup');
         const employeeFilterGroup = document.getElementById('employeeFilterGroup');
         const storeChartContainer = document.getElementById('storeChartContainer');
@@ -777,7 +779,9 @@
           employeeChartContainer.style.display = 'none';
         }
         
+        // Fetch employee name map for receipt display
         await fetchEmployeeNameMap();
+        
         await populateSoldBySelect();
         await fetchProductsFromSheet();
         updateCartUI();
@@ -793,6 +797,7 @@
     } finally { hideLoading(); }
   }
 
+  // Fetch employee name mapping for receipt display
   async function fetchEmployeeNameMap() {
     try {
       const response = await fetch(`${APPS_SCRIPT_URL}?action=getEmployees`);
@@ -812,6 +817,7 @@
     return employeeNameMap[employeeId] || employeeId;
   }
 
+  // Products
   async function fetchProductsFromSheet() {
     showLoading('Fetching products...');
     try {
@@ -835,6 +841,7 @@
     } finally { hideLoading(); }
   }
 
+  // Sales transaction
   async function saveTransactionToSheet(transaction) {
     showLoading('Recording sale...');
     try {
@@ -876,6 +883,7 @@
     });
   }
 
+  // Report functions – now accept store parameter
   async function fetchSalesReport(store, employeeId, from, to) {
     showLoading('Loading report...');
     try {
@@ -904,10 +912,15 @@
       const result = await response.json();
       if (result.success) {
         await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Render Store chart (only if admin and data exists)
         if (currentEmployee.isAdmin && result.salesByStore) {
           const storeCanvas = document.getElementById('storeChart');
           if (storeCanvas) {
-            if (window.storeChart && typeof window.storeChart.destroy === 'function') window.storeChart.destroy();
+            if (window.storeChart && typeof window.storeChart.destroy === 'function') {
+              window.storeChart.destroy();
+              window.storeChart = null;
+            }
             const storeLabels = result.salesByStore.labels || [];
             const storeData = result.salesByStore.data || [];
             if (storeLabels.length > 0) {
@@ -915,15 +928,25 @@
               const ctx = storeCanvas.getContext('2d');
               window.storeChart = new Chart(ctx, {
                 type: 'bar',
-                data: { labels: storeLabels, datasets: [{ label: 'Sales (RM)', data: storeData, backgroundColor: 'rgba(54,162,235,0.6)', borderColor: 'rgba(54,162,235,1)', borderWidth: 1 }] },
+                data: {
+                  labels: storeLabels,
+                  datasets: [{ label: 'Sales (RM)', data: storeData, backgroundColor: 'rgba(54,162,235,0.6)', borderColor: 'rgba(54,162,235,1)', borderWidth: 1 }]
+                },
                 options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } }
               });
-            } else storeCanvas.style.display = 'none';
+            } else {
+              storeCanvas.style.display = 'none';
+            }
           }
         }
+        
+        // Render Day chart
         const dayCanvas = document.getElementById('dayChart');
         if (dayCanvas) {
-          if (window.dayChart && typeof window.dayChart.destroy === 'function') window.dayChart.destroy();
+          if (window.dayChart && typeof window.dayChart.destroy === 'function') {
+            window.dayChart.destroy();
+            window.dayChart = null;
+          }
           let labels, data, chartTitle;
           if (result.type === 'hourly') {
             labels = result.hourly.labels;
@@ -939,13 +962,22 @@
             const ctx = dayCanvas.getContext('2d');
             window.dayChart = new Chart(ctx, {
               type: 'bar',
-              data: { labels: labels, datasets: [{ label: chartTitle, data: data, backgroundColor: 'rgba(75,192,192,0.6)', borderColor: 'rgba(75,192,192,1)', borderWidth: 1 }] },
+              data: {
+                labels: labels,
+                datasets: [{ label: chartTitle, data: data, backgroundColor: 'rgba(75,192,192,0.6)', borderColor: 'rgba(75,192,192,1)', borderWidth: 1 }]
+              },
               options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } }
             });
-          } else dayCanvas.style.display = 'none';
+          } else {
+            dayCanvas.style.display = 'none';
+          }
         }
-      } else console.error('Chart data error:', result);
-    } catch (err) { console.error('fetchSalesChartData error:', err); }
+      } else {
+        console.error('Chart data error:', result);
+      }
+    } catch (err) {
+      console.error('fetchSalesChartData error:', err);
+    }
   }
 
   async function fetchEmployeeSalesData(store, from, to) {
@@ -959,7 +991,10 @@
         await new Promise(resolve => setTimeout(resolve, 200));
         const employeeCanvas = document.getElementById('employeeChart');
         if (!employeeCanvas) return;
-        if (window.employeeChart && typeof window.employeeChart.destroy === 'function') window.employeeChart.destroy();
+        if (window.employeeChart && typeof window.employeeChart.destroy === 'function') {
+          window.employeeChart.destroy();
+          window.employeeChart = null;
+        }
         const labels = result.labels || [];
         const data = result.data || [];
         if (labels.length > 0) {
@@ -967,14 +1002,24 @@
           const ctx = employeeCanvas.getContext('2d');
           window.employeeChart = new Chart(ctx, {
             type: 'bar',
-            data: { labels: labels, datasets: [{ label: 'Sales by Employee (RM)', data: data, backgroundColor: 'rgba(255,99,132,0.6)', borderColor: 'rgba(255,99,132,1)', borderWidth: 1 }] },
+            data: {
+              labels: labels,
+              datasets: [{ label: 'Sales by Employee (RM)', data: data, backgroundColor: 'rgba(255,99,132,0.6)', borderColor: 'rgba(255,99,132,1)', borderWidth: 1 }]
+            },
             options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } }
           });
-        } else employeeCanvas.style.display = 'none';
-      } else console.error('Employee sales data error:', result);
-    } catch (err) { console.error('fetchEmployeeSalesData error:', err); }
+        } else {
+          employeeCanvas.style.display = 'none';
+        }
+      } else {
+        console.error('Employee sales data error:', result);
+      }
+    } catch (err) {
+      console.error('fetchEmployeeSalesData error:', err);
+    }
   }
 
+  // Product sales breakdown
   async function fetchProductSalesReport(store, employeeId, from, to) {
     try {
       let url = `${APPS_SCRIPT_URL}?action=getProductSalesReport&store=${store}&employeeId=${employeeId}`;
@@ -982,9 +1027,16 @@
       if (to) url += `&to=${encodeURIComponent(to)}`;
       const response = await fetch(url);
       const result = await response.json();
-      if (result.success) return result.products;
-      else return [];
-    } catch (err) { console.error('fetchProductSalesReport error:', err); return []; }
+      if (result.success) {
+        return result.products;
+      } else {
+        console.error('Product sales error:', result);
+        return [];
+      }
+    } catch (err) {
+      console.error('fetchProductSalesReport error:', err);
+      return [];
+    }
   }
 
   function renderProductDetails(productsData) {
@@ -995,7 +1047,12 @@
     }
     let html = '';
     productsData.forEach(p => {
-      html += `<tr><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.category)}</td><td style="text-align: right;">${p.quantity}</td><td style="text-align: right;">RM ${p.total.toFixed(2)}</td></tr>`;
+      html += `<tr>
+        <td>${escapeHtml(p.name)}</td>
+        <td>${escapeHtml(p.category)}</td>
+        <td style="text-align: right;">${p.quantity}</td>
+        <td style="text-align: right;">RM ${p.total.toFixed(2)}</td>
+      </tr>`;
     });
     tbody.innerHTML = html;
   }
@@ -1008,14 +1065,16 @@
   }
 
   async function updateAdminReport() {
+    // Determine store and employee based on admin status
     let store, employeeId;
     if (currentEmployee.isAdmin) {
       store = document.getElementById('adminReportStoreSelect').value;
       employeeId = document.getElementById('adminReportEmployeeSelect').value;
     } else {
-      store = 'all';
+      store = 'all'; // non-admin sees all stores (but only their own sales via employeeId)
       employeeId = currentEmployee.id;
     }
+    
     const range = document.getElementById('adminReportDateRangeSelect').value;
     let from = null, to = null;
     const today = new Date();
@@ -1042,13 +1101,22 @@
       to = document.getElementById('adminReportToDate').value;
       if (!from || !to) return;
     }
+    
+    // Fetch main report data and charts
     await fetchSalesReport(store, employeeId, from, to);
     await fetchSalesChartData(store, employeeId, from, to);
-    if (currentEmployee.isAdmin) await fetchEmployeeSalesData(store, from, to);
+    if (currentEmployee.isAdmin) {
+      await fetchEmployeeSalesData(store, from, to);
+    }
+    
+    // Fetch product details
     lastProductData = await fetchProductSalesReport(store, employeeId, from, to);
-    if (productDetailsVisible) renderProductDetails(lastProductData);
+    if (productDetailsVisible) {
+      renderProductDetails(lastProductData);
+    }
   }
 
+  // Receipts
   async function fetchReceipts(store, employeeId, from, to, search) {
     showLoading('Loading receipts...');
     try {
@@ -1090,7 +1158,7 @@
 
   function openLuckyDraw(transactionId) { window.open(`https://teohmarcus584.github.io/salesanalysis/?receipt=${encodeURIComponent(transactionId)}`, '_blank'); }
 
-  // Cart functions
+  // Cart functions (unchanged)
   function updateCartUI() {
     if (!cartContainer) return;
     if (cart.length === 0) { cartContainer.innerHTML = '<div style="color:#94a3b8; text-align:center;">Cart is empty</div>'; subtotalSpan.innerText = `RM 0.00`; totalSpan.innerText = `RM 0.00`; return; }
@@ -1197,6 +1265,7 @@
     const transaction = { transaction_id: transactionId, items: saleItems, total: totalAmount, payment_method: paymentMethod, cash_received: cashReceived, timestamp: new Date().toISOString() };
     const success = await saveTransactionToSheet(transaction);
     if (success) {
+      // Print receipt if printer connected
       if (window.printerAPI?.isConnected && window.printerAPI.printReceipt) {
         const transactionWithName = { ...transaction, employee_name: currentEmployee.name };
         await window.printerAPI.printReceipt(transactionWithName);
@@ -1322,6 +1391,7 @@
   document.getElementById('adminReportFromDate').addEventListener('change', updateAdminReport);
   document.getElementById('adminReportToDate').addEventListener('change', updateAdminReport);
 
+  // Toggle product details visibility
   const toggleBtn = document.getElementById('toggleProductDetailsBtn');
   const productDetailsContainer = document.getElementById('productDetailsContainer');
   toggleBtn.addEventListener('click', () => {
@@ -1329,7 +1399,9 @@
     if (productDetailsVisible) {
       productDetailsContainer.style.display = 'block';
       toggleBtn.innerText = '📦 Hide Product Details';
-      if (lastProductData) renderProductDetails(lastProductData);
+      if (lastProductData) {
+        renderProductDetails(lastProductData);
+      }
     } else {
       productDetailsContainer.style.display = 'none';
       toggleBtn.innerText = '📦 Show Product Details';
@@ -1375,23 +1447,15 @@
   });
   pinInput.addEventListener('input', () => { if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value); });
 
-  // Printer setup with auto‑reconnect
+  // Printer setup with cash drawer support and receipt cut, plus open drawer button
   (function setupPrinter() {
     let gattServer = null, printerCharacteristic = null, isConnected = false;
-    const connectBtn = document.getElementById('connectPrinterButton');
-    const printerStatusDiv = document.getElementById('printerStatus');
+    const connectBtn = document.getElementById('connectPrinterButton'), printerStatusDiv = document.getElementById('printerStatus');
     const openDrawerBtn = document.getElementById('openDrawerBtn');
-    let lastDeviceId = localStorage.getItem('lastPosPrinterId');
-
-    function formatDateForReceipt(date) { 
-      const d = date.getDate().toString().padStart(2,'0');
-      const m = (date.getMonth()+1).toString().padStart(2,'0');
-      const y = date.getFullYear();
-      const h = date.getHours().toString().padStart(2,'0');
-      const min = date.getMinutes().toString().padStart(2,'0');
-      return `${d}/${m}/${y} ${h}:${min}`;
-    }
     
+    function formatDateForReceipt(date) { const d = date.getDate().toString().padStart(2,'0'), m = (date.getMonth()+1).toString().padStart(2,'0'), y = date.getFullYear(), h = date.getHours().toString().padStart(2,'0'), min = date.getMinutes().toString().padStart(2,'0'); return `${d}/${m}/${y} ${h}:${min}`; }
+    
+    // Generate receipt data with optional cash drawer open
     function generateReceiptData(transaction, openDrawer = false) {
       const encoder = new TextEncoder();
       const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
@@ -1407,29 +1471,45 @@
       lines.push('-----------------------------', 'Thank you & come again!', '');
       const text = lines.join('\n');
       
+      // Build command array
       let commands = [];
+      // Initialize printer (ESC @)
       commands.push(0x1B, 0x40);
+      // Align center (ESC a 1)
       commands.push(0x1B, 0x61, 0x01);
+      // Add text
       commands.push(...encoder.encode(text));
+      // Feed 3 lines (ESC d 3)
       commands.push(0x1B, 0x64, 0x03);
+      // Full cut (GS V A 0)
       commands.push(0x1D, 0x56, 0x41, 0x00);
+      
+      // If cash transaction, add cash drawer kick command before the cut
       if (openDrawer) {
+        // Standard ESC/POS cash drawer kick: ESC p m t1 t2
+        // Often m=0, t1=0x19, t2=0xFA (pulse 25ms on, 250ms off)
         const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
+        // Insert drawer command before the cut
         commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
       }
+      
       return new Uint8Array(commands);
     }
     
+    // Open cash drawer only (no receipt)
     async function openCashDrawer() {
       if (!isConnected || !printerCharacteristic) {
         printerStatusDiv.innerText = '❌ Printer not connected';
         return false;
       }
       try {
+        // Just send the drawer kick command
         const drawerCommand = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]);
         await printerCharacteristic.writeValue(drawerCommand);
         printerStatusDiv.innerText = '💰 Drawer opened';
-        setTimeout(() => { if (isConnected) printerStatusDiv.innerText = '✅ Printer ready'; }, 2000);
+        setTimeout(() => {
+          if (isConnected) printerStatusDiv.innerText = '✅ Printer ready';
+        }, 2000);
         return true;
       } catch (err) {
         console.error(err);
@@ -1456,53 +1536,11 @@
       } 
     }
     
-    async function autoReconnect() {
-      if (!lastDeviceId) return false;
-      try {
-        if (typeof navigator.bluetooth.getDevices === 'function') {
-          const devices = await navigator.bluetooth.getDevices();
-          const savedDevice = devices.find(dev => dev.id === lastDeviceId);
-          if (savedDevice) {
-            printerStatusDiv.innerText = '🔌 Reconnecting to last printer...';
-            gattServer = await savedDevice.gatt.connect();
-            const services = await gattServer.getPrimaryServices();
-            let foundChar = null;
-            for (const service of services) {
-              const chars = await service.getCharacteristics();
-              for (const char of chars) {
-                if (char.properties.write || char.properties.writeWithoutResponse) {
-                  foundChar = char;
-                  break;
-                }
-              }
-              if (foundChar) break;
-            }
-            if (!foundChar) throw new Error('No writable characteristic');
-            printerCharacteristic = foundChar;
-            isConnected = true;
-            window.printerAPI.isConnected = true;
-            printerStatusDiv.innerText = '✅ Printer ready (auto-reconnect)';
-            connectBtn.innerText = '🔌 Disconnect';
-            openDrawerBtn.disabled = false;
-            return true;
-          }
-        }
-      } catch (err) {
-        console.warn('Auto‑reconnect failed:', err);
-      }
-      return false;
-    }
-    
     async function connectPrinter() { 
       try { 
         printerStatusDiv.innerText = '🔍 Scanning...'; 
         connectBtn.disabled = true; 
-        const device = await navigator.bluetooth.requestDevice({ 
-          acceptAllDevices: true, 
-          optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] 
-        }); 
-        localStorage.setItem('lastPosPrinterId', device.id);
-        lastDeviceId = device.id;
+        const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] }); 
         gattServer = await device.gatt.connect(); 
         const services = await gattServer.getPrimaryServices(); 
         let foundChar = null; 
@@ -1559,12 +1597,6 @@
     });
     
     window.printerAPI = { isConnected: false, printReceipt: printReceipt };
-    
-    autoReconnect().then(success => {
-      if (!success) {
-        printerStatusDiv.innerText = '⚪ Not connected. Click "Connect Printer" to pair.';
-      }
-    });
   })();
 </script>
 </body>
