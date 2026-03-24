@@ -721,12 +721,12 @@
         <div id="productDetailsTable" style="max-height: 300px; overflow-y: auto;">
           <table class="product-details-table">
             <thead>
-               <tr>
-                <th>Product</th>
-                <th>Category</th>
-                <th style="text-align: right;">Qty Sold</th>
-                <th style="text-align: right;">Total (RM)</th>
-               </tr>
+                <tr>
+                  <th>Product</th>
+                  <th>Category</th>
+                  <th style="text-align: right;">Qty Sold</th>
+                  <th style="text-align: right;">Total (RM)</th>
+                </tr>
             </thead>
             <tbody id="productDetailsBody">
               <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
@@ -804,12 +804,12 @@
     <div style="overflow-x: auto;">
       <table class="collection-table" id="collectionTable">
         <thead>
-           <tr>
-            <th><input type="checkbox" id="selectAllCheckbox"></th>
-            <th>Date</th>
-            <th>Employee</th>
-            <th style="text-align: right;">Cash Amount (RM)</th>
-           </tr>
+            <tr>
+              <th><input type="checkbox" id="selectAllCheckbox"></th>
+              <th>Date</th>
+              <th>Employee</th>
+              <th style="text-align: right;">Cash Amount (RM)</th>
+            </tr>
         </thead>
         <tbody id="collectionTableBody">
           <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
@@ -854,7 +854,8 @@
   let lastProductData = null; // cache to avoid re-fetch on toggle
   let employeeNameMap = {}; // map employee ID -> name
   let initialStore = null; // store selected at the very beginning
-  let pendingTransaction = null; // declared here
+  let pendingTransaction = null;
+  let searchTimeout = null; // for debouncing
 
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -1100,35 +1101,26 @@
   }
 
   // Report functions – now accept store parameter
-async function fetchSalesReport(store, employeeId, from, to, unsettledOnly) {
-  showLoading('Loading report...');
-  try {
-    let url = `${APPS_SCRIPT_URL}?action=getSalesReport&store=${store}&employeeId=${employeeId}`;
-    if (from) url += `&from=${encodeURIComponent(from)}`;
-    if (to) url += `&to=${encodeURIComponent(to)}`;
-    if (unsettledOnly) url += `&unsettledOnly=true`; // Add the unsettledOnly flag
-
-    const response = await fetch(url);
-    const result = await response.json();
-    if (result.success) {
-      document.getElementById('adminReportTotalSales').innerText = `RM ${result.totalSales.toFixed(2)}`;
-      document.getElementById('adminReportCashTotal').innerText = `RM ${result.cashTotal.toFixed(2)}`;
-      document.getElementById('adminReportCardTotal').innerText = `RM ${result.cardTotal.toFixed(2)}`;
-      document.getElementById('adminReportOtherTotal').innerText = `RM ${result.otherTotal.toFixed(2)}`;
-      document.getElementById('adminReportTransactionCount').innerText = result.transactionCount;
-      document.getElementById('adminReportTotalItems').innerText = result.totalItems;
-      return result;
-    } else {
-      throw new Error('Report data error');
-    }
-  } catch (err) {
-    console.error(err);
-    await showAlertModal('Error', 'Failed to load report.');
-    return null;
-  } finally {
-    hideLoading();
+  async function fetchSalesReport(store, employeeId, from, to, unsettledOnly) {
+    showLoading('Loading report...');
+    try {
+      let url = `${APPS_SCRIPT_URL}?action=getSalesReport&store=${store}&employeeId=${employeeId}`;
+      if (from) url += `&from=${encodeURIComponent(from)}`;
+      if (to) url += `&to=${encodeURIComponent(to)}`;
+      if (unsettledOnly) url += `&unsettledOnly=true`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        document.getElementById('adminReportTotalSales').innerText = `RM ${result.totalSales.toFixed(2)}`;
+        document.getElementById('adminReportCashTotal').innerText = `RM ${result.cashTotal.toFixed(2)}`;
+        document.getElementById('adminReportCardTotal').innerText = `RM ${result.cardTotal.toFixed(2)}`;
+        document.getElementById('adminReportOtherTotal').innerText = `RM ${result.otherTotal.toFixed(2)}`;
+        document.getElementById('adminReportTransactionCount').innerText = result.transactionCount;
+        document.getElementById('adminReportTotalItems').innerText = result.totalItems;
+        return result;
+      } else throw new Error('Report data error');
+    } catch (err) { console.error(err); await showAlertModal('Error', 'Failed to load report.'); return null; } finally { hideLoading(); }
   }
-}
 
   async function fetchSalesChartData(store, employeeId, from, to) {
     try {
@@ -1361,10 +1353,9 @@ async function fetchSalesReport(store, employeeId, from, to, unsettledOnly) {
 
   // Helper to refresh settlement totals for a given store and reset UI
   async function refreshSettlementTotals(store) {
-  const todayStr = getLocalDateString(new Date());
-  // Pass unsettledOnly=true to get only unsettled sales
-  const report = await fetchSalesReport(store, 'all', todayStr, todayStr, true);
-  if (report) {
+    const todayStr = getLocalDateString(new Date());
+    const report = await fetchSalesReport(store, 'all', todayStr, todayStr, true);
+    if (report) {
       currentSettlementTotals = {
         cash: report.cashTotal,
         card: report.cardTotal,
@@ -1418,27 +1409,28 @@ async function fetchSalesReport(store, employeeId, from, to, unsettledOnly) {
   }
 
   async function openSettlementModal() {
-  let store;
-  if (!currentEmployee.isAdmin) {
-    store = initialStore;
-    document.getElementById('settlementStoreSelect').value = store;
-    document.getElementById('settlementStoreSelect').disabled = true;
-  } else {
-    store = document.getElementById('settlementStoreSelect').value;
-    document.getElementById('settlementStoreSelect').disabled = false;
+    // For non‑admin, use the initial store (locked)
+    let store;
+    if (!currentEmployee.isAdmin) {
+      store = initialStore;
+      document.getElementById('settlementStoreSelect').value = store;
+      document.getElementById('settlementStoreSelect').disabled = true;
+    } else {
+      store = document.getElementById('settlementStoreSelect').value;
+      document.getElementById('settlementStoreSelect').disabled = false;
+    }
+    
+    // Check if already settled before opening
+    const todayStr = getLocalDateString(new Date());
+    const alreadySettled = await checkSettlementStatus(store, todayStr);
+    if (alreadySettled) {
+      await showAlertModal('Settlement Already Done', 'Settlement has already been recorded for today. No further settlement allowed.');
+      return;
+    }
+    
+    await refreshSettlementTotals(store);
+    document.getElementById('settlementModal').style.display = 'flex';
   }
-  
-  // Check if already settled before opening
-  const todayStr = getLocalDateString(new Date());
-  const alreadySettled = await checkSettlementStatus(store, todayStr);
-  if (alreadySettled) {
-    await showAlertModal('Settlement Already Done', 'Settlement has already been recorded for today. No further settlement allowed.');
-    return;
-  }
-  
-  await refreshSettlementTotals(store);
-  document.getElementById('settlementModal').style.display = 'flex';
-}
 
   // Add change listener for store selector (admin only)
   document.getElementById('settlementStoreSelect').addEventListener('change', async () => {
@@ -1495,50 +1487,51 @@ async function fetchSalesReport(store, employeeId, from, to, unsettledOnly) {
     }
   });
 
-document.getElementById('recordSettlementBtn').addEventListener('click', async () => {
-  const store = document.getElementById('settlementStoreSelect').value;
-  const pettyCash = parseFloat(document.getElementById('pettyCashFloat').value) || 0;
-  const actualCash = parseFloat(document.getElementById('actualCash').value);
-  const actualCard = parseFloat(document.getElementById('actualCard').value);
-  const actualQR = parseFloat(document.getElementById('actualQR').value);
-  
-  const recordBtn = document.getElementById('recordSettlementBtn');
-  recordBtn.disabled = true;
- 
-  
-  try {
-    const formData = new URLSearchParams();
-    formData.append("action", "recordSettlement");
-    formData.append("employee_id", currentEmployee.id);
-    formData.append("employee_name", currentEmployee.name);
-    formData.append("store", store);
-    formData.append("petty_cash_float", pettyCash);
-    formData.append("date", getLocalDateString(new Date()));
-    formData.append("cash_system", currentSettlementTotals.cash);
-    formData.append("card_system", currentSettlementTotals.card);
-    formData.append("qr_system", currentSettlementTotals.qr);
-    formData.append("cash_actual", actualCash);
-    formData.append("card_actual", actualCard);
-    formData.append("qr_actual", actualQR);
+  document.getElementById('recordSettlementBtn').addEventListener('click', async () => {
+    const store = document.getElementById('settlementStoreSelect').value;
+    const pettyCash = parseFloat(document.getElementById('pettyCashFloat').value) || 0;
+    const actualCash = parseFloat(document.getElementById('actualCash').value);
+    const actualCard = parseFloat(document.getElementById('actualCard').value);
+    const actualQR = parseFloat(document.getElementById('actualQR').value);
     
-    const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
-    const result = await response.json();
-    if (result.success) {
-      await showAlertModal('Settlement Recorded', 'Settlement has been successfully recorded.');
-      // Refresh totals to disable UI
-      await refreshSettlementTotals(store);
-      document.getElementById('settlementModal').style.display = 'none';
-    } else {
-      await showAlertModal('Error', 'Failed to record settlement: ' + (result.error || 'Unknown error'));
+    // Disable button to prevent double click
+    const recordBtn = document.getElementById('recordSettlementBtn');
+    recordBtn.disabled = true;
+    showLoading('Recording settlement...');
+    try {
+      const formData = new URLSearchParams();
+      formData.append("action", "recordSettlement");
+      formData.append("employee_id", currentEmployee.id);
+      formData.append("employee_name", currentEmployee.name);
+      formData.append("store", store);
+      formData.append("petty_cash_float", pettyCash);
+      formData.append("date", getLocalDateString(new Date()));
+      formData.append("cash_system", currentSettlementTotals.cash);
+      formData.append("card_system", currentSettlementTotals.card);
+      formData.append("qr_system", currentSettlementTotals.qr);
+      formData.append("cash_actual", actualCash);
+      formData.append("card_actual", actualCard);
+      formData.append("qr_actual", actualQR);
+      
+      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+      const result = await response.json();
+      if (result.success) {
+        await showAlertModal('Settlement Recorded', 'Settlement has been successfully recorded.');
+        // Refresh totals to disable UI
+        await refreshSettlementTotals(store);
+        document.getElementById('settlementModal').style.display = 'none';
+      } else {
+        await showAlertModal('Error', 'Failed to record settlement: ' + (result.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error(err);
+      await showAlertModal('Error', 'Connection error while recording settlement.');
+    } finally {
+      hideLoading();
+      recordBtn.disabled = false;
     }
-  } catch (err) {
-    console.error(err);
-    await showAlertModal('Error', 'Connection error while recording settlement.');
-  } finally {
-    hideLoading();
-    recordBtn.disabled = false;
-  }
-});
+  });
+
   // Cash Collection functions
   let currentUnsettledCash = [];
 
@@ -1618,6 +1611,7 @@ document.getElementById('recordSettlementBtn').addEventListener('click', async (
     const selectedIds = Array.from(document.querySelectorAll('.collection-checkbox:checked')).map(cb => cb.value);
     if (selectedIds.length === 0) return;
     
+    showLoading('Marking as collected...');
     try {
       const formData = new URLSearchParams();
       formData.append("action", "markCashCollected");
@@ -1977,8 +1971,14 @@ document.getElementById('recordSettlementBtn').addEventListener('click', async (
   document.getElementById('checkoutBtn').addEventListener('click', startCheckout);
   document.getElementById('clearCartBtn').addEventListener('click', clearCart);
   document.getElementById('refreshProductsBtn').addEventListener('click', () => fetchProductsFromSheet());
-  searchInput.addEventListener('input', renderProductGrid);
+
+  // Debounced search input
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => renderProductGrid(), 300);
+  });
   categorySelect.addEventListener('change', renderProductGrid);
+
   document.getElementById('logoutButton').addEventListener('click', () => { currentEmployee = null; document.getElementById('mainContent').style.display = 'none'; document.getElementById('loginModal').style.display = 'flex'; document.getElementById('pinInput').value = ''; document.getElementById('loginError').innerText = ''; cart = []; products = []; });
   document.getElementById('closeLoginModal').addEventListener('click', () => { /* optional */ });
 
