@@ -702,8 +702,10 @@
       <div class="stat-item breakdown">💵 Cash: <span id="adminReportCashTotal" class="stat-value">RM 0.00</span></div>
       <div class="stat-item breakdown">💳 Card: <span id="adminReportCardTotal" class="stat-value">RM 0.00</span></div>
       <div class="stat-item breakdown">📱 Other: <span id="adminReportOtherTotal" class="stat-value">RM 0.00</span></div>
-      <div class="stat-item">Transactions: <span id="adminReportTransactionCount" class="stat-value">0</span></div>
+     <div class="stat-item breakdown"> 💰 Refunds: <span id="adminReportRefundTotal" class="stat-value">RM 0.00</span></div> 
+     <div class="stat-item">Transactions: <span id="adminReportTransactionCount" class="stat-value">0</span></div>
       <div class="stat-item">Items Sold: <span id="adminReportTotalItems" class="stat-value">0</span></div>
+      
     </div>
 
     <!-- Sales by Store chart (admin only) -->
@@ -854,7 +856,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQLjOas4G8l68Fkyx2FFWnYdyYD9ONV9GxrReTMGQRlbI5moYUQOJWI1hT2F-wrhQPfQ/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyyifYRWP-Fh7VW0nHUq--x4AGtEZypOV8Yw7-c9stdzgQ-YGJ8fN44KGZqGHxHlNrYEA/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1539,6 +1541,7 @@ function renderReceiptsList(receipts) {
         document.getElementById('adminReportCashTotal').innerText = `RM ${result.cashTotal.toFixed(2)}`;
         document.getElementById('adminReportCardTotal').innerText = `RM ${result.cardTotal.toFixed(2)}`;
         document.getElementById('adminReportOtherTotal').innerText = `RM ${result.otherTotal.toFixed(2)}`;
+        document.getElementById('adminReportRefundTotal').innerText = `RM ${result.refundTotal.toFixed(2)}`;
         document.getElementById('adminReportTransactionCount').innerText = result.transactionCount;
         document.getElementById('adminReportTotalItems').innerText = result.totalItems;
         return result;
