@@ -1393,7 +1393,7 @@
     const prizeText = document.getElementById('prizeSelect').selectedOptions[0].text;
 
     // Send claim to backend
-    showLoading('Recording prize claim...');
+    
     try {
       const formData = new URLSearchParams();
       formData.append("action", "claim");
@@ -1408,17 +1408,17 @@
         updateCartUI();
         await showAlertModal('Prize Claimed', `You have claimed ${prizeText} (RM ${prizeValue.toFixed(2)})!\nDiscount applied to current sale.`);
         document.getElementById('claimPrizeModal').style.display = 'none';
-         hideLoading();
+         
       } else {
         await showAlertModal('Error', result.error || 'Failed to claim prize.');
-         hideLoading();
+         
       }
     } catch (err) {
       console.error(err);
       await showAlertModal('Error', 'Connection error while claiming prize.');
-       hideLoading();
+       
     } finally {
-      hideLoading();
+     
     }
   }
 
