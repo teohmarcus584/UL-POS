@@ -540,100 +540,6 @@
     .collection-table td:nth-child(4) {
       text-align: right;
     }
-    /* ===== LUCKY WHEEL STYLES ===== */
-.wheel-wrapper {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  margin: 10px 0 20px 0;
-  width: 100%;
-}
-canvas {
-  width: 100%;
-  max-width: 500px;
-  height: auto;
-  aspect-ratio: 1/1;
-  display: block;
-  background: white;
-  border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  border: 1px solid #eee;
-}
-#spinButton {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: #0a7b3c;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 100px;
-  height: 100px;
-  font-size: 1.4rem;
-  font-weight: bold;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-  cursor: pointer;
-  transition: all 0.2s;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid white;
-}
-#spinButton:hover { background: #0c8f47; transform: translate(-50%, -50%) scale(1.05); }
-#spinButton:active { transform: translate(-50%, -50%) scale(0.95); }
-#spinButton:disabled { opacity: 0.5; pointer-events: none; background: #ccc; }
-@keyframes pulse-glow {
-  0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7), 0 4px 15px rgba(0,0,0,0.3); transform: translate(-50%, -50%) scale(1); }
-  50% { box-shadow: 0 0 20px 10px rgba(255, 215, 0, 0.9), 0 4px 15px rgba(0,0,0,0.3); transform: translate(-50%, -50%) scale(1.05); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7), 0 4px 15px rgba(0,0,0,0.3); transform: translate(-50%, -50%) scale(1); }
-}
-#spinButton.pulse-glow { animation: pulse-glow 1.5s infinite; }
-.coin-token {
-  position: fixed;
-  width: 40px;
-  height: 40px;
-  background: gold;
-  border-radius: 50%;
-  border: 2px solid #b8860b;
-  box-shadow: 0 0 10px gold;
-  z-index: 1000;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  font-weight: bold;
-  color: #b8860b;
-  transition: transform 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.1);
-  will-change: transform;
-}
-.coin-token::after { content: "$"; }
-.lucky-result {
-  text-align: center;
-  font-size: 1.4rem;
-  font-weight: 600;
-  margin: 20px 0 10px;
-  color: #0a7b3c;
-}
-.lucky-buttons {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  margin-top: 20px;
-}
-.lucky-buttons button {
-  padding: 10px 20px;
-  border-radius: 40px;
-  border: none;
-  font-weight: 600;
-  cursor: pointer;
-}
-#closeLuckyModalBtn {
-  background: #e2e8f0;
-  color: #334155;
-}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -773,19 +679,16 @@ canvas {
   </div>
 </div>
 
-<!-- Lucky Draw Modal (with wheel) -->
+<!-- Lucky Draw Modal -->
 <div id="luckyDrawModal" class="modal-overlay">
-  <div class="modal-container">
+  <div class="modal-container" style="max-width: 400px;">
     <span class="close-modal" id="closeLuckyDrawModal">×</span>
     <div class="modal-title">🎲 Lucky Draw</div>
-    <div class="wheel-wrapper">
-      <canvas id="wheelCanvas" width="700" height="700"></canvas>
-      <button id="spinButton" style="display: none;">SPIN</button>
-    </div>
-    <div id="coinToken" class="coin-token" style="display: none;"></div>
-    <div id="luckyResult" class="lucky-result"></div>
-    <div class="lucky-buttons">
-      <button id="closeLuckyModalBtn">Close</button>
+    <p>Transaction ID: <strong id="luckyTxId"></strong></p>
+    <p>Click below to enter the Lucky Draw with this receipt number.</p>
+    <div class="modal-buttons">
+      <button id="openLuckyDrawBtn" class="modal-btn modal-btn-primary">🎁 Go to Lucky Draw</button>
+      <button id="closeLuckyDrawBtn" class="modal-btn modal-btn-secondary">Close</button>
     </div>
   </div>
 </div>
@@ -980,7 +883,7 @@ canvas {
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwkGEa4m27FScfBkQx3wKWiZwEHMNKhCkqd3BR6yxo5m6wRje0783-sWNFHa-KOzKzhIA/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxs84aBZfM7jB6u0MR57bdc2vWM1ftcwd4aDq7ytJz9UC6GxODwcwWsGJYB48lxrqIsDg/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -995,38 +898,7 @@ canvas {
   let pendingTransaction = null;
   let searchTimeout = null;
   let initialDataPromise = null;
-// Lucky draw globals
-let luckyReceiptNumber = null;
-let spinning = false;
-let currentRotation = 0;
-let animationFrame = null;
-let spinStartTime = null;
-const spinDuration = 12000;
-let spinStartRotation = 0, spinTargetRotation = 0;
-const TWO_PI = 2 * Math.PI;
 
-// Prize definition (weights are integer, 0 means no chance)
-const prizes = [
-  { label: "CAR AROMATIC RM 38", weight: 5 },
-  { label: "15ML TRAVEL PERFUME RM 75", weight: 3 },
-  { label: "CAR AROMATIC RM 38", weight: 5 },
-  { label: "LA PREVE 100ML RM 280", weight: 0 },
-  { label: "CAR AROMATIC RM 38", weight: 5 },
-  { label: "100ML SIGNATURE EDP RM 180", weight: 0 },
-  { label: "CAR AROMATIC RM 38", weight: 5 },
-  { label: "200ML REED DIFFUSER RM 89", weight: 0 },
-  { label: "CAR AROMATIC RM 38", weight: 1 },
-  { label: "500ML BODY WASH RM 67", weight: 0 },
-  { label: "15ML TRAVEL PERFUME RM 75", weight: 3 },
-  { label: "300ML LOTION RM 109", weight: 1 },
-  { label: "15ML TRAVEL PERFUME RM 75", weight: 3 },
-  { label: "100ML ROOM SPRAY RM 89", weight: 0 },
-  { label: "NO WIN", weight: 0 },
-  { label: "100ML PILLOW MIST RM 75", weight: 1 },
-  { label: "NO WIN", weight: 0 },
-  { label: "HUMIDIFIER MACHINE RM 249", weight: 0 },
-];
-const colorPalette = ["#FF6F61","#6B5B95","#88B04B","#FFA07A","#92A8D1","#F7CAC9","#955251","#B565A7","#009B77","#DD4124"];
   // DOM elements
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -1161,179 +1033,7 @@ const colorPalette = ["#FF6F61","#6B5B95","#88B04B","#FFA07A","#92A8D1","#F7CAC9
   function getEmployeeName(employeeId) {
     return employeeNameMap[employeeId] || employeeId;
   }
-// ==================== LUCKY DRAW WHEEL FUNCTIONS ====================
-function normalizeAngle(angle) { return ((angle % TWO_PI) + TWO_PI) % TWO_PI; }
 
-function drawWheel() {
-  const canvas = document.getElementById('wheelCanvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const centerX = canvas.width/2, centerY = canvas.height/2, radius = Math.min(centerX,centerY)-15;
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  if (prizes.length === 0) { ctx.font='bold 24px Arial'; ctx.fillStyle='#999'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('Add prizes',centerX,centerY); return; }
-  const segmentAngle = TWO_PI/prizes.length;
-  let startAngle = currentRotation;
-  for (let i=0; i<prizes.length; i++) {
-    const prize = prizes[i], endAngle = startAngle+segmentAngle;
-    ctx.beginPath(); ctx.moveTo(centerX,centerY); ctx.arc(centerX,centerY,radius,startAngle,endAngle); ctx.closePath();
-    ctx.fillStyle = colorPalette[i%colorPalette.length]; ctx.fill();
-    ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
-    ctx.save(); ctx.translate(centerX,centerY); ctx.rotate(startAngle+segmentAngle/2);
-    const textRadius = radius*0.55, chordLength = 2*textRadius*Math.sin(segmentAngle/2)*0.95;
-    let fontSize=26; const minFontSize=18, text=prize.label;
-    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font=`bold ${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
-    while (fontSize>minFontSize && ctx.measureText(text).width>chordLength) { fontSize--; ctx.font=`bold ${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`; }
-    ctx.fillStyle='#000'; ctx.shadowColor='rgba(255,255,255,0.8)'; ctx.shadowBlur=5; ctx.fillText(text,textRadius,0);
-    ctx.restore(); startAngle=endAngle;
-  }
-  ctx.beginPath(); ctx.arc(centerX,centerY,30,0,TWO_PI); ctx.fillStyle='#333'; ctx.shadowBlur=0; ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=3; ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(centerX-20,15); ctx.lineTo(centerX,45); ctx.lineTo(centerX+20,15); ctx.fillStyle='#f00'; ctx.fill();
-}
-
-function playSpinSound() {
-  try {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const now = audioContext.currentTime;
-    const bufferSize = 4096;
-    const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
-    const output = noiseBuffer.getChannelData(0);
-    for(let i=0;i<bufferSize;i++) output[i]=Math.random()*2-1;
-    const noise = audioContext.createBufferSource();
-    noise.buffer = noiseBuffer;
-    const filter = audioContext.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(800, now);
-    filter.frequency.exponentialRampToValueAtTime(200, now+0.5);
-    filter.Q.value = 5;
-    const gain = audioContext.createGain();
-    gain.gain.setValueAtTime(0.2, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now+0.5);
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.connect(audioContext.destination);
-    noise.start(now);
-    noise.stop(now+0.5);
-    const osc = audioContext.createOscillator();
-    const oscGain = audioContext.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(150, now);
-    osc.frequency.exponentialRampToValueAtTime(60, now+0.4);
-    oscGain.gain.setValueAtTime(0.1, now);
-    oscGain.gain.exponentialRampToValueAtTime(0.001, now+0.4);
-    osc.connect(oscGain);
-    oscGain.connect(audioContext.destination);
-    osc.start(now);
-    osc.stop(now+0.4);
-  } catch(e) { console.log('Audio not supported'); }
-}
-
-function animateCoinToButton() {
-  return new Promise((resolve) => {
-    const coin = document.getElementById('coinToken');
-    const spinBtn = document.getElementById('spinButton');
-    if (!spinBtn) { resolve(); return; }
-    const spinBtnRect = spinBtn.getBoundingClientRect();
-    const targetX = spinBtnRect.left + spinBtnRect.width/2;
-    const targetY = spinBtnRect.top + spinBtnRect.height/2;
-    const wheelCanvas = document.getElementById('wheelCanvas');
-    const wheelRect = wheelCanvas.getBoundingClientRect();
-    const startX = wheelRect.right - 30;
-    const startY = wheelRect.bottom - 30;
-    coin.style.display = 'flex';
-    coin.style.left = startX + 'px';
-    coin.style.top = startY + 'px';
-    coin.style.transform = 'translate(0,0) scale(1.5)';
-    coin.offsetHeight;
-    const dx = targetX - startX;
-    const dy = targetY - startY;
-    coin.style.transform = `translate(${dx}px, ${dy}px) scale(1)`;
-    const onTransitionEnd = () => {
-      coin.style.display = 'none';
-      coin.removeEventListener('transitionend', onTransitionEnd);
-      resolve();
-    };
-    coin.addEventListener('transitionend', onTransitionEnd, { once: true });
-  });
-}
-
-async function spinWheel() {
-  if (spinning) return;
-  if (!luckyReceiptNumber) {
-    await showAlertModal('No Receipt', 'Please complete a sale first to get a receipt number.');
-    return;
-  }
-  // Check if receipt already used
-  try {
-    const existing = await fetchLuckyDrawData(luckyReceiptNumber);
-    if (existing !== null) {
-      await showAlertModal('Already Used', `Receipt ${luckyReceiptNumber} already won: ${existing.prize}${existing.claimed ? ' (claimed)' : ' (not claimed)'}. Cannot spin again.`);
-      document.getElementById('luckyDrawModal').style.display = 'none';
-      return;
-    }
-  } catch(e) { console.error(e); }
-
-  playSpinSound();
-  if (prizes.length === 0) { document.getElementById('luckyResult').innerHTML = 'Add some prizes first!'; return; }
-  const totalWeight = prizes.reduce((s,p)=>s+p.weight,0);
-  if (totalWeight === 0) { document.getElementById('luckyResult').innerHTML = 'All weights are zero – nothing to win!'; return; }
-  let rand = Math.random() * totalWeight;
-  let cumulative = 0, selectedIndex = 0;
-  for (let i=0;i<prizes.length;i++) {
-    cumulative += prizes[i].weight;
-    if (rand < cumulative) { selectedIndex = i; break; }
-  }
-  const canvas = document.getElementById('wheelCanvas');
-  const centerX = canvas.width/2, centerY = canvas.height/2;
-  const pointerTip = { x: centerX, y: 45 };
-  const pointerAngle = Math.atan2(pointerTip.y - centerY, pointerTip.x - centerX);
-  const normalizedPointerAngle = normalizeAngle(pointerAngle);
-  const segmentAngle = TWO_PI / prizes.length;
-  const randomOffset = Math.random() * segmentAngle;
-  const targetAngleInWheel = selectedIndex * segmentAngle + randomOffset;
-  let targetBaseRotation = normalizeAngle(normalizedPointerAngle - targetAngleInWheel);
-  const extraFullTurns = 12 + Math.floor(Math.random() * 9);
-  const extraAngle = extraFullTurns * TWO_PI;
-  spinTargetRotation = targetBaseRotation + extraAngle;
-  spinStartRotation = currentRotation;
-  spinStartTime = performance.now();
-  spinning = true;
-  const spinBtn = document.getElementById('spinButton');
-  spinBtn.disabled = true;
-  if (animationFrame) cancelAnimationFrame(animationFrame);
-  function animateSpin(now) {
-    const elapsed = now - spinStartTime;
-    let progress = Math.min(elapsed / spinDuration, 1);
-    const easeOutQuart = 1 - Math.pow(1 - progress, 4);
-    currentRotation = normalizeAngle(spinStartRotation + (spinTargetRotation - spinStartRotation) * easeOutQuart);
-    drawWheel();
-    if (progress < 1) {
-      animationFrame = requestAnimationFrame(animateSpin);
-    } else {
-      const wheelAngleAtPointer = normalizeAngle(normalizedPointerAngle - currentRotation);
-      const segmentIndex = Math.floor(wheelAngleAtPointer / segmentAngle);
-      const actualIndex = Math.min(segmentIndex, prizes.length - 1);
-      const wonPrize = prizes[actualIndex];
-      spinning = false;
-      spinBtn.disabled = false;
-      document.getElementById('luckyResult').innerHTML = `🎉 You won: ${wonPrize.label}`;
-      // Save to backend
-      saveLuckyDraw(luckyReceiptNumber, wonPrize.label).catch(e => console.error(e));
-      // Print ticket
-      if (window.printerAPI && window.printerAPI.isConnected) {
-        printLuckyTicket(luckyReceiptNumber, wonPrize.label, new Date());
-      } else {
-        showAlertModal('Printer Not Connected', 'Winning prize saved but no printer connected to print ticket.');
-      }
-      animationFrame = null;
-    }
-  }
-  animationFrame = requestAnimationFrame(animateSpin);
-}
-// Attach spin button click handler
-const spinButton = document.getElementById('spinButton');
-if (spinButton) {
-  spinButton.addEventListener('click', spinWheel);
-}
   // ==================== INITIAL DATA LOAD (BEFORE PIN) ====================
   async function loadInitialData() {
     try {
@@ -1682,64 +1382,50 @@ if (spinButton) {
   }
 
   async function completeCheckout(paymentMethod, cashReceived) {
-  document.getElementById('paymentModal').style.display = 'none';
-  const totalAmount = pendingTransaction.totalAmount;
-  const transactionId = `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-  const saleItems = cart.map(item => ({
-    id: item.product.id,
-    category: item.product.category,
-    name: item.product.name,
-    price: item.product.price,
-    quantity: item.quantity,
-    total: item.product.price * item.quantity
-  }));
-  const transaction = {
-    transaction_id: transactionId,
-    items: saleItems,
-    total: totalAmount,
-    payment_method: paymentMethod,
-    cash_received: cashReceived,
-    timestamp: new Date().toISOString()
-  };
-  const success = await saveTransactionToSheet(transaction);
-  if (success) {
-    localStorage.removeItem(`products_${currentStore}`);
-
-    if (window.printerAPI?.isConnected && window.printerAPI.printReceipt) {
-      const transactionWithName = { ...transaction, employee_name: currentEmployee.name };
-      await window.printerAPI.printReceipt(transactionWithName);
-    } else {
-      await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
-    }
-    await showAlertModal('✅ Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
-
-    // ===== NEW LUCKY DRAW WHEEL =====
-    luckyReceiptNumber = transactionId;
-    const luckyModal = document.getElementById('luckyDrawModal');
-    const luckyResultDiv = document.getElementById('luckyResult');
-    luckyResultDiv.innerHTML = '';
-    luckyModal.style.display = 'flex';
-    document.getElementById('spinButton').style.display = 'flex';
-    drawWheel();
-
-    // Close modal cleanup (clear cart and refresh products only when user closes)
-    const closeLuckyBtn = document.getElementById('closeLuckyModalBtn');
-    const closeX = document.getElementById('closeLuckyDrawModal');
-    const cleanupAfterSpin = () => {
-      luckyModal.style.display = 'none';
-      clearCart();
-      fetchProductsFromSheet();
-      closeLuckyBtn.removeEventListener('click', cleanupAfterSpin);
-      if (closeX) closeX.removeEventListener('click', cleanupAfterSpin);
+    document.getElementById('paymentModal').style.display = 'none';
+    const totalAmount = pendingTransaction.totalAmount;
+    const transactionId = `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const saleItems = cart.map(item => ({
+      id: item.product.id,
+      category: item.product.category,
+      name: item.product.name,
+      price: item.product.price,
+      quantity: item.quantity,
+      total: item.product.price * item.quantity
+    }));
+    const transaction = {
+      transaction_id: transactionId,
+      items: saleItems,
+      total: totalAmount,
+      payment_method: paymentMethod,
+      cash_received: cashReceived,
+      timestamp: new Date().toISOString()
     };
-    closeLuckyBtn.removeEventListener('click', cleanupAfterSpin);
-    if (closeX) closeX.removeEventListener('click', cleanupAfterSpin);
-    closeLuckyBtn.addEventListener('click', cleanupAfterSpin);
-    if (closeX) closeX.addEventListener('click', cleanupAfterSpin);
-  } else {
-    await showAlertModal('Error', 'Failed to record sale. Check network / Apps Script.');
+    const success = await saveTransactionToSheet(transaction);
+    if (success) {
+      localStorage.removeItem(`products_${currentStore}`);
+
+      if (window.printerAPI?.isConnected && window.printerAPI.printReceipt) {
+        const transactionWithName = { ...transaction, employee_name: currentEmployee.name };
+        await window.printerAPI.printReceipt(transactionWithName);
+      } else {
+        await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
+      }
+      await showAlertModal('✅ Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
+      document.getElementById('luckyTxId').innerText = transactionId;
+      const luckyModal = document.getElementById('luckyDrawModal');
+      luckyModal.style.display = 'flex';
+      document.getElementById('openLuckyDrawBtn').onclick = () => { openLuckyDraw(transactionId); luckyModal.style.display = 'none'; };
+      document.getElementById('closeLuckyDrawBtn').onclick = () => luckyModal.style.display = 'none';
+      document.getElementById('closeLuckyDrawModal').onclick = () => luckyModal.style.display = 'none';
+      hideLoading();
+      await fetchProductsFromSheet();
+      hideLoading();
+      clearCart();
+    } else {
+      await showAlertModal('Error', 'Failed to record sale. Check network / Apps Script.');
+    }
   }
-}
 
   async function saveTransactionToSheet(transaction) {
     showLoading('Recording sale...');
@@ -1856,87 +1542,7 @@ if (spinButton) {
       });
     });
   }
-async function printLuckyTicket(receiptNumber, prizeLabel, spinDate) {
-  if (!window.printerAPI || !window.printerAPI.isConnected) {
-    await showAlertModal('Printer Error', 'Printer not connected. Cannot print ticket.');
-    return false;
-  }
-  try {
-    const encoder = new TextEncoder();
-    function formatDate(date) {
-      const d = date.getDate().toString().padStart(2, '0');
-      const m = (date.getMonth() + 1).toString().padStart(2, '0');
-      const y = date.getFullYear();
-      return `${d}/${m}/${y}`;
-    }
-    const validFrom = new Date(spinDate.getFullYear(), spinDate.getMonth(), spinDate.getDate());
-    const validTill = new Date(validFrom);
-    validTill.setDate(validTill.getDate() + 30);
-    const lines = [
-      '',
-      'LUCKY DRAW',
-      'CONGRATULATIONS',
-      'YOU ARE ENTITLED',
-      '',
-      `FREE ${prizeLabel}`,
-      'WITH ANY PURCHASE',
-      '(EXCEPT OPENING PROMOTION)',
-      '',
-      `VALID FROM ${formatDate(validFrom)}`,
-      `TILL ${formatDate(validTill)}`,
-      `Receipt No: ${receiptNumber}`,
-      ''
-    ];
-    const text = lines.join('\n');
-    const commands = [];
 
-    // Initialize printer, set font, center alignment
-    commands.push(0x1B, 0x40);                  // Initialize
-    commands.push(0x1B, 0x52, 0x00);            // Select character set (default)
-    commands.push(0x1B, 0x21, 0x00);            // Normal font
-    commands.push(0x1B, 0x61, 0x01);            // Center alignment
-
-    // Add text lines
-    for (let i = 0; i < text.length; i++) {
-      commands.push(text.charCodeAt(i));
-    }
-    commands.push(0x0A);                         // Newline after text
-
-    // Barcode settings: height = 70 dots (0x46), width = 1 (0x01)
-    commands.push(0x1D, 0x68, 0x46);
-    commands.push(0x1D, 0x77, 0x01);
-    commands.push(0x1B, 0x61, 0x01);             // Center barcode
-
-    // Code128 barcode (GS k 73)
-    const barcodeData = encoder.encode(receiptNumber);
-    const len = barcodeData.length;
-    commands.push(0x1D, 0x6B, 0x49, len);        // GS k 73 (Code128) + length
-    for (let i = 0; i < len; i++) {
-      commands.push(barcodeData[i]);
-    }
-
-    // Feed and cut
-    commands.push(0x0A, 0x0A);                   // Two line feeds
-    commands.push(0x1B, 0x64, 0x03);             // Feed 3 lines (optional)
-    commands.push(0x1D, 0x56, 0x41, 0x00);       // Full cut
-
-    const data = new Uint8Array(commands);
-
-    // Write to printer using the modern method
-    if (window.printerCharacteristic) {
-      await window.printerCharacteristic.writeValueWithResponse(data);
-    } else if (window.printerAPI && window.printerAPI.writeRaw) {
-      await window.printerAPI.writeRaw(data);
-    } else {
-      throw new Error('Printer characteristic not accessible');
-    }
-    return true;
-  } catch (e) {
-    console.error('Print error:', e);
-    await showAlertModal('Print Error', e.message);
-    return false;
-  }
-}
   async function reprintReceipt(receipt) {
     if (!window.printerAPI || !window.printerAPI.isConnected) {
       await showAlertModal('Printer required', 'Connect Bluetooth printer first.');
@@ -2353,165 +1959,147 @@ async function printLuckyTicket(receiptNumber, prizeLabel, spinDate) {
     document.getElementById('collectSelectedBtn').disabled = !anyChecked;
   }
 
- // ==================== PRINTER SETUP ====================
-(function setupPrinter() {
-  let gattServer = null, printerCharacteristic = null, isConnected = false;
-  const connectBtn = document.getElementById('connectPrinterButton');
-  const printerStatusDiv = document.getElementById('printerStatus');
-  const openDrawerBtn = document.getElementById('openDrawerBtn');
+  // ==================== PRINTER SETUP ====================
+  (function setupPrinter() {
+    let gattServer = null, printerCharacteristic = null, isConnected = false;
+    const connectBtn = document.getElementById('connectPrinterButton');
+    const printerStatusDiv = document.getElementById('printerStatus');
+    const openDrawerBtn = document.getElementById('openDrawerBtn');
 
-  function formatDateForReceipt(date) {
-    const d = date.getDate().toString().padStart(2, '0');
-    const m = (date.getMonth() + 1).toString().padStart(2, '0');
-    const y = date.getFullYear();
-    const h = date.getHours().toString().padStart(2, '0');
-    const min = date.getMinutes().toString().padStart(2, '0');
-    return `${d}/${m}/${y} ${h}:${min}`;
-  }
+    function formatDateForReceipt(date) {
+      const d = date.getDate().toString().padStart(2, '0');
+      const m = (date.getMonth() + 1).toString().padStart(2, '0');
+      const y = date.getFullYear();
+      const h = date.getHours().toString().padStart(2, '0');
+      const min = date.getMinutes().toString().padStart(2, '0');
+      return `${d}/${m}/${y} ${h}:${min}`;
+    }
 
-  function generateReceiptData(transaction, openDrawer = false) {
-    const encoder = new TextEncoder();
-    const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
-    const lines = ['', '    ★ POS INVOICE ★', '-----------------------------', `Txn: ${transaction.transaction_id}`, `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`, `Employee: ${employeeName}`, '-----------------------------'];
-    let total = 0;
-    for (let item of transaction.items) {
-      const displayName = item.category ? `${item.category}: ${item.name}` : item.name;
-      lines.push(`${displayName} x${item.quantity}`, `  ${item.price.toFixed(2)} x ${item.quantity} = RM ${(item.price * item.quantity).toFixed(2)}`);
-      total += item.price * item.quantity;
-    }
-    lines.push('-----------------------------', `TOTAL: RM ${total.toFixed(2)}`, `Payment: ${transaction.payment_method}`);
-    if (transaction.cash_received) lines.push(`Cash: RM ${transaction.cash_received} | Change: RM ${(transaction.cash_received - total).toFixed(2)}`);
-    lines.push('-----------------------------', 'Thank you & come again!', '');
-    const text = lines.join('\n');
-    let commands = [];
-    commands.push(0x1B, 0x40);
-    commands.push(0x1B, 0x61, 0x01);
-    commands.push(...encoder.encode(text));
-    commands.push(0x1B, 0x64, 0x03);
-    commands.push(0x1D, 0x56, 0x41, 0x00);
-    if (openDrawer) {
-      const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
-      commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
-    }
-    return new Uint8Array(commands);
-  }
-
-  async function openCashDrawer() {
-    if (!isConnected || !printerCharacteristic) {
-      printerStatusDiv.innerText = '❌ Printer not connected';
-      return false;
-    }
-    try {
-      const drawerCommand = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]);
-      await printerCharacteristic.writeValueWithResponse(drawerCommand);
-      printerStatusDiv.innerText = '💰 Drawer opened';
-      setTimeout(() => {
-        if (isConnected) printerStatusDiv.innerText = '✅ Printer ready';
-      }, 2000);
-      return true;
-    } catch (err) {
-      console.error(err);
-      printerStatusDiv.innerText = `❌ Drawer error`;
-      return false;
-    }
-  }
-
-  async function printReceipt(transaction) {
-    if (!isConnected || !printerCharacteristic) {
-      printerStatusDiv.innerText = '❌ Printer not connected';
-      return false;
-    }
-    try {
-      const openDrawer = (transaction.payment_method === 'Cash');
-      const data = generateReceiptData(transaction, openDrawer);
-      await printerCharacteristic.writeValueWithResponse(data);
-      printerStatusDiv.innerText = '✅ Receipt printed';
-      return true;
-    } catch (err) {
-      console.error(err);
-      printerStatusDiv.innerText = `❌ Print error`;
-      return false;
-    }
-  }
-
-  async function connectPrinter() {
-    try {
-      printerStatusDiv.innerText = '🔍 Scanning...';
-      connectBtn.disabled = true;
-      const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] });
-      gattServer = await device.gatt.connect();
-      const services = await gattServer.getPrimaryServices();
-      let foundChar = null;
-      for (const service of services) {
-        const chars = await service.getCharacteristics();
-        for (const char of chars) {
-          if (char.properties.write || char.properties.writeWithoutResponse) {
-            foundChar = char;
-            break;
-          }
-        }
-        if (foundChar) break;
+    function generateReceiptData(transaction, openDrawer = false) {
+      const encoder = new TextEncoder();
+      const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
+      const lines = ['', '    ★ POS INVOICE ★', '-----------------------------', `Txn: ${transaction.transaction_id}`, `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`, `Employee: ${employeeName}`, '-----------------------------'];
+      let total = 0;
+      for (let item of transaction.items) {
+        const displayName = item.category ? `${item.category}: ${item.name}` : item.name;
+        lines.push(`${displayName} x${item.quantity}`, `  ${item.price.toFixed(2)} x ${item.quantity} = RM ${(item.price * item.quantity).toFixed(2)}`);
+        total += item.price * item.quantity;
       }
-      if (!foundChar) throw new Error('No writable characteristic');
-      printerCharacteristic = foundChar;
-      isConnected = true;
-
-      // Expose the characteristic for lucky draw printing
-      window.printerCharacteristic = printerCharacteristic;
-
-      // Provide a raw write method for the lucky draw ticket
-      window.printerAPI = window.printerAPI || {};
-      window.printerAPI.isConnected = true;
-      window.printerAPI.printReceipt = printReceipt;
-      window.printerAPI.writeRaw = async (data) => {
-        if (printerCharacteristic) await printerCharacteristic.writeValueWithResponse(data);
-      };
-
-      printerStatusDiv.innerText = '✅ Printer ready';
-      connectBtn.innerText = '🔌 Disconnect';
-      openDrawerBtn.disabled = false;
-    } catch (err) {
-      printerStatusDiv.innerText = `❌ ${err.message}`;
-      gattServer = null;
-      printerCharacteristic = null;
-    } finally {
-      connectBtn.disabled = false;
+      lines.push('-----------------------------', `TOTAL: RM ${total.toFixed(2)}`, `Payment: ${transaction.payment_method}`);
+      if (transaction.cash_received) lines.push(`Cash: RM ${transaction.cash_received} | Change: RM ${(transaction.cash_received - total).toFixed(2)}`);
+      lines.push('-----------------------------', 'Thank you & come again!', '');
+      const text = lines.join('\n');
+      let commands = [];
+      commands.push(0x1B, 0x40);
+      commands.push(0x1B, 0x61, 0x01);
+      commands.push(...encoder.encode(text));
+      commands.push(0x1B, 0x64, 0x03);
+      commands.push(0x1D, 0x56, 0x41, 0x00);
+      if (openDrawer) {
+        const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
+        commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
+      }
+      return new Uint8Array(commands);
     }
-  }
 
-  async function disconnectPrinter() {
-    if (gattServer) {
-      gattServer.disconnect();
-      gattServer = null;
-      printerCharacteristic = null;
+    async function openCashDrawer() {
+      if (!isConnected || !printerCharacteristic) {
+        printerStatusDiv.innerText = '❌ Printer not connected';
+        return false;
+      }
+      try {
+        const drawerCommand = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]);
+        await printerCharacteristic.writeValue(drawerCommand);
+        printerStatusDiv.innerText = '💰 Drawer opened';
+        setTimeout(() => {
+          if (isConnected) printerStatusDiv.innerText = '✅ Printer ready';
+        }, 2000);
+        return true;
+      } catch (err) {
+        console.error(err);
+        printerStatusDiv.innerText = `❌ Drawer error`;
+        return false;
+      }
     }
-    isConnected = false;
-    window.printerCharacteristic = null;
-    if (window.printerAPI) {
+
+    async function printReceipt(transaction) {
+      if (!isConnected || !printerCharacteristic) {
+        printerStatusDiv.innerText = '❌ Printer not connected';
+        return false;
+      }
+      try {
+        const openDrawer = (transaction.payment_method === 'Cash');
+        const data = generateReceiptData(transaction, openDrawer);
+        await printerCharacteristic.writeValue(data);
+        printerStatusDiv.innerText = '✅ Receipt printed';
+        return true;
+      } catch (err) {
+        console.error(err);
+        printerStatusDiv.innerText = `❌ Print error`;
+        return false;
+      }
+    }
+
+    async function connectPrinter() {
+      try {
+        printerStatusDiv.innerText = '🔍 Scanning...';
+        connectBtn.disabled = true;
+        const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] });
+        gattServer = await device.gatt.connect();
+        const services = await gattServer.getPrimaryServices();
+        let foundChar = null;
+        for (const service of services) {
+          const chars = await service.getCharacteristics();
+          for (const char of chars) {
+            if (char.properties.write || char.properties.writeWithoutResponse) {
+              foundChar = char;
+              break;
+            }
+          }
+          if (foundChar) break;
+        }
+        if (!foundChar) throw new Error('No writable characteristic');
+        printerCharacteristic = foundChar;
+        isConnected = true;
+        window.printerAPI.isConnected = true;
+        printerStatusDiv.innerText = '✅ Printer ready';
+        connectBtn.innerText = '🔌 Disconnect';
+        openDrawerBtn.disabled = false;
+      } catch (err) {
+        printerStatusDiv.innerText = `❌ ${err.message}`;
+        gattServer = null;
+        printerCharacteristic = null;
+      } finally {
+        connectBtn.disabled = false;
+      }
+    }
+
+    async function disconnectPrinter() {
+      if (gattServer) {
+        gattServer.disconnect();
+        gattServer = null;
+        printerCharacteristic = null;
+      }
+      isConnected = false;
       window.printerAPI.isConnected = false;
-      window.printerAPI.printReceipt = null;
-      window.printerAPI.writeRaw = null;
+      printerStatusDiv.innerText = '⚪ Not connected';
+      connectBtn.innerText = '🖨️ Connect Printer';
+      openDrawerBtn.disabled = true;
     }
-    printerStatusDiv.innerText = '⚪ Not connected';
-    connectBtn.innerText = '🖨️ Connect Printer';
-    openDrawerBtn.disabled = true;
-  }
 
-  connectBtn.addEventListener('click', () => {
-    if (!isConnected) connectPrinter();
-    else disconnectPrinter();
-  });
-  openDrawerBtn.addEventListener('click', async () => {
-    if (!isConnected) {
-      await showAlertModal('Printer not connected', 'Please connect a printer first.');
-      return;
-    }
-    await openCashDrawer();
-  });
-
-  // Initialise the printerAPI object even before connection
-  window.printerAPI = { isConnected: false, printReceipt: null, writeRaw: null };
-})();
+    connectBtn.addEventListener('click', () => {
+      if (!isConnected) connectPrinter();
+      else disconnectPrinter();
+    });
+    openDrawerBtn.addEventListener('click', async () => {
+      if (!isConnected) {
+        await showAlertModal('Printer not connected', 'Please connect a printer first.');
+        return;
+      }
+      await openCashDrawer();
+    });
+    window.printerAPI = { isConnected: false, printReceipt: printReceipt };
+  })();
 
   // ==================== EVENT LISTENERS ====================
   document.getElementById('confirmStoreBtn').addEventListener('click', () => {
