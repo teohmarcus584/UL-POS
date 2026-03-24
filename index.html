@@ -108,28 +108,60 @@
       gap: 12px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
-    .store-selector label { font-weight: 500; margin-right: 8px; }
-    .store-selector select, #soldBySelect {
-      padding: 12px 20px;
-      border-radius: 60px;
-      border: 1px solid #cbd5e1;
-      background: white;
-      font-size: 1rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      min-width: 180px;
-    }
-    .store-selector select:focus, #soldBySelect:focus {
-      outline: none;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
-    }
-    .store-selector select:disabled, #soldBySelect:disabled {
-      background: #f1f5f9;
-      cursor: not-allowed;
-      opacity: 0.7;
-    }
+    /* Enhance store selector dropdown */
+.store-selector select, #soldBySelect {
+  padding: 16px 28px;               /* larger padding */
+  font-size: 1.2rem;               /* bigger text */
+  font-weight: 600;                /* bolder */
+  border-radius: 60px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 220px;                /* wider */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  appearance: none;                /* remove default arrow for custom */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234b5563' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+  background-repeat: no-repeat;
+  background-position: right 20px center;
+  background-size: 16px;
+}
+
+/* Hover and focus states */
+.store-selector select:hover, #soldBySelect:hover {
+  border-color: #3b82f6;
+  background-color: #f8fafc;
+}
+
+.store-selector select:focus, #soldBySelect:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+}
+
+/* Disabled state (non‑admin) */
+.store-selector select:disabled, #soldBySelect:disabled {
+  background-color: #f1f5f9;
+  color: #64748b;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+/* Adjust label style */
+.store-selector label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-right: 12px;
+}
+
+/* Container – optional: give it a subtle background and rounded corners */
+.store-selector {
+  background: #ffffff;
+  border-radius: 80px;
+  padding: 12px 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
     .pos-dashboard { display: flex; flex-wrap: wrap; gap: 20px; }
     .products-panel {
       flex: 2; min-width: 260px; background: white; border-radius: 28px; padding: 20px;
