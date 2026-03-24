@@ -1851,7 +1851,87 @@ async function spinWheel() {
       });
     });
   }
+async function printLuckyTicket(receiptNumber, prizeLabel, spinDate) {
+  if (!window.printerAPI || !window.printerAPI.isConnected) {
+    await showAlertModal('Printer Error', 'Printer not connected. Cannot print ticket.');
+    return false;
+  }
+  try {
+    const encoder = new TextEncoder();
+    function formatDate(date) {
+      const d = date.getDate().toString().padStart(2, '0');
+      const m = (date.getMonth() + 1).toString().padStart(2, '0');
+      const y = date.getFullYear();
+      return `${d}/${m}/${y}`;
+    }
+    const validFrom = new Date(spinDate.getFullYear(), spinDate.getMonth(), spinDate.getDate());
+    const validTill = new Date(validFrom);
+    validTill.setDate(validTill.getDate() + 30);
+    const lines = [
+      '',
+      'LUCKY DRAW',
+      'CONGRATULATIONS',
+      'YOU ARE ENTITLED',
+      '',
+      `FREE ${prizeLabel}`,
+      'WITH ANY PURCHASE',
+      '(EXCEPT OPENING PROMOTION)',
+      '',
+      `VALID FROM ${formatDate(validFrom)}`,
+      `TILL ${formatDate(validTill)}`,
+      `Receipt No: ${receiptNumber}`,
+      ''
+    ];
+    const text = lines.join('\n');
+    const commands = [];
 
+    // Initialize printer, set font, center alignment
+    commands.push(0x1B, 0x40);                  // Initialize
+    commands.push(0x1B, 0x52, 0x00);            // Select character set (default)
+    commands.push(0x1B, 0x21, 0x00);            // Normal font
+    commands.push(0x1B, 0x61, 0x01);            // Center alignment
+
+    // Add text lines
+    for (let i = 0; i < text.length; i++) {
+      commands.push(text.charCodeAt(i));
+    }
+    commands.push(0x0A);                         // Newline after text
+
+    // Barcode settings: height = 70 dots (0x46), width = 1 (0x01)
+    commands.push(0x1D, 0x68, 0x46);
+    commands.push(0x1D, 0x77, 0x01);
+    commands.push(0x1B, 0x61, 0x01);             // Center barcode
+
+    // Code128 barcode (GS k 73)
+    const barcodeData = encoder.encode(receiptNumber);
+    const len = barcodeData.length;
+    commands.push(0x1D, 0x6B, 0x49, len);        // GS k 73 (Code128) + length
+    for (let i = 0; i < len; i++) {
+      commands.push(barcodeData[i]);
+    }
+
+    // Feed and cut
+    commands.push(0x0A, 0x0A);                   // Two line feeds
+    commands.push(0x1B, 0x64, 0x03);             // Feed 3 lines (optional)
+    commands.push(0x1D, 0x56, 0x41, 0x00);       // Full cut
+
+    const data = new Uint8Array(commands);
+
+    // Write to printer using the modern method
+    if (window.printerCharacteristic) {
+      await window.printerCharacteristic.writeValueWithResponse(data);
+    } else if (window.printerAPI && window.printerAPI.writeRaw) {
+      await window.printerAPI.writeRaw(data);
+    } else {
+      throw new Error('Printer characteristic not accessible');
+    }
+    return true;
+  } catch (e) {
+    console.error('Print error:', e);
+    await showAlertModal('Print Error', e.message);
+    return false;
+  }
+}
   async function reprintReceipt(receipt) {
     if (!window.printerAPI || !window.printerAPI.isConnected) {
       await showAlertModal('Printer required', 'Connect Bluetooth printer first.');
