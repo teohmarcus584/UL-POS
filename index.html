@@ -1061,7 +1061,7 @@
 
   // ==================== PRODUCT GRID (with caching) ====================
   async function fetchProductsFromSheet() {
-    
+    showLoading('Fetching products...')
     try {
       const cacheKey = `products_${currentStore}`;
       const cached = localStorage.getItem(cacheKey);
