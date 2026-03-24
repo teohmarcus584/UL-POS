@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes, viewport-fit=cover">
   <title>POS System | PIN Login</title>
 
-   <style>
+  <style>
     /* All existing styles remain unchanged – kept from previous version */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -255,6 +255,7 @@
     .cart-actions { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
     .cart-actions button { flex: 1; padding: 12px; border-radius: 40px; font-weight: 600; border: none; cursor: pointer; }
     #checkoutBtn { background: #2c7a4b; color: white; }
+    #claimPrizeBtn { background: #f59e0b; color: white; }
     #clearCartBtn { background: #f1f5f9; color: #334155; }
     #refreshProductsBtn { background: #eef2ff; color: #1e40af; }
     button:active { transform: scale(0.97); }
@@ -641,10 +642,12 @@
       <div id="cartItemsContainer" class="cart-items">Cart is empty</div>
       <div class="cart-summary">
         <div class="summary-row"><span>Subtotal</span><span id="subtotal">RM 0.00</span></div>
+        <div id="discountRow" class="summary-row" style="display: none;"><span>Discount</span><span id="discountAmount">-RM 0.00</span></div>
         <div class="summary-row total-row"><span>TOTAL</span><span id="totalAmount">RM 0.00</span></div>
       </div>
       <div class="cart-actions">
         <button id="checkoutBtn">💳 CHECKOUT</button>
+        <button id="claimPrizeBtn">🎁 Claim Prize</button>
         <button id="clearCartBtn">🗑️ Clear</button>
         <button id="refreshProductsBtn">🔄 Refresh</button>
       </div>
@@ -690,6 +693,37 @@
       <button id="openLuckyDrawBtn" class="modal-btn modal-btn-primary">🎁 Go to Lucky Draw</button>
       <button id="closeLuckyDrawBtn" class="modal-btn modal-btn-secondary">Close</button>
     </div>
+  </div>
+</div>
+
+<!-- Claim Prize Modal (NEW) -->
+<div id="claimPrizeModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 400px;">
+    <span class="close-modal" id="closeClaimPrizeModal">×</span>
+    <div class="modal-title">🎁 Claim Prize</div>
+    <div id="claimStep1">
+      <p>Enter the receipt number from your Lucky Draw:</p>
+      <input type="text" id="claimReceiptInput" class="modal-input" placeholder="e.g., TXN-1234567890-123" style="width: 100%; margin: 12px 0; padding: 12px;">
+      <div class="modal-buttons">
+        <button id="checkReceiptBtn" class="modal-btn modal-btn-primary">Check</button>
+        <button id="cancelClaimBtn" class="modal-btn modal-btn-secondary">Cancel</button>
+      </div>
+    </div>
+    <div id="claimStep2" style="display: none;">
+      <p>Receipt: <strong id="validReceiptId"></strong></p>
+      <p>Select your prize:</p>
+      <select id="prizeSelect" class="modal-input" style="width: 100%; margin: 12px 0; padding: 12px;">
+        <option value="38">CAR AROMATIC - RM 38</option>
+        <option value="75">15ML TRAVEL PERFUME - RM 75</option>
+        <option value="109">300ML LOTION - RM 109</option>
+        <option value="75">100ML PILLOW MIST - RM 75</option>
+      </select>
+      <div class="modal-buttons">
+        <button id="applyPrizeBtn" class="modal-btn modal-btn-primary">Apply Discount</button>
+        <button id="cancelClaimStep2Btn" class="modal-btn modal-btn-secondary">Cancel</button>
+      </div>
+    </div>
+    <div id="claimError" style="color:#ef4444; margin-top: 12px; display: none;"></div>
   </div>
 </div>
 
@@ -757,9 +791,9 @@
                 </tr>
             </thead>
             <tbody id="productDetailsBody">
-               response<td colspan="4" style="text-align: center;">Loading...</td>
+              <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
             </tbody>
-           </table>
+          </table>
         </div>
       </div>
     </div>
@@ -898,12 +932,16 @@
   let pendingTransaction = null;
   let searchTimeout = null;
   let initialDataPromise = null;
+  let discountAmount = 0;                // New: discount from claimed prize
+  let claimedReceiptInfo = null;         // Store info about claimed receipt
 
   // DOM elements
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
   const subtotalSpan = document.getElementById('subtotal');
   const totalSpan = document.getElementById('totalAmount');
+  const discountRow = document.getElementById('discountRow');
+  const discountAmountSpan = document.getElementById('discountAmount');
   const searchInput = document.getElementById('searchInput');
   const categorySelect = document.getElementById('categorySelect');
   const storeSelect = document.getElementById('storeSelect');
@@ -1196,6 +1234,9 @@
     if (cart.length === 0) {
       cartContainer.innerHTML = '<div style="color:#94a3b8; text-align:center;">Cart is empty</div>';
       subtotalSpan.innerText = `RM 0.00`;
+      discountAmount = 0;
+      claimedReceiptInfo = null;
+      discountRow.style.display = 'none';
       totalSpan.innerText = `RM 0.00`;
       return;
     }
@@ -1221,7 +1262,14 @@
     });
     cartContainer.innerHTML = html;
     subtotalSpan.innerText = `RM ${subtotal.toFixed(2)}`;
-    totalSpan.innerText = `RM ${subtotal.toFixed(2)}`;
+    let total = subtotal - discountAmount;
+    if (discountAmount > 0) {
+      discountRow.style.display = 'flex';
+      discountAmountSpan.innerText = `-RM ${discountAmount.toFixed(2)}`;
+    } else {
+      discountRow.style.display = 'none';
+    }
+    totalSpan.innerText = `RM ${total.toFixed(2)}`;
     document.querySelectorAll('.qty-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const idx = parseInt(btn.dataset.index);
@@ -1282,7 +1330,93 @@
   function clearCart() {
     if (cart.length === 0) return;
     cart = [];
+    discountAmount = 0;
+    claimedReceiptInfo = null;
     updateCartUI();
+  }
+
+  // ==================== CLAIM PRIZE ====================
+  function showClaimPrizeModal() {
+    // Reset modal to step 1
+    document.getElementById('claimStep1').style.display = 'block';
+    document.getElementById('claimStep2').style.display = 'none';
+    document.getElementById('claimError').style.display = 'none';
+    document.getElementById('claimReceiptInput').value = '';
+    document.getElementById('claimPrizeModal').style.display = 'flex';
+  }
+
+  async function checkReceiptForClaim() {
+    const receipt = document.getElementById('claimReceiptInput').value.trim();
+    if (!receipt) {
+      showClaimError('Please enter a receipt number.');
+      return;
+    }
+    showLoading('Checking receipt...');
+    try {
+      const url = `${APPS_SCRIPT_URL}?action=get&receipt=${encodeURIComponent(receipt)}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        const data = result.data;
+        if (data.claimed) {
+          showClaimError('This prize has already been claimed.');
+          return;
+        }
+        // Receipt is valid and unclaimed – show prize selection
+        document.getElementById('validReceiptId').innerText = data.receipt;
+        document.getElementById('claimStep1').style.display = 'none';
+        document.getElementById('claimStep2').style.display = 'block';
+        document.getElementById('claimError').style.display = 'none';
+        // Store receipt data for later
+        window.pendingClaimReceipt = data;
+      } else {
+        showClaimError(result.error || 'Receipt not found.');
+      }
+    } catch (err) {
+      console.error(err);
+      showClaimError('Connection error. Please try again.');
+    } finally {
+      hideLoading();
+    }
+  }
+
+  function showClaimError(msg) {
+    const errorDiv = document.getElementById('claimError');
+    errorDiv.innerText = msg;
+    errorDiv.style.display = 'block';
+  }
+
+  async function applyPrizeDiscount() {
+    const receiptData = window.pendingClaimReceipt;
+    if (!receiptData) return;
+    const prizeValue = parseFloat(document.getElementById('prizeSelect').value);
+    const prizeText = document.getElementById('prizeSelect').selectedOptions[0].text;
+
+    // Send claim to backend
+    showLoading('Recording prize claim...');
+    try {
+      const formData = new URLSearchParams();
+      formData.append("action", "claim");
+      formData.append("receipt", receiptData.receipt);
+      formData.append("value", prizeValue);
+      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+      const result = await response.json();
+      if (result.success) {
+        // Apply discount to current cart
+        discountAmount = prizeValue;
+        claimedReceiptInfo = { receipt: receiptData.receipt, prize: prizeText, value: prizeValue };
+        updateCartUI();
+        await showAlertModal('Prize Claimed', `You have claimed ${prizeText} (RM ${prizeValue.toFixed(2)})!\nDiscount applied to current sale.`);
+        document.getElementById('claimPrizeModal').style.display = 'none';
+      } else {
+        await showAlertModal('Error', result.error || 'Failed to claim prize.');
+      }
+    } catch (err) {
+      console.error(err);
+      await showAlertModal('Error', 'Connection error while claiming prize.');
+    } finally {
+      hideLoading();
+    }
   }
 
   // ==================== CHECKOUT ====================
@@ -1313,7 +1447,8 @@
       }
     }
 
-    const totalAmount = cart.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
+    const subtotal = cart.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
+    const totalAmount = subtotal - discountAmount;
     pendingTransaction = { totalAmount };
     showPaymentModal(totalAmount);
   }
@@ -1399,7 +1534,9 @@
       total: totalAmount,
       payment_method: paymentMethod,
       cash_received: cashReceived,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      discount: discountAmount,
+      prize_claimed: claimedReceiptInfo
     };
     const success = await saveTransactionToSheet(transaction);
     if (success) {
@@ -1442,6 +1579,8 @@
       formData.append("timestamp", transaction.timestamp);
       formData.append("store", currentStore);
       formData.append("employee_id", employeeIdForRecord);
+      formData.append("discount", transaction.discount || 0);
+      formData.append("prize_claimed", transaction.prize_claimed ? JSON.stringify(transaction.prize_claimed) : '');
       const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
       const result = await response.json();
       return result.success === true;
@@ -1453,7 +1592,7 @@
     }
   }
 
-  // ==================== RECEIPTS ====================
+  // ==================== RECEIPTS (unchanged, but openLuckyDraw kept) ====================
   async function fetchReceipts(store, employeeId, from, to, search) {
     showLoading('Loading receipts...');
     try {
@@ -1553,7 +1692,7 @@
     else await showAlertModal('Error', 'Print failed.');
   }
 
-   function openLuckyDraw(transactionId) { window.open(`https://teohmarcus584.github.io/salesanalysis/?receipt=${encodeURIComponent(transactionId)}`, '_blank'); }
+  function openLuckyDraw(transactionId) { window.open(`https://teohmarcus584.github.io/salesanalysis/?receipt=${encodeURIComponent(transactionId)}`, '_blank'); }
 
   async function processRefund(transactionId, store) {
     showLoading('Processing refund...');
@@ -1583,7 +1722,7 @@
     }
   }
 
-  // ==================== REPORTS ====================
+  // ==================== REPORTS (unchanged) ====================
   async function fetchSalesReport(store, employeeId, from, to, unsettledOnly) {
     showLoading('Loading report...');
     try {
@@ -1804,7 +1943,7 @@
     }
   }
 
-  // ==================== SETTLEMENT ====================
+  // ==================== SETTLEMENT (unchanged) ====================
   let currentSettlementTotals = null;
 
   async function checkSettlementStatus(store, date) {
@@ -1895,7 +2034,7 @@
     document.getElementById('settlementModal').style.display = 'flex';
   }
 
-  // ==================== CASH COLLECTION ====================
+  // ==================== CASH COLLECTION (unchanged) ====================
   let currentUnsettledCash = [];
 
   async function openCollectionModal() {
@@ -1959,7 +2098,7 @@
     document.getElementById('collectSelectedBtn').disabled = !anyChecked;
   }
 
-  // ==================== PRINTER SETUP ====================
+  // ==================== PRINTER SETUP (unchanged) ====================
   (function setupPrinter() {
     let gattServer = null, printerCharacteristic = null, isConnected = false;
     const connectBtn = document.getElementById('connectPrinterButton');
@@ -1987,6 +2126,7 @@
       }
       lines.push('-----------------------------', `TOTAL: RM ${total.toFixed(2)}`, `Payment: ${transaction.payment_method}`);
       if (transaction.cash_received) lines.push(`Cash: RM ${transaction.cash_received} | Change: RM ${(transaction.cash_received - total).toFixed(2)}`);
+      if (transaction.discount && transaction.discount > 0) lines.push(`Discount: -RM ${transaction.discount.toFixed(2)}`);
       lines.push('-----------------------------', 'Thank you & come again!', '');
       const text = lines.join('\n');
       let commands = [];
@@ -2113,70 +2253,71 @@
   });
 
   async function verifyEmployeeByPin(pin) {
-  showLoading('Verifying...');
-  try {
-    const url = `${APPS_SCRIPT_URL}?action=verifyByPin&pin=${encodeURIComponent(pin)}`;
-    const response = await fetch(url);
-    const result = await response.json();
-    if (result.success) {
-      currentEmployee = result.employee;
-      document.getElementById('employeeName').innerText = currentEmployee.name;
-      document.getElementById('loginModal').style.display = 'none';
-      document.getElementById('mainContent').style.display = 'block';
+    showLoading('Verifying...');
+    try {
+      const url = `${APPS_SCRIPT_URL}?action=verifyByPin&pin=${encodeURIComponent(pin)}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        currentEmployee = result.employee;
+        document.getElementById('employeeName').innerText = currentEmployee.name;
+        document.getElementById('loginModal').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
 
-      if (initialDataPromise) await initialDataPromise;
-      else await loadInitialData();
+        if (initialDataPromise) await initialDataPromise;
+        else await loadInitialData();
 
-      // Set the Sold By dropdown to the logged-in employee
-      soldBySelect.value = currentEmployee.id;
+        // Set the Sold By dropdown to the logged-in employee
+        soldBySelect.value = currentEmployee.id;
 
-      if (!currentEmployee.isAdmin) {
-        storeSelect.disabled = true;
+        if (!currentEmployee.isAdmin) {
+          storeSelect.disabled = true;
+        } else {
+          storeSelect.disabled = false;
+        }
+
+        const reportStoreFilter = document.getElementById('reportStoreFilterGroup');
+        const employeeFilterGroup = document.getElementById('employeeFilterGroup');
+        const storeChartContainer = document.getElementById('storeChartContainer');
+        const employeeChartContainer = document.getElementById('employeeChartContainer');
+        const collectionBtn = document.getElementById('collectionBtn');
+        if (currentEmployee.isAdmin) {
+          reportStoreFilter.style.display = 'flex';
+          employeeFilterGroup.style.display = 'flex';
+          storeChartContainer.style.display = 'block';
+          employeeChartContainer.style.display = 'block';
+          collectionBtn.style.display = 'flex';
+        } else {
+          reportStoreFilter.style.display = 'none';
+          employeeFilterGroup.style.display = 'none';
+          storeChartContainer.style.display = 'none';
+          employeeChartContainer.style.display = 'none';
+          collectionBtn.style.display = 'none';
+        }
+
+        const settlementStoreSelect = document.getElementById('settlementStoreSelect');
+        if (!currentEmployee.isAdmin) {
+          settlementStoreSelect.value = initialStore;
+          settlementStoreSelect.disabled = true;
+        } else {
+          settlementStoreSelect.disabled = false;
+        }
+
+        updateCartUI();
+        return true;
       } else {
-        storeSelect.disabled = false;
+        document.getElementById('loginError').innerText = result.error || 'Invalid PIN';
+        return false;
       }
-
-      const reportStoreFilter = document.getElementById('reportStoreFilterGroup');
-      const employeeFilterGroup = document.getElementById('employeeFilterGroup');
-      const storeChartContainer = document.getElementById('storeChartContainer');
-      const employeeChartContainer = document.getElementById('employeeChartContainer');
-      const collectionBtn = document.getElementById('collectionBtn');
-      if (currentEmployee.isAdmin) {
-        reportStoreFilter.style.display = 'flex';
-        employeeFilterGroup.style.display = 'flex';
-        storeChartContainer.style.display = 'block';
-        employeeChartContainer.style.display = 'block';
-        collectionBtn.style.display = 'flex';
-      } else {
-        reportStoreFilter.style.display = 'none';
-        employeeFilterGroup.style.display = 'none';
-        storeChartContainer.style.display = 'none';
-        employeeChartContainer.style.display = 'none';
-        collectionBtn.style.display = 'none';
-      }
-
-      const settlementStoreSelect = document.getElementById('settlementStoreSelect');
-      if (!currentEmployee.isAdmin) {
-        settlementStoreSelect.value = initialStore;
-        settlementStoreSelect.disabled = true;
-      } else {
-        settlementStoreSelect.disabled = false;
-      }
-
-      updateCartUI();
-      return true;
-    } else {
-      document.getElementById('loginError').innerText = result.error || 'Invalid PIN';
+    } catch (err) {
+      console.error(err);
+      document.getElementById('loginError').innerText = 'Connection error';
       return false;
+    } finally {
+      hideLoading();
     }
-  } catch (err) {
-    console.error(err);
-    document.getElementById('loginError').innerText = 'Connection error';
-    return false;
-  } finally {
-    hideLoading();
   }
-}
+
   document.getElementById('reportsButton').addEventListener('click', async () => {
     if (currentEmployee?.isAdmin) {
       const employees = await fetchEmployees();
@@ -2376,6 +2517,7 @@
     }
   });
   document.getElementById('checkoutBtn').addEventListener('click', startCheckout);
+  document.getElementById('claimPrizeBtn').addEventListener('click', showClaimPrizeModal);
   document.getElementById('clearCartBtn').addEventListener('click', clearCart);
   document.getElementById('refreshProductsBtn').addEventListener('click', () => {
     localStorage.removeItem(`products_${currentStore}`);
@@ -2487,6 +2629,13 @@
       toggleBtn.innerText = '📦 Show Product Details';
     }
   });
+
+  // Claim Prize Modal event handlers
+  document.getElementById('closeClaimPrizeModal').addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
+  document.getElementById('cancelClaimBtn').addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
+  document.getElementById('cancelClaimStep2Btn').addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
+  document.getElementById('checkReceiptBtn').addEventListener('click', checkReceiptForClaim);
+  document.getElementById('applyPrizeBtn').addEventListener('click', applyPrizeDiscount);
 </script>
 </body>
 </html>
