@@ -804,12 +804,12 @@
     <div style="overflow-x: auto;">
       <table class="collection-table" id="collectionTable">
         <thead>
-            <tr>
-              <th><input type="checkbox" id="selectAllCheckbox"></th>
-              <th>Date</th>
-              <th>Employee</th>
-              <th style="text-align: right;">Cash Amount (RM)</th>
-            </tr>
+          <tr>
+            <th><input type="checkbox" id="selectAllCheckbox"></th>
+            <th>Date</th>
+            <th>Employee</th>
+            <th style="text-align: right;">Cash Amount (RM)</th>
+          </tr>
         </thead>
         <tbody id="collectionTableBody">
           <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
@@ -847,7 +847,7 @@
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxAYM0xQYyxasIhYx99IIT82MDJ82xzZJHxdSn2Z3srgatzYWr9Ll4nc6fgOrGDPkEY6Q/exec";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbybjjyDIcksKmN3sa_435hOsSBLxAwYU5aD15peHXpTx-2WTtbQ4e58eRFSX7-nfGG_Xg/exec"; // <-- REPLACE WITH YOUR DEPLOYMENT URL
   let products = [], cart = [], currentStore = "queens", currentEmployee = null;
   let viewMode = "grid"; // 'grid' or 'list'
   let productDetailsVisible = false;
@@ -996,11 +996,8 @@
           settlementStoreSelect.disabled = false;
         }
         
-        // Fetch employee name map for receipt display
-        await fetchEmployeeNameMap();
-        
-        await populateSoldBySelect();
-        await fetchProductsFromSheet();
+        // Load initial data in one go
+        await loadInitialData();
         updateCartUI();
         return true;
       } else {
@@ -1014,7 +1011,56 @@
     } finally { hideLoading(); }
   }
 
-  // Fetch employee name mapping for receipt display
+  // Combined initial data fetch (products + employees)
+  async function loadInitialData() {
+    showLoading('Loading data...');
+    try {
+      const url = `${APPS_SCRIPT_URL}?action=getInitialData&store=${currentStore}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        // Process products
+        products = result.products.map(p => ({
+          id: p.id,
+          name: p.name,
+          price: parseFloat(p.price),
+          stock: parseInt(p.stock) || 0,
+          category: p.category || "Uncategorized"
+        })).sort((a, b) => a.name.localeCompare(b.name));
+        const categories = [...new Set(products.map(p => p.category))].sort();
+        categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
+        categories.forEach(cat => {
+          const option = document.createElement('option');
+          option.value = cat;
+          option.textContent = cat;
+          categorySelect.appendChild(option);
+        });
+        renderProductGrid();
+
+        // Process employees
+        employeeNameMap = {};
+        const employees = result.employees;
+        soldBySelect.innerHTML = '';
+        employees.forEach(emp => {
+          employeeNameMap[emp.id] = emp.name;
+          const option = document.createElement('option');
+          option.value = emp.id;
+          option.textContent = `${emp.name} (ID: ${emp.id})`;
+          if (currentEmployee && emp.id == currentEmployee.id) option.selected = true;
+          soldBySelect.appendChild(option);
+        });
+        return true;
+      } else {
+        throw new Error('Failed to load initial data');
+      }
+    } catch (err) {
+      console.error(err);
+      await showAlertModal('Error', 'Failed to load initial data. Check URL & sheet.');
+      return false;
+    } finally { hideLoading(); }
+  }
+
+  // Fetch employee name mapping for receipt display (fallback)
   async function fetchEmployeeNameMap() {
     try {
       const response = await fetch(`${APPS_SCRIPT_URL}?action=getEmployees`);
@@ -1034,10 +1080,31 @@
     return employeeNameMap[employeeId] || employeeId;
   }
 
-  // Products
+  // Products (with localStorage caching)
   async function fetchProductsFromSheet() {
     showLoading('Fetching products...');
     try {
+      const cacheKey = `products_${currentStore}`;
+      const cached = localStorage.getItem(cacheKey);
+      const now = Date.now();
+      if (cached) {
+        const { timestamp, products: cachedProducts } = JSON.parse(cached);
+        if (now - timestamp < 5 * 60 * 1000) { // 5 minutes
+          products = cachedProducts;
+          const categories = [...new Set(products.map(p => p.category))].sort();
+          categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
+          categories.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat;
+            option.textContent = cat;
+            categorySelect.appendChild(option);
+          });
+          renderProductGrid();
+          hideLoading();
+          return true;
+        }
+      }
+
       const url = `${APPS_SCRIPT_URL}?action=getProducts&store=${currentStore}`;
       const response = await fetch(url);
       const result = await response.json();
@@ -1049,6 +1116,8 @@
         categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
         categories.forEach(cat => { const option = document.createElement('option'); option.value = cat; option.textContent = cat; categorySelect.appendChild(option); });
         renderProductGrid();
+
+        localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, products }));
         return true;
       } else throw new Error('Invalid data format');
     } catch (err) {
@@ -1680,7 +1749,7 @@
 
   function openLuckyDraw(transactionId) { window.open(`https://teohmarcus584.github.io/LUCKYDRAW/?receipt=${encodeURIComponent(transactionId)}`, '_blank'); }
 
-  // Cart functions (unchanged)
+  // Cart functions
   function updateCartUI() {
     if (!cartContainer) return;
     if (cart.length === 0) { cartContainer.innerHTML = '<div style="color:#94a3b8; text-align:center;">Cart is empty</div>'; subtotalSpan.innerText = `RM 0.00`; totalSpan.innerText = `RM 0.00`; return; }
@@ -1808,6 +1877,9 @@
     const transaction = { transaction_id: transactionId, items: saleItems, total: totalAmount, payment_method: paymentMethod, cash_received: cashReceived, timestamp: new Date().toISOString() };
     const success = await saveTransactionToSheet(transaction);
     if (success) {
+      // Clear product cache for current store
+      localStorage.removeItem(`products_${currentStore}`);
+      
       // Print receipt if printer connected
       if (window.printerAPI?.isConnected && window.printerAPI.printReceipt) {
         const transactionWithName = { ...transaction, employee_name: currentEmployee.name };
@@ -1970,7 +2042,10 @@
   });
   document.getElementById('checkoutBtn').addEventListener('click', startCheckout);
   document.getElementById('clearCartBtn').addEventListener('click', clearCart);
-  document.getElementById('refreshProductsBtn').addEventListener('click', () => fetchProductsFromSheet());
+  document.getElementById('refreshProductsBtn').addEventListener('click', () => {
+    localStorage.removeItem(`products_${currentStore}`);
+    fetchProductsFromSheet();
+  });
 
   // Debounced search input
   searchInput.addEventListener('input', () => {
