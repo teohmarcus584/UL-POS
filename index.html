@@ -980,7 +980,7 @@ canvas {
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxeih31elYgBjZ9OCoUIPDJsdnmPBIFbPte9BgFVpcCi_3qKKLEDOIUBQZDJkN4UmedWQ/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyis_T0J9eEkIGl6WIEsmcok2yGNSL0BzlnmiyQRxzyzRwYD4GwVqX3QRV-iAbAgvgtWw/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1328,6 +1328,11 @@ async function spinWheel() {
     }
   }
   animationFrame = requestAnimationFrame(animateSpin);
+}
+// Attach spin button click handler
+const spinButton = document.getElementById('spinButton');
+if (spinButton) {
+  spinButton.addEventListener('click', spinWheel);
 }
   // ==================== INITIAL DATA LOAD (BEFORE PIN) ====================
   async function loadInitialData() {
