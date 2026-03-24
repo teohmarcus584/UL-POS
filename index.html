@@ -314,13 +314,15 @@
     .receipt-total { font-weight: 700; color: #2c7a4b; }
     .receipt-details { font-size: 0.85rem; margin: 8px 0; color: #334155; }
     .receipt-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
-    .reprint-btn, .lucky-btn {
+    .reprint-btn, .lucky-btn, .refund-btn {
       background: #8b5cf6; border: none; color: white; padding: 4px 12px;
       border-radius: 30px; font-size: 0.75rem; cursor: pointer;
     }
     .lucky-btn { background: #f59e0b; }
+    .refund-btn { background: #ef4444; }
     .reprint-btn:hover { background: #7c3aed; }
     .lucky-btn:hover { background: #d97706; }
+    .refund-btn:hover { background: #dc2626; }
     .modal-buttons { display: flex; gap: 12px; justify-content: flex-end; margin-top: 16px; }
     .modal-btn { padding: 12px 24px; border-radius: 60px; border: none; font-weight: 500; cursor: pointer; font-size: 1rem; }
     .modal-btn-primary { background: #2c7a4b; color: white; }
@@ -740,7 +742,7 @@
   </div>
 </div>
 
-<!-- Settlement Modal (with store location and petty cash) -->
+<!-- Settlement Modal -->
 <div id="settlementModal" class="modal-overlay">
   <div class="modal-container" style="max-width: 500px;">
     <span class="close-modal" id="closeSettlementModal">×</span>
@@ -804,12 +806,12 @@
     <div style="overflow-x: auto;">
       <table class="collection-table" id="collectionTable">
         <thead>
-          <tr>
+           <tr>
             <th><input type="checkbox" id="selectAllCheckbox"></th>
             <th>Date</th>
             <th>Employee</th>
             <th style="text-align: right;">Cash Amount (RM)</th>
-          </tr>
+           </tr>
         </thead>
         <tbody id="collectionTableBody">
           <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
@@ -847,16 +849,24 @@
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbybjjyDIcksKmN3sa_435hOsSBLxAwYU5aD15peHXpTx-2WTtbQ4e58eRFSX7-nfGG_Xg/exec"; // <-- REPLACE WITH YOUR DEPLOYMENT URL
-  let products = [], cart = [], currentStore = "queens", currentEmployee = null;
-  let viewMode = "grid"; // 'grid' or 'list'
-  let productDetailsVisible = false;
-  let lastProductData = null; // cache to avoid re-fetch on toggle
-  let employeeNameMap = {}; // map employee ID -> name
-  let initialStore = null; // store selected at the very beginning
-  let pendingTransaction = null;
-  let searchTimeout = null; // for debouncing
+  // ==================== CONFIGURATION ====================
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQLjOas4G8l68Fkyx2FFWnYdyYD9ONV9GxrReTMGQRlbI5moYUQOJWI1hT2F-wrhQPfQ/exec"; // REPLACE WITH YOUR URL
 
+  // ==================== GLOBAL VARIABLES ====================
+  let products = [];
+  let cart = [];
+  let currentStore = "queens";
+  let currentEmployee = null;
+  let viewMode = "grid";
+  let productDetailsVisible = false;
+  let lastProductData = null;
+  let employeeNameMap = {};
+  let initialStore = null;
+  let pendingTransaction = null;
+  let searchTimeout = null;
+  let initialDataPromise = null;
+
+  // DOM elements
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
   const subtotalSpan = document.getElementById('subtotal');
@@ -866,7 +876,7 @@
   const storeSelect = document.getElementById('storeSelect');
   const soldBySelect = document.getElementById('soldBySelect');
 
-  // Helper functions for modals
+  // ==================== HELPER FUNCTIONS ====================
   function showAlertModal(title, message) {
     return new Promise((resolve) => {
       const overlay = document.getElementById('alertModal');
@@ -884,6 +894,7 @@
       closeBtn.addEventListener('click', onClose);
     });
   }
+
   function showInputModal(title, placeholder = '') {
     return new Promise((resolve) => {
       const overlay = document.getElementById('inputModal');
@@ -911,6 +922,7 @@
       field.focus();
     });
   }
+
   function showSelectModal(title, options) {
     return new Promise((resolve) => {
       const overlay = document.getElementById('selectModal');
@@ -934,86 +946,64 @@
       closeBtn.addEventListener('click', cancel);
     });
   }
-  function showLoading(msg = 'Loading...') { document.getElementById('loadingMessage').innerText = msg; document.getElementById('loadingOverlay').style.display = 'flex'; }
-  function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
 
-  // Store selection first
-  document.getElementById('confirmStoreBtn').addEventListener('click', () => {
-    initialStore = document.getElementById('initialStoreSelect').value;
-    currentStore = initialStore;
-    storeSelect.value = initialStore;
-    document.getElementById('storeSelectModal').style.display = 'none';
-    document.getElementById('loginModal').style.display = 'flex';
-    document.getElementById('pinInput').focus();
-  });
-
-  // Login
-  async function verifyEmployeeByPin(pin) {
-    showLoading('Verifying...');
-    try {
-      const url = `${APPS_SCRIPT_URL}?action=verifyByPin&pin=${encodeURIComponent(pin)}`;
-      const response = await fetch(url);
-      const result = await response.json();
-      if (result.success) {
-        currentEmployee = result.employee;
-        document.getElementById('employeeName').innerText = currentEmployee.name;
-        document.getElementById('loginModal').style.display = 'none';
-        document.getElementById('mainContent').style.display = 'block';
-        
-        // Keep the initially selected store; only disable dropdown for non-admin
-        if (!currentEmployee.isAdmin) {
-          storeSelect.disabled = true;
-        } else {
-          storeSelect.disabled = false;
-        }
-        
-        // Show/hide filters and charts in report modal based on admin status
-        const reportStoreFilter = document.getElementById('reportStoreFilterGroup');
-        const employeeFilterGroup = document.getElementById('employeeFilterGroup');
-        const storeChartContainer = document.getElementById('storeChartContainer');
-        const employeeChartContainer = document.getElementById('employeeChartContainer');
-        const collectionBtn = document.getElementById('collectionBtn');
-        if (currentEmployee.isAdmin) {
-          reportStoreFilter.style.display = 'flex';
-          employeeFilterGroup.style.display = 'flex';
-          storeChartContainer.style.display = 'block';
-          employeeChartContainer.style.display = 'block';
-          collectionBtn.style.display = 'flex'; // show collection button for admin
-        } else {
-          reportStoreFilter.style.display = 'none';
-          employeeFilterGroup.style.display = 'none';
-          storeChartContainer.style.display = 'none';
-          employeeChartContainer.style.display = 'none';
-          collectionBtn.style.display = 'none';
-        }
-        
-        // For non-admin, lock settlement store to the initial store (from login modal)
-        const settlementStoreSelect = document.getElementById('settlementStoreSelect');
-        if (!currentEmployee.isAdmin) {
-          settlementStoreSelect.value = initialStore;
-          settlementStoreSelect.disabled = true;
-        } else {
-          settlementStoreSelect.disabled = false;
-        }
-        
-        // Load initial data in one go
-        await loadInitialData();
-        updateCartUI();
-        return true;
-      } else {
-        document.getElementById('loginError').innerText = result.error || 'Invalid PIN';
-        return false;
-      }
-    } catch (err) {
-      console.error(err);
-      document.getElementById('loginError').innerText = 'Connection error';
-      return false;
-    } finally { hideLoading(); }
+  function showConfirmModal(title, message) {
+    return new Promise((resolve) => {
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.innerHTML = `
+        <div class="modal-container" style="max-width: 400px;">
+          <div class="modal-title">${title}</div>
+          <div class="modal-message">${message}</div>
+          <div class="modal-buttons">
+            <button id="confirmOk" class="modal-btn modal-btn-primary">OK</button>
+            <button id="confirmCancel" class="modal-btn modal-btn-secondary">Cancel</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      modal.style.display = 'flex';
+      const okBtn = modal.querySelector('#confirmOk');
+      const cancelBtn = modal.querySelector('#confirmCancel');
+      const cleanup = () => {
+        modal.remove();
+        okBtn.removeEventListener('click', onOk);
+        cancelBtn.removeEventListener('click', onCancel);
+      };
+      const onOk = () => { cleanup(); resolve(true); };
+      const onCancel = () => { cleanup(); resolve(false); };
+      okBtn.addEventListener('click', onOk);
+      cancelBtn.addEventListener('click', onCancel);
+    });
   }
 
-  // Combined initial data fetch (products + employees)
+  function showLoading(msg = 'Loading...') {
+    document.getElementById('loadingMessage').innerText = msg;
+    document.getElementById('loadingOverlay').style.display = 'flex';
+  }
+
+  function hideLoading() {
+    document.getElementById('loadingOverlay').style.display = 'none';
+  }
+
+  function getLocalDateString(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+  }
+
+  function getEmployeeName(employeeId) {
+    return employeeNameMap[employeeId] || employeeId;
+  }
+
+  // ==================== INITIAL DATA LOAD (BEFORE PIN) ====================
   async function loadInitialData() {
-    showLoading('Loading data...');
+    showLoading('Loading store data...');
     try {
       const url = `${APPS_SCRIPT_URL}?action=getInitialData&store=${currentStore}`;
       const response = await fetch(url);
@@ -1027,6 +1017,7 @@
           stock: parseInt(p.stock) || 0,
           category: p.category || "Uncategorized"
         })).sort((a, b) => a.name.localeCompare(b.name));
+
         const categories = [...new Set(products.map(p => p.category))].sort();
         categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
         categories.forEach(cat => {
@@ -1057,30 +1048,12 @@
       console.error(err);
       await showAlertModal('Error', 'Failed to load initial data. Check URL & sheet.');
       return false;
-    } finally { hideLoading(); }
-  }
-
-  // Fetch employee name mapping for receipt display (fallback)
-  async function fetchEmployeeNameMap() {
-    try {
-      const response = await fetch(`${APPS_SCRIPT_URL}?action=getEmployees`);
-      const result = await response.json();
-      if (result.success) {
-        employeeNameMap = {};
-        result.employees.forEach(emp => {
-          employeeNameMap[emp.id] = emp.name;
-        });
-      }
-    } catch (err) {
-      console.error('Failed to fetch employee names:', err);
+    } finally {
+      hideLoading();
     }
   }
 
-  function getEmployeeName(employeeId) {
-    return employeeNameMap[employeeId] || employeeId;
-  }
-
-  // Products (with localStorage caching)
+  // ==================== PRODUCT GRID (with caching) ====================
   async function fetchProductsFromSheet() {
     showLoading('Fetching products...');
     try {
@@ -1109,25 +1082,296 @@
       const response = await fetch(url);
       const result = await response.json();
       if (result.success && Array.isArray(result.products)) {
-        products = result.products
-          .map(p => ({ id: p.id, name: p.name, price: parseFloat(p.price), stock: parseInt(p.stock) || 0, category: p.category || "Uncategorized" }))
-          .sort((a, b) => a.name.localeCompare(b.name));
+        products = result.products.map(p => ({
+          id: p.id,
+          name: p.name,
+          price: parseFloat(p.price),
+          stock: parseInt(p.stock) || 0,
+          category: p.category || "Uncategorized"
+        })).sort((a, b) => a.name.localeCompare(b.name));
         const categories = [...new Set(products.map(p => p.category))].sort();
         categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
-        categories.forEach(cat => { const option = document.createElement('option'); option.value = cat; option.textContent = cat; categorySelect.appendChild(option); });
+        categories.forEach(cat => {
+          const option = document.createElement('option');
+          option.value = cat;
+          option.textContent = cat;
+          categorySelect.appendChild(option);
+        });
         renderProductGrid();
-
         localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, products }));
         return true;
-      } else throw new Error('Invalid data format');
+      } else {
+        throw new Error('Invalid data format');
+      }
     } catch (err) {
       console.error(err);
       await showAlertModal('Error', 'Failed to load products. Check URL & sheet.');
       return false;
-    } finally { hideLoading(); }
+    } finally {
+      hideLoading();
+    }
   }
 
-  // Sales transaction
+  function renderProductGrid() {
+    const searchTerm = searchInput.value.toLowerCase();
+    const selectedCategory = categorySelect.value;
+    let filtered = products;
+    if (selectedCategory !== 'all') filtered = filtered.filter(p => p.category === selectedCategory);
+    if (searchTerm) filtered = filtered.filter(p => p.name.toLowerCase().includes(searchTerm));
+    if (filtered.length === 0) {
+      productGridEl.innerHTML = '<div style="text-align:center; padding:20px;">No products found</div>';
+      return;
+    }
+    let html = '';
+    filtered.forEach(prod => {
+      const stockStatus = prod.stock > 0 ? `📦 Stock: ${prod.stock}` : '❌ Out of stock';
+      html += `<div class="product-card">
+        <div class="product-name">${escapeHtml(prod.name)}</div>
+        <div class="product-price">RM ${prod.price.toFixed(2)}</div>
+        <div class="product-stock">${stockStatus}</div>
+        <button class="add-btn" data-id="${prod.id}" ${prod.stock <= 0 ? 'disabled' : ''}>+ Add to cart</button>
+      </div>`;
+    });
+    productGridEl.innerHTML = html;
+    productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
+    document.querySelectorAll('.add-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const product = products.find(p => p.id == btn.dataset.id);
+        if (product && product.stock > 0) addToCart(product);
+        e.stopPropagation();
+      });
+    });
+  }
+
+  function setViewMode(mode) {
+    viewMode = mode;
+    document.getElementById('gridViewBtn').classList.toggle('active', mode === 'grid');
+    document.getElementById('listViewBtn').classList.toggle('active', mode === 'list');
+    renderProductGrid();
+  }
+
+  // ==================== CART FUNCTIONS ====================
+  function updateCartUI() {
+    if (!cartContainer) return;
+    if (cart.length === 0) {
+      cartContainer.innerHTML = '<div style="color:#94a3b8; text-align:center;">Cart is empty</div>';
+      subtotalSpan.innerText = `RM 0.00`;
+      totalSpan.innerText = `RM 0.00`;
+      return;
+    }
+    let html = '', subtotal = 0;
+    cart.forEach((item, idx) => {
+      const itemTotal = item.product.price * item.quantity;
+      subtotal += itemTotal;
+      const categoryDisplay = item.product.category ? `<div class="cart-item-category">${escapeHtml(item.product.category)}</div>` : '';
+      html += `<div class="cart-item">
+        <div class="cart-item-info">
+          <div class="cart-item-name">${escapeHtml(item.product.name)}</div>
+          ${categoryDisplay}
+          <div class="cart-item-price">RM ${item.product.price.toFixed(2)}</div>
+        </div>
+        <div class="cart-item-qty">
+          <button class="qty-btn" data-index="${idx}" data-delta="-1">−</button>
+          <span>${item.quantity}</span>
+          <button class="qty-btn" data-index="${idx}" data-delta="1">+</button>
+        </div>
+        <div class="cart-item-total">RM ${itemTotal.toFixed(2)}</div>
+        <button class="remove-item" data-index="${idx}">✕</button>
+      </div>`;
+    });
+    cartContainer.innerHTML = html;
+    subtotalSpan.innerText = `RM ${subtotal.toFixed(2)}`;
+    totalSpan.innerText = `RM ${subtotal.toFixed(2)}`;
+    document.querySelectorAll('.qty-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const idx = parseInt(btn.dataset.index);
+        const delta = parseInt(btn.dataset.delta);
+        if (!isNaN(idx) && !isNaN(delta)) updateQuantity(idx, delta);
+        e.stopPropagation();
+      });
+    });
+    document.querySelectorAll('.remove-item').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const idx = parseInt(btn.dataset.index);
+        if (!isNaN(idx)) removeCartItem(idx);
+        e.stopPropagation();
+      });
+    });
+  }
+
+  function updateQuantity(index, delta) {
+    const item = cart[index];
+    if (!item) return;
+    const newQty = item.quantity + delta;
+    if (newQty <= 0) {
+      cart.splice(index, 1);
+    } else {
+      const productStock = item.product.stock;
+      if (newQty > productStock && productStock !== undefined) {
+        showAlertModal('Stock limit', `Only ${productStock} left in stock.`);
+        return;
+      }
+      item.quantity = newQty;
+    }
+    updateCartUI();
+  }
+
+  function removeCartItem(index) {
+    cart.splice(index, 1);
+    updateCartUI();
+  }
+
+  function addToCart(product) {
+    if (product.stock <= 0) {
+      showAlertModal('Out of Stock', `${product.name} is out of stock.`);
+      return;
+    }
+    const existing = cart.find(item => item.product.id === product.id);
+    if (existing) {
+      if (existing.quantity + 1 > product.stock) {
+        showAlertModal('Stock limit', `Cannot add more than ${product.stock} units.`);
+        return;
+      }
+      existing.quantity += 1;
+    } else {
+      cart.push({ product: { ...product }, quantity: 1 });
+    }
+    updateCartUI();
+  }
+
+  function clearCart() {
+    if (cart.length === 0) return;
+    cart = [];
+    updateCartUI();
+  }
+
+  // ==================== CHECKOUT ====================
+  async function startCheckout() {
+    if (cart.length === 0) {
+      await showAlertModal('Empty Cart', 'No items to checkout.');
+      return;
+    }
+    for (let item of cart) {
+      const originalProduct = products.find(p => p.id === item.product.id);
+      if (!originalProduct || originalProduct.stock < item.quantity) {
+        await showAlertModal('Stock changed', `${item.product.name} stock insufficient. Please refresh products and adjust cart.`);
+        return;
+      }
+    }
+    const totalAmount = cart.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
+    pendingTransaction = { totalAmount };
+    showPaymentModal(totalAmount);
+  }
+
+  function showPaymentModal(totalAmount) {
+    const modal = document.getElementById('paymentModal');
+    const cashOptionsDiv = document.getElementById('cashOptions');
+    const otherOptionsDiv = document.getElementById('otherPaymentOptions');
+    const suggestionsContainer = document.getElementById('suggestionsContainer');
+    cashOptionsDiv.style.display = 'none';
+    otherOptionsDiv.style.display = 'none';
+    modal.style.display = 'flex';
+
+    const paymentBtns = document.querySelectorAll('.payment-btn');
+    paymentBtns.forEach(btn => {
+      btn.classList.remove('selected');
+      btn.addEventListener('click', () => {
+        paymentBtns.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        if (btn.dataset.method === 'Cash') {
+          cashOptionsDiv.style.display = 'block';
+          otherOptionsDiv.style.display = 'none';
+          const suggestions = new Set();
+          [100, 50, 20, 10].forEach(amt => { if (amt >= totalAmount) suggestions.add(amt); });
+          const roundedUp10 = Math.ceil(totalAmount / 10) * 10;
+          if (roundedUp10 >= totalAmount) suggestions.add(roundedUp10);
+          const roundedUp50 = Math.ceil(totalAmount / 50) * 50;
+          if (roundedUp50 >= totalAmount) suggestions.add(roundedUp50);
+          suggestions.add(totalAmount);
+          suggestionsContainer.innerHTML = '';
+          Array.from(suggestions).sort((a, b) => a - b).forEach(amt => {
+            const btn = document.createElement('button');
+            btn.className = 'suggestion-btn';
+            btn.innerText = `RM ${amt.toFixed(2)}`;
+            btn.onclick = () => { document.getElementById('customCashInput').value = amt.toFixed(2); };
+            suggestionsContainer.appendChild(btn);
+          });
+          document.getElementById('customCashInput').value = '';
+        } else {
+          cashOptionsDiv.style.display = 'none';
+          otherOptionsDiv.style.display = 'block';
+        }
+      });
+    });
+
+    document.getElementById('confirmCashBtn').onclick = async () => {
+      const cashVal = parseFloat(document.getElementById('customCashInput').value);
+      if (isNaN(cashVal) || cashVal < totalAmount) {
+        await showAlertModal('Invalid', `Cash amount must be at least RM ${totalAmount.toFixed(2)}`);
+        return;
+      }
+      await showAlertModal('Change', `Change: RM ${(cashVal - totalAmount).toFixed(2)}`);
+      completeCheckout('Cash', cashVal);
+    };
+    document.getElementById('confirmOtherBtn').onclick = () => {
+      const selected = document.querySelector('.payment-btn.selected');
+      if (!selected) {
+        showAlertModal('Error', 'Please select a payment method.');
+        return;
+      }
+      completeCheckout(selected.dataset.method, null);
+    };
+    document.getElementById('cancelPaymentBtn').onclick = () => modal.style.display = 'none';
+    document.getElementById('cancelOtherBtn').onclick = () => modal.style.display = 'none';
+    document.getElementById('closePaymentModal').onclick = () => modal.style.display = 'none';
+  }
+
+  async function completeCheckout(paymentMethod, cashReceived) {
+    document.getElementById('paymentModal').style.display = 'none';
+    const totalAmount = pendingTransaction.totalAmount;
+    const transactionId = `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const saleItems = cart.map(item => ({
+      id: item.product.id,
+      category: item.product.category,
+      name: item.product.name,
+      price: item.product.price,
+      quantity: item.quantity,
+      total: item.product.price * item.quantity
+    }));
+    const transaction = {
+      transaction_id: transactionId,
+      items: saleItems,
+      total: totalAmount,
+      payment_method: paymentMethod,
+      cash_received: cashReceived,
+      timestamp: new Date().toISOString()
+    };
+    const success = await saveTransactionToSheet(transaction);
+    if (success) {
+      // Clear product cache for current store
+      localStorage.removeItem(`products_${currentStore}`);
+
+      // Print receipt if printer connected
+      if (window.printerAPI?.isConnected && window.printerAPI.printReceipt) {
+        const transactionWithName = { ...transaction, employee_name: currentEmployee.name };
+        await window.printerAPI.printReceipt(transactionWithName);
+      } else {
+        await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
+      }
+      await showAlertModal('✅ Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
+      document.getElementById('luckyTxId').innerText = transactionId;
+      const luckyModal = document.getElementById('luckyDrawModal');
+      luckyModal.style.display = 'flex';
+      document.getElementById('openLuckyDrawBtn').onclick = () => { openLuckyDraw(transactionId); luckyModal.style.display = 'none'; };
+      document.getElementById('closeLuckyDrawBtn').onclick = () => luckyModal.style.display = 'none';
+      document.getElementById('closeLuckyDrawModal').onclick = () => luckyModal.style.display = 'none';
+      await fetchProductsFromSheet();
+      clearCart();
+    } else {
+      await showAlertModal('Error', 'Failed to record sale. Check network / Apps Script.');
+    }
+  }
+
   async function saveTransactionToSheet(transaction) {
     showLoading('Recording sale...');
     try {
@@ -1146,30 +1390,133 @@
       const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
       const result = await response.json();
       return result.success === true;
-    } catch (err) { console.error(err); return false; } finally { hideLoading(); }
+    } catch (err) {
+      console.error(err);
+      return false;
+    } finally {
+      hideLoading();
+    }
   }
 
-  async function fetchEmployees() {
+  // ==================== RECEIPTS ====================
+  async function fetchReceipts(store, employeeId, from, to, search) {
+    showLoading('Loading receipts...');
     try {
-      const response = await fetch(`${APPS_SCRIPT_URL}?action=getEmployees`);
+      let url = `${APPS_SCRIPT_URL}?action=getReceipts&store=${store}&employeeId=${employeeId}`;
+      if (from) url += `&from=${encodeURIComponent(from)}`;
+      if (to) url += `&to=${encodeURIComponent(to)}`;
+      if (search) url += `&search=${encodeURIComponent(search)}`;
+      const response = await fetch(url);
       const result = await response.json();
-      return result.success ? result.employees : [];
-    } catch (err) { console.error(err); return []; }
+      if (result.success) renderReceiptsList(result.receipts);
+      else throw new Error('Receipts data error');
+    } catch (err) {
+      console.error(err);
+      await showAlertModal('Error', 'Failed to load receipts.');
+    } finally {
+      hideLoading();
+    }
   }
 
-  async function populateSoldBySelect() {
-    const employees = await fetchEmployees();
-    soldBySelect.innerHTML = '';
-    employees.forEach(emp => {
-      const option = document.createElement('option');
-      option.value = emp.id;
-      option.textContent = `${emp.name} (ID: ${emp.id})`;
-      if (currentEmployee && emp.id == currentEmployee.id) option.selected = true;
-      soldBySelect.appendChild(option);
+  function renderReceiptsList(receipts) {
+    const container = document.getElementById('receiptsList');
+    if (!receipts.length) {
+      container.innerHTML = '<div style="text-align:center; padding:30px;">No receipts found.</div>';
+      return;
+    }
+    let html = '';
+    receipts.forEach(rec => {
+      const date = new Date(rec.timestamp).toLocaleString();
+      const itemsSummary = rec.items.map(i => {
+        const displayName = i.category ? `${i.category}: ${i.name}` : i.name;
+        return `${displayName} x${i.quantity}`;
+      }).join(', ');
+      const employeeName = getEmployeeName(rec.employee_id);
+      html += `<div class="receipt-item" data-receipt='${JSON.stringify(rec)}'>
+        <div class="receipt-header">
+          <span class="receipt-id">${rec.transaction_id}</span>
+          <span class="receipt-date">${date}</span>
+          <span class="receipt-total">RM ${rec.total.toFixed(2)}</span>
+        </div>
+        <div class="receipt-details">
+          <div>Store: ${rec.store} | Payment: ${rec.payment_method} | Employee: ${employeeName}</div>
+          <div>Items: ${itemsSummary}</div>
+        </div>
+        <div class="receipt-actions">
+          <button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>🖨️ Reprint</button>
+          <button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>
+          <button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">💰 Refund</button>
+        </div>
+      </div>`;
+    });
+    container.innerHTML = html;
+
+    document.querySelectorAll('.reprint-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        reprintReceipt(JSON.parse(btn.dataset.receipt));
+        e.stopPropagation();
+      });
+    });
+    document.querySelectorAll('.lucky-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        openLuckyDraw(btn.dataset.txid);
+        e.stopPropagation();
+      });
+    });
+    document.querySelectorAll('.refund-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const transactionId = btn.dataset.txid;
+        const store = btn.dataset.store;
+        e.stopPropagation();
+        const confirm = await showConfirmModal('Refund Transaction', `Are you sure you want to refund transaction ${transactionId}? This will reverse the sale and restore stock.`);
+        if (confirm) {
+          await processRefund(transactionId, store);
+        }
+      });
     });
   }
 
-  // Report functions – now accept store parameter
+  async function reprintReceipt(receipt) {
+    if (!window.printerAPI || !window.printerAPI.isConnected) {
+      await showAlertModal('Printer required', 'Connect Bluetooth printer first.');
+      return;
+    }
+    const success = await window.printerAPI.printReceipt(receipt);
+    if (success) await showAlertModal('Reprint', `Receipt ${receipt.transaction_id} sent to printer.`);
+    else await showAlertModal('Error', 'Print failed.');
+  }
+
+  function openLuckyDraw(transactionId) {
+    window.open(`https://teohmarcus584.github.io/LUCKYDRAW/?receipt=${encodeURIComponent(transactionId)}`, '_blank');
+  }
+
+  async function processRefund(transactionId, store) {
+    showLoading('Processing refund...');
+    try {
+      const formData = new URLSearchParams();
+      formData.append("action", "refundTransaction");
+      formData.append("transaction_id", transactionId);
+      formData.append("employee_id", currentEmployee.id);
+      formData.append("employee_name", currentEmployee.name);
+      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+      const result = await response.json();
+      if (result.success) {
+        await showAlertModal('Refund Successful', `Refund ID: ${result.refundId}\nStock restored.`);
+        updateReceipts(); // refresh the list
+        localStorage.removeItem(`products_${currentStore}`);
+        await fetchProductsFromSheet();
+      } else {
+        await showAlertModal('Refund Failed', result.error || 'Unknown error');
+      }
+    } catch (err) {
+      console.error(err);
+      await showAlertModal('Error', 'Connection error while processing refund.');
+    } finally {
+      hideLoading();
+    }
+  }
+
+  // ==================== REPORTS ====================
   async function fetchSalesReport(store, employeeId, from, to, unsettledOnly) {
     showLoading('Loading report...');
     try {
@@ -1188,7 +1535,13 @@
         document.getElementById('adminReportTotalItems').innerText = result.totalItems;
         return result;
       } else throw new Error('Report data error');
-    } catch (err) { console.error(err); await showAlertModal('Error', 'Failed to load report.'); return null; } finally { hideLoading(); }
+    } catch (err) {
+      console.error(err);
+      await showAlertModal('Error', 'Failed to load report.');
+      return null;
+    } finally {
+      hideLoading();
+    }
   }
 
   async function fetchSalesChartData(store, employeeId, from, to) {
@@ -1200,15 +1553,12 @@
       const result = await response.json();
       if (result.success) {
         await new Promise(resolve => setTimeout(resolve, 200));
-        
-        // Render Store chart (only if admin and data exists)
+
+        // Store chart (admin only)
         if (currentEmployee.isAdmin && result.salesByStore) {
           const storeCanvas = document.getElementById('storeChart');
           if (storeCanvas) {
-            if (window.storeChart && typeof window.storeChart.destroy === 'function') {
-              window.storeChart.destroy();
-              window.storeChart = null;
-            }
+            if (window.storeChart && typeof window.storeChart.destroy === 'function') window.storeChart.destroy();
             const storeLabels = result.salesByStore.labels || [];
             const storeData = result.salesByStore.data || [];
             if (storeLabels.length > 0) {
@@ -1227,14 +1577,11 @@
             }
           }
         }
-        
-        // Render Day chart
+
+        // Day chart
         const dayCanvas = document.getElementById('dayChart');
         if (dayCanvas) {
-          if (window.dayChart && typeof window.dayChart.destroy === 'function') {
-            window.dayChart.destroy();
-            window.dayChart = null;
-          }
+          if (window.dayChart && typeof window.dayChart.destroy === 'function') window.dayChart.destroy();
           let labels, data, chartTitle;
           if (result.type === 'hourly') {
             labels = result.hourly.labels;
@@ -1279,10 +1626,7 @@
         await new Promise(resolve => setTimeout(resolve, 200));
         const employeeCanvas = document.getElementById('employeeChart');
         if (!employeeCanvas) return;
-        if (window.employeeChart && typeof window.employeeChart.destroy === 'function') {
-          window.employeeChart.destroy();
-          window.employeeChart = null;
-        }
+        if (window.employeeChart && typeof window.employeeChart.destroy === 'function') window.employeeChart.destroy();
         const labels = result.labels || [];
         const data = result.data || [];
         if (labels.length > 0) {
@@ -1307,7 +1651,6 @@
     }
   }
 
-  // Product sales breakdown
   async function fetchProductSalesReport(store, employeeId, from, to) {
     try {
       let url = `${APPS_SCRIPT_URL}?action=getProductSalesReport&store=${store}&employeeId=${employeeId}`;
@@ -1345,24 +1688,16 @@
     tbody.innerHTML = html;
   }
 
-  function getLocalDateString(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
   async function updateAdminReport() {
-    // Determine store and employee based on admin status
     let store, employeeId;
     if (currentEmployee.isAdmin) {
       store = document.getElementById('adminReportStoreSelect').value;
       employeeId = document.getElementById('adminReportEmployeeSelect').value;
     } else {
-      store = 'all'; // non-admin sees all stores (but only their own sales via employeeId)
+      store = 'all';
       employeeId = currentEmployee.id;
     }
-    
+
     const range = document.getElementById('adminReportDateRangeSelect').value;
     let from = null, to = null;
     const today = new Date();
@@ -1389,25 +1724,22 @@
       to = document.getElementById('adminReportToDate').value;
       if (!from || !to) return;
     }
-    
-    // Fetch main report data and charts
+
     await fetchSalesReport(store, employeeId, from, to);
     await fetchSalesChartData(store, employeeId, from, to);
     if (currentEmployee.isAdmin) {
       await fetchEmployeeSalesData(store, from, to);
     }
-    
-    // Fetch product details
+
     lastProductData = await fetchProductSalesReport(store, employeeId, from, to);
     if (productDetailsVisible) {
       renderProductDetails(lastProductData);
     }
   }
 
-  // Settlement functions
+  // ==================== SETTLEMENT ====================
   let currentSettlementTotals = null;
 
-  // Check if settlement already exists for a store/date
   async function checkSettlementStatus(store, date) {
     try {
       const url = `${APPS_SCRIPT_URL}?action=getSettlementStatus&store=${store}&date=${date}`;
@@ -1420,7 +1752,6 @@
     }
   }
 
-  // Helper to refresh settlement totals for a given store and reset UI
   async function refreshSettlementTotals(store) {
     const todayStr = getLocalDateString(new Date());
     const report = await fetchSalesReport(store, 'all', todayStr, todayStr, true);
@@ -1433,17 +1764,15 @@
       document.getElementById('sysCash').innerText = `RM ${currentSettlementTotals.cash.toFixed(2)}`;
       document.getElementById('sysCard').innerText = `RM ${currentSettlementTotals.card.toFixed(2)}`;
       document.getElementById('sysQR').innerText = `RM ${currentSettlementTotals.qr.toFixed(2)}`;
-      
-      // Check if already settled
+
       const alreadySettled = await checkSettlementStatus(store, todayStr);
       if (alreadySettled) {
         document.getElementById('settlementError').innerHTML = '⚠️ Settlement has already been recorded for today. No further settlement allowed.';
         document.getElementById('settlementError').style.display = 'block';
         document.getElementById('checkSettlementBtn').disabled = true;
         document.getElementById('recordSettlementBtn').style.display = 'none';
-        setSettlementFieldsEnabled(false); // disable all inputs
+        setSettlementFieldsEnabled(false);
       } else {
-        // Reset UI as before
         setSettlementFieldsEnabled(true);
         document.getElementById('actualCash').value = '';
         document.getElementById('actualCard').value = '';
@@ -1462,13 +1791,11 @@
 
   function setSettlementFieldsEnabled(enabled) {
     const fields = ['settlementStoreSelect', 'pettyCashFloat', 'actualCash', 'actualCard', 'actualQR'];
-    // For non‑admin, the store selector is always disabled, so we don't change it.
     const isNonAdmin = !currentEmployee?.isAdmin;
     fields.forEach(id => {
       const el = document.getElementById(id);
       if (el) {
         if (id === 'settlementStoreSelect' && isNonAdmin) {
-          // never enable for non-admin
           el.disabled = true;
         } else {
           el.disabled = !enabled;
@@ -1478,7 +1805,6 @@
   }
 
   async function openSettlementModal() {
-    // For non‑admin, use the initial store (locked)
     let store;
     if (!currentEmployee.isAdmin) {
       store = initialStore;
@@ -1488,120 +1814,19 @@
       store = document.getElementById('settlementStoreSelect').value;
       document.getElementById('settlementStoreSelect').disabled = false;
     }
-    
-    // Check if already settled before opening
+
     const todayStr = getLocalDateString(new Date());
     const alreadySettled = await checkSettlementStatus(store, todayStr);
     if (alreadySettled) {
       await showAlertModal('Settlement Already Done', 'Settlement has already been recorded for today. No further settlement allowed.');
       return;
     }
-    
+
     await refreshSettlementTotals(store);
     document.getElementById('settlementModal').style.display = 'flex';
   }
 
-  // Add change listener for store selector (admin only)
-  document.getElementById('settlementStoreSelect').addEventListener('change', async () => {
-    if (currentEmployee?.isAdmin) {
-      const newStore = document.getElementById('settlementStoreSelect').value;
-      await refreshSettlementTotals(newStore);
-    }
-  });
-
-  document.getElementById('settlementBtn').addEventListener('click', openSettlementModal);
-  document.getElementById('closeSettlementModal').addEventListener('click', () => document.getElementById('settlementModal').style.display = 'none');
-  document.getElementById('closeSettlementModalBtn').addEventListener('click', () => document.getElementById('settlementModal').style.display = 'none');
-
-  document.getElementById('checkSettlementBtn').addEventListener('click', async () => {
-    const actualCash = parseFloat(document.getElementById('actualCash').value);
-    const actualCard = parseFloat(document.getElementById('actualCard').value);
-    const actualQR = parseFloat(document.getElementById('actualQR').value);
-    const errors = [];
-    
-    // Validate numbers
-    if (isNaN(actualCash)) errors.push('Cash Count');
-    if (isNaN(actualCard)) errors.push('Card Settlement');
-    if (isNaN(actualQR)) errors.push('QR Settlement');
-    
-    if (errors.length > 0) {
-      document.getElementById('settlementError').innerText = `Please enter valid numbers for: ${errors.join(', ')}`;
-      document.getElementById('settlementError').style.display = 'block';
-      return;
-    }
-    
-    // Compare with system totals
-    const cashOk = Math.abs(actualCash - currentSettlementTotals.cash) < 0.01;
-    const cardOk = Math.abs(actualCard - currentSettlementTotals.card) < 0.01;
-    const qrOk = Math.abs(actualQR - currentSettlementTotals.qr) < 0.01;
-    
-    document.getElementById('actualCash').classList.toggle('error-field', !cashOk);
-    document.getElementById('actualCard').classList.toggle('error-field', !cardOk);
-    document.getElementById('actualQR').classList.toggle('error-field', !qrOk);
-    
-    if (cashOk && cardOk && qrOk) {
-      document.getElementById('settlementError').style.display = 'none';
-      // Disable all input fields (block editing)
-      setSettlementFieldsEnabled(false);
-      document.getElementById('checkSettlementBtn').style.display = 'none';
-      document.getElementById('recordSettlementBtn').style.display = 'block';
-      document.getElementById('recordSettlementBtn').disabled = false;
-    } else {
-      const errorMessages = [];
-      if (!cashOk) errorMessages.push(`Cash (System: RM ${currentSettlementTotals.cash.toFixed(2)}, Entered: RM ${actualCash.toFixed(2)})`);
-      if (!cardOk) errorMessages.push(`Card (System: RM ${currentSettlementTotals.card.toFixed(2)}, Entered: RM ${actualCard.toFixed(2)})`);
-      if (!qrOk) errorMessages.push(`QR (System: RM ${currentSettlementTotals.qr.toFixed(2)}, Entered: RM ${actualQR.toFixed(2)})`);
-      document.getElementById('settlementError').innerHTML = `❌ Mismatch in:<br>${errorMessages.join('<br>')}<br>Please correct and try again.`;
-      document.getElementById('settlementError').style.display = 'block';
-    }
-  });
-
-  document.getElementById('recordSettlementBtn').addEventListener('click', async () => {
-    const store = document.getElementById('settlementStoreSelect').value;
-    const pettyCash = parseFloat(document.getElementById('pettyCashFloat').value) || 0;
-    const actualCash = parseFloat(document.getElementById('actualCash').value);
-    const actualCard = parseFloat(document.getElementById('actualCard').value);
-    const actualQR = parseFloat(document.getElementById('actualQR').value);
-    
-    // Disable button to prevent double click
-    const recordBtn = document.getElementById('recordSettlementBtn');
-    recordBtn.disabled = true;
-    
-    try {
-      const formData = new URLSearchParams();
-      formData.append("action", "recordSettlement");
-      formData.append("employee_id", currentEmployee.id);
-      formData.append("employee_name", currentEmployee.name);
-      formData.append("store", store);
-      formData.append("petty_cash_float", pettyCash);
-      formData.append("date", getLocalDateString(new Date()));
-      formData.append("cash_system", currentSettlementTotals.cash);
-      formData.append("card_system", currentSettlementTotals.card);
-      formData.append("qr_system", currentSettlementTotals.qr);
-      formData.append("cash_actual", actualCash);
-      formData.append("card_actual", actualCard);
-      formData.append("qr_actual", actualQR);
-      
-      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
-      const result = await response.json();
-      if (result.success) {
-        await showAlertModal('Settlement Recorded', 'Settlement has been successfully recorded.');
-        // Refresh totals to disable UI
-        await refreshSettlementTotals(store);
-        document.getElementById('settlementModal').style.display = 'none';
-      } else {
-        await showAlertModal('Error', 'Failed to record settlement: ' + (result.error || 'Unknown error'));
-      }
-    } catch (err) {
-      console.error(err);
-      await showAlertModal('Error', 'Connection error while recording settlement.');
-    } finally {
-      hideLoading();
-      recordBtn.disabled = false;
-    }
-  });
-
-  // Cash Collection functions
+  // ==================== CASH COLLECTION ====================
   let currentUnsettledCash = [];
 
   async function openCollectionModal() {
@@ -1650,7 +1875,6 @@
       </tr>`;
     });
     tbody.innerHTML = html;
-    // Attach checkbox change listeners
     document.querySelectorAll('.collection-checkbox').forEach(cb => {
       cb.addEventListener('change', updateCollectionButtonState);
     });
@@ -1666,21 +1890,385 @@
     document.getElementById('collectSelectedBtn').disabled = !anyChecked;
   }
 
+  // ==================== PRINTER SETUP ====================
+  (function setupPrinter() {
+    let gattServer = null, printerCharacteristic = null, isConnected = false;
+    const connectBtn = document.getElementById('connectPrinterButton');
+    const printerStatusDiv = document.getElementById('printerStatus');
+    const openDrawerBtn = document.getElementById('openDrawerBtn');
+
+    function formatDateForReceipt(date) {
+      const d = date.getDate().toString().padStart(2, '0');
+      const m = (date.getMonth() + 1).toString().padStart(2, '0');
+      const y = date.getFullYear();
+      const h = date.getHours().toString().padStart(2, '0');
+      const min = date.getMinutes().toString().padStart(2, '0');
+      return `${d}/${m}/${y} ${h}:${min}`;
+    }
+
+    function generateReceiptData(transaction, openDrawer = false) {
+      const encoder = new TextEncoder();
+      const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
+      const lines = ['', '    ★ POS INVOICE ★', '-----------------------------', `Txn: ${transaction.transaction_id}`, `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`, `Employee: ${employeeName}`, '-----------------------------'];
+      let total = 0;
+      for (let item of transaction.items) {
+        const displayName = item.category ? `${item.category}: ${item.name}` : item.name;
+        lines.push(`${displayName} x${item.quantity}`, `  ${item.price.toFixed(2)} x ${item.quantity} = RM ${(item.price * item.quantity).toFixed(2)}`);
+        total += item.price * item.quantity;
+      }
+      lines.push('-----------------------------', `TOTAL: RM ${total.toFixed(2)}`, `Payment: ${transaction.payment_method}`);
+      if (transaction.cash_received) lines.push(`Cash: RM ${transaction.cash_received} | Change: RM ${(transaction.cash_received - total).toFixed(2)}`);
+      lines.push('-----------------------------', 'Thank you & come again!', '');
+      const text = lines.join('\n');
+      let commands = [];
+      commands.push(0x1B, 0x40);
+      commands.push(0x1B, 0x61, 0x01);
+      commands.push(...encoder.encode(text));
+      commands.push(0x1B, 0x64, 0x03);
+      commands.push(0x1D, 0x56, 0x41, 0x00);
+      if (openDrawer) {
+        const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
+        commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
+      }
+      return new Uint8Array(commands);
+    }
+
+    async function openCashDrawer() {
+      if (!isConnected || !printerCharacteristic) {
+        printerStatusDiv.innerText = '❌ Printer not connected';
+        return false;
+      }
+      try {
+        const drawerCommand = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]);
+        await printerCharacteristic.writeValue(drawerCommand);
+        printerStatusDiv.innerText = '💰 Drawer opened';
+        setTimeout(() => {
+          if (isConnected) printerStatusDiv.innerText = '✅ Printer ready';
+        }, 2000);
+        return true;
+      } catch (err) {
+        console.error(err);
+        printerStatusDiv.innerText = `❌ Drawer error`;
+        return false;
+      }
+    }
+
+    async function printReceipt(transaction) {
+      if (!isConnected || !printerCharacteristic) {
+        printerStatusDiv.innerText = '❌ Printer not connected';
+        return false;
+      }
+      try {
+        const openDrawer = (transaction.payment_method === 'Cash');
+        const data = generateReceiptData(transaction, openDrawer);
+        await printerCharacteristic.writeValue(data);
+        printerStatusDiv.innerText = '✅ Receipt printed';
+        return true;
+      } catch (err) {
+        console.error(err);
+        printerStatusDiv.innerText = `❌ Print error`;
+        return false;
+      }
+    }
+
+    async function connectPrinter() {
+      try {
+        printerStatusDiv.innerText = '🔍 Scanning...';
+        connectBtn.disabled = true;
+        const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] });
+        gattServer = await device.gatt.connect();
+        const services = await gattServer.getPrimaryServices();
+        let foundChar = null;
+        for (const service of services) {
+          const chars = await service.getCharacteristics();
+          for (const char of chars) {
+            if (char.properties.write || char.properties.writeWithoutResponse) {
+              foundChar = char;
+              break;
+            }
+          }
+          if (foundChar) break;
+        }
+        if (!foundChar) throw new Error('No writable characteristic');
+        printerCharacteristic = foundChar;
+        isConnected = true;
+        window.printerAPI.isConnected = true;
+        printerStatusDiv.innerText = '✅ Printer ready';
+        connectBtn.innerText = '🔌 Disconnect';
+        openDrawerBtn.disabled = false;
+      } catch (err) {
+        printerStatusDiv.innerText = `❌ ${err.message}`;
+        gattServer = null;
+        printerCharacteristic = null;
+      } finally {
+        connectBtn.disabled = false;
+      }
+    }
+
+    async function disconnectPrinter() {
+      if (gattServer) {
+        gattServer.disconnect();
+        gattServer = null;
+        printerCharacteristic = null;
+      }
+      isConnected = false;
+      window.printerAPI.isConnected = false;
+      printerStatusDiv.innerText = '⚪ Not connected';
+      connectBtn.innerText = '🖨️ Connect Printer';
+      openDrawerBtn.disabled = true;
+    }
+
+    connectBtn.addEventListener('click', () => {
+      if (!isConnected) connectPrinter();
+      else disconnectPrinter();
+    });
+    openDrawerBtn.addEventListener('click', async () => {
+      if (!isConnected) {
+        await showAlertModal('Printer not connected', 'Please connect a printer first.');
+        return;
+      }
+      await openCashDrawer();
+    });
+    window.printerAPI = { isConnected: false, printReceipt: printReceipt };
+  })();
+
+  // ==================== EVENT LISTENERS ====================
+  document.getElementById('confirmStoreBtn').addEventListener('click', () => {
+    initialStore = document.getElementById('initialStoreSelect').value;
+    currentStore = initialStore;
+    storeSelect.value = initialStore;
+    document.getElementById('storeSelectModal').style.display = 'none';
+    initialDataPromise = loadInitialData(); // start loading data in background
+    document.getElementById('loginModal').style.display = 'flex';
+    document.getElementById('pinInput').focus();
+  });
+
+  async function verifyEmployeeByPin(pin) {
+    showLoading('Verifying...');
+    try {
+      const url = `${APPS_SCRIPT_URL}?action=verifyByPin&pin=${encodeURIComponent(pin)}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        currentEmployee = result.employee;
+        document.getElementById('employeeName').innerText = currentEmployee.name;
+        document.getElementById('loginModal').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
+
+        if (initialDataPromise) await initialDataPromise; // wait for data if not ready
+        else await loadInitialData(); // fallback
+
+        if (!currentEmployee.isAdmin) {
+          storeSelect.disabled = true;
+        } else {
+          storeSelect.disabled = false;
+        }
+
+        const reportStoreFilter = document.getElementById('reportStoreFilterGroup');
+        const employeeFilterGroup = document.getElementById('employeeFilterGroup');
+        const storeChartContainer = document.getElementById('storeChartContainer');
+        const employeeChartContainer = document.getElementById('employeeChartContainer');
+        const collectionBtn = document.getElementById('collectionBtn');
+        if (currentEmployee.isAdmin) {
+          reportStoreFilter.style.display = 'flex';
+          employeeFilterGroup.style.display = 'flex';
+          storeChartContainer.style.display = 'block';
+          employeeChartContainer.style.display = 'block';
+          collectionBtn.style.display = 'flex';
+        } else {
+          reportStoreFilter.style.display = 'none';
+          employeeFilterGroup.style.display = 'none';
+          storeChartContainer.style.display = 'none';
+          employeeChartContainer.style.display = 'none';
+          collectionBtn.style.display = 'none';
+        }
+
+        const settlementStoreSelect = document.getElementById('settlementStoreSelect');
+        if (!currentEmployee.isAdmin) {
+          settlementStoreSelect.value = initialStore;
+          settlementStoreSelect.disabled = true;
+        } else {
+          settlementStoreSelect.disabled = false;
+        }
+
+        updateCartUI();
+        return true;
+      } else {
+        document.getElementById('loginError').innerText = result.error || 'Invalid PIN';
+        return false;
+      }
+    } catch (err) {
+      console.error(err);
+      document.getElementById('loginError').innerText = 'Connection error';
+      return false;
+    } finally {
+      hideLoading();
+    }
+  }
+
+  document.getElementById('reportsButton').addEventListener('click', async () => {
+    if (currentEmployee?.isAdmin) {
+      const employees = await fetchEmployees();
+      const adminReportEmpSelect = document.getElementById('adminReportEmployeeSelect');
+      const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
+      adminReportEmpSelect.innerHTML = '<option value="all">All Employees</option>';
+      receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
+      employees.forEach(emp => {
+        const opt1 = document.createElement('option'); opt1.value = emp.id; opt1.textContent = `${emp.name} (ID: ${emp.id})`;
+        const opt2 = document.createElement('option'); opt2.value = emp.id; opt2.textContent = `${emp.name} (ID: ${emp.id})`;
+        adminReportEmpSelect.appendChild(opt1);
+        receiptsEmpSelect.appendChild(opt2);
+      });
+      document.getElementById('receiptsEmployeeFilter').style.display = 'flex';
+    } else {
+      document.getElementById('receiptsEmployeeFilter').style.display = 'none';
+    }
+    populateStoreSelects();
+    const modal = document.getElementById('adminReportModal');
+    modal.style.display = 'flex';
+    setTimeout(() => updateAdminReport(), 200);
+  });
+
+  document.getElementById('closeAdminReportBtn').addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
+  document.getElementById('closeAdminReportModal').addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
+  document.getElementById('adminReportStoreSelect').addEventListener('change', updateAdminReport);
+  document.getElementById('adminReportEmployeeSelect').addEventListener('change', updateAdminReport);
+  document.getElementById('adminReportDateRangeSelect').addEventListener('change', (e) => {
+    document.getElementById('adminReportCustomDateRange').style.display = e.target.value === 'custom' ? 'flex' : 'none';
+    updateAdminReport();
+  });
+  document.getElementById('adminReportFromDate').addEventListener('change', updateAdminReport);
+  document.getElementById('adminReportToDate').addEventListener('change', updateAdminReport);
+
+  document.getElementById('receiptsButton').addEventListener('click', async () => {
+    if (currentEmployee?.isAdmin) {
+      const employees = await fetchEmployees();
+      const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
+      receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
+      employees.forEach(emp => {
+        const opt = document.createElement('option'); opt.value = emp.id; opt.textContent = `${emp.name} (ID: ${emp.id})`;
+        receiptsEmpSelect.appendChild(opt);
+      });
+      document.getElementById('receiptsEmployeeFilter').style.display = 'flex';
+    } else {
+      document.getElementById('receiptsEmployeeFilter').style.display = 'none';
+    }
+    populateStoreSelects();
+    document.getElementById('receiptsModal').style.display = 'flex';
+    updateReceipts();
+  });
+
+  document.getElementById('closeReceiptsBtn').addEventListener('click', () => document.getElementById('receiptsModal').style.display = 'none');
+  document.getElementById('closeReceiptsModal').addEventListener('click', () => document.getElementById('receiptsModal').style.display = 'none');
+  document.getElementById('receiptsStoreSelect').addEventListener('change', updateReceipts);
+  document.getElementById('receiptsEmployeeSelect').addEventListener('change', updateReceipts);
+  document.getElementById('receiptsDateRangeSelect').addEventListener('change', (e) => {
+    document.getElementById('receiptsCustomDateRange').style.display = e.target.value === 'custom' ? 'flex' : 'none';
+    updateReceipts();
+  });
+  document.getElementById('receiptsFromDate').addEventListener('change', updateReceipts);
+  document.getElementById('receiptsToDate').addEventListener('change', updateReceipts);
+  document.getElementById('receiptsSearch').addEventListener('input', updateReceipts);
+
+  document.getElementById('settlementBtn').addEventListener('click', openSettlementModal);
+  document.getElementById('closeSettlementModal').addEventListener('click', () => document.getElementById('settlementModal').style.display = 'none');
+  document.getElementById('closeSettlementModalBtn').addEventListener('click', () => document.getElementById('settlementModal').style.display = 'none');
+  document.getElementById('settlementStoreSelect').addEventListener('change', async () => {
+    if (currentEmployee?.isAdmin) {
+      const newStore = document.getElementById('settlementStoreSelect').value;
+      await refreshSettlementTotals(newStore);
+    }
+  });
+
+  document.getElementById('checkSettlementBtn').addEventListener('click', async () => {
+    const actualCash = parseFloat(document.getElementById('actualCash').value);
+    const actualCard = parseFloat(document.getElementById('actualCard').value);
+    const actualQR = parseFloat(document.getElementById('actualQR').value);
+    const errors = [];
+    if (isNaN(actualCash)) errors.push('Cash Count');
+    if (isNaN(actualCard)) errors.push('Card Settlement');
+    if (isNaN(actualQR)) errors.push('QR Settlement');
+    if (errors.length > 0) {
+      document.getElementById('settlementError').innerText = `Please enter valid numbers for: ${errors.join(', ')}`;
+      document.getElementById('settlementError').style.display = 'block';
+      return;
+    }
+    const cashOk = Math.abs(actualCash - currentSettlementTotals.cash) < 0.01;
+    const cardOk = Math.abs(actualCard - currentSettlementTotals.card) < 0.01;
+    const qrOk = Math.abs(actualQR - currentSettlementTotals.qr) < 0.01;
+    document.getElementById('actualCash').classList.toggle('error-field', !cashOk);
+    document.getElementById('actualCard').classList.toggle('error-field', !cardOk);
+    document.getElementById('actualQR').classList.toggle('error-field', !qrOk);
+    if (cashOk && cardOk && qrOk) {
+      document.getElementById('settlementError').style.display = 'none';
+      setSettlementFieldsEnabled(false);
+      document.getElementById('checkSettlementBtn').style.display = 'none';
+      document.getElementById('recordSettlementBtn').style.display = 'block';
+      document.getElementById('recordSettlementBtn').disabled = false;
+    } else {
+      const errorMessages = [];
+      if (!cashOk) errorMessages.push(`Cash (System: RM ${currentSettlementTotals.cash.toFixed(2)}, Entered: RM ${actualCash.toFixed(2)})`);
+      if (!cardOk) errorMessages.push(`Card (System: RM ${currentSettlementTotals.card.toFixed(2)}, Entered: RM ${actualCard.toFixed(2)})`);
+      if (!qrOk) errorMessages.push(`QR (System: RM ${currentSettlementTotals.qr.toFixed(2)}, Entered: RM ${actualQR.toFixed(2)})`);
+      document.getElementById('settlementError').innerHTML = `❌ Mismatch in:<br>${errorMessages.join('<br>')}<br>Please correct and try again.`;
+      document.getElementById('settlementError').style.display = 'block';
+    }
+  });
+
+  document.getElementById('recordSettlementBtn').addEventListener('click', async () => {
+    const store = document.getElementById('settlementStoreSelect').value;
+    const pettyCash = parseFloat(document.getElementById('pettyCashFloat').value) || 0;
+    const actualCash = parseFloat(document.getElementById('actualCash').value);
+    const actualCard = parseFloat(document.getElementById('actualCard').value);
+    const actualQR = parseFloat(document.getElementById('actualQR').value);
+    const recordBtn = document.getElementById('recordSettlementBtn');
+    recordBtn.disabled = true;
+    showLoading('Recording settlement...');
+    try {
+      const formData = new URLSearchParams();
+      formData.append("action", "recordSettlement");
+      formData.append("employee_id", currentEmployee.id);
+      formData.append("employee_name", currentEmployee.name);
+      formData.append("store", store);
+      formData.append("petty_cash_float", pettyCash);
+      formData.append("date", getLocalDateString(new Date()));
+      formData.append("cash_system", currentSettlementTotals.cash);
+      formData.append("card_system", currentSettlementTotals.card);
+      formData.append("qr_system", currentSettlementTotals.qr);
+      formData.append("cash_actual", actualCash);
+      formData.append("card_actual", actualCard);
+      formData.append("qr_actual", actualQR);
+      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+      const result = await response.json();
+      if (result.success) {
+        await showAlertModal('Settlement Recorded', 'Settlement has been successfully recorded.');
+        await refreshSettlementTotals(store);
+        document.getElementById('settlementModal').style.display = 'none';
+      } else {
+        await showAlertModal('Error', 'Failed to record settlement: ' + (result.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error(err);
+      await showAlertModal('Error', 'Connection error while recording settlement.');
+    } finally {
+      hideLoading();
+      recordBtn.disabled = false;
+    }
+  });
+
+  document.getElementById('collectionBtn').addEventListener('click', openCollectionModal);
+  document.getElementById('closeCollectionModal').addEventListener('click', () => document.getElementById('collectionModal').style.display = 'none');
+  document.getElementById('closeCollectionModalBtn').addEventListener('click', () => document.getElementById('collectionModal').style.display = 'none');
+  document.getElementById('collectionStoreSelect').addEventListener('change', loadUnsettledCash);
   document.getElementById('selectAllCheckbox').addEventListener('change', (e) => {
     const checkboxes = document.querySelectorAll('.collection-checkbox');
     checkboxes.forEach(cb => cb.checked = e.target.checked);
     updateCollectionButtonState();
   });
-
-  document.getElementById('collectionStoreSelect').addEventListener('change', () => {
-    loadUnsettledCash();
-  });
-
   document.getElementById('collectSelectedBtn').addEventListener('click', async () => {
     const selectedIds = Array.from(document.querySelectorAll('.collection-checkbox:checked')).map(cb => cb.value);
     if (selectedIds.length === 0) return;
-    
-    
+    showLoading('Marking as collected...');
     try {
       const formData = new URLSearchParams();
       formData.append("action", "markCashCollected");
@@ -1691,7 +2279,7 @@
       const result = await response.json();
       if (result.success) {
         await showAlertModal('Success', `${selectedIds.length} cash record(s) marked as collected.`);
-        await loadUnsettledCash(); // refresh list
+        await loadUnsettledCash();
       } else {
         await showAlertModal('Error', 'Failed to mark as collected: ' + (result.error || 'Unknown error'));
       }
@@ -1703,247 +2291,60 @@
     }
   });
 
-  document.getElementById('collectionBtn').addEventListener('click', openCollectionModal);
-  document.getElementById('closeCollectionModal').addEventListener('click', () => document.getElementById('collectionModal').style.display = 'none');
-  document.getElementById('closeCollectionModalBtn').addEventListener('click', () => document.getElementById('collectionModal').style.display = 'none');
-
-  // Receipts
-  async function fetchReceipts(store, employeeId, from, to, search) {
-    showLoading('Loading receipts...');
-    try {
-      let url = `${APPS_SCRIPT_URL}?action=getReceipts&store=${store}&employeeId=${employeeId}`;
-      if (from) url += `&from=${encodeURIComponent(from)}`;
-      if (to) url += `&to=${encodeURIComponent(to)}`;
-      if (search) url += `&search=${encodeURIComponent(search)}`;
-      const response = await fetch(url);
-      const result = await response.json();
-      if (result.success) renderReceiptsList(result.receipts);
-      else throw new Error('Receipts data error');
-    } catch (err) { console.error(err); await showAlertModal('Error', 'Failed to load receipts.'); } finally { hideLoading(); }
-  }
-
-  function renderReceiptsList(receipts) {
-    const container = document.getElementById('receiptsList');
-    if (!receipts.length) { container.innerHTML = '<div style="text-align:center; padding:30px;">No receipts found.</div>'; return; }
-    let html = '';
-    receipts.forEach(rec => {
-      const date = new Date(rec.timestamp).toLocaleString();
-      const itemsSummary = rec.items.map(i => {
-        const displayName = i.category ? `${i.category}: ${i.name}` : i.name;
-        return `${displayName} x${i.quantity}`;
-      }).join(', ');
-      const employeeName = getEmployeeName(rec.employee_id);
-      html += `<div class="receipt-item" data-receipt='${JSON.stringify(rec)}'><div class="receipt-header"><span class="receipt-id">${rec.transaction_id}</span><span class="receipt-date">${date}</span><span class="receipt-total">RM ${rec.total.toFixed(2)}</span></div><div class="receipt-details"><div>Store: ${rec.store} | Payment: ${rec.payment_method} | Employee: ${employeeName}</div><div>Items: ${itemsSummary}</div></div><div class="receipt-actions"><button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>🖨️ Reprint</button><button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button></div></div>`;
-    });
-    container.innerHTML = html;
-    document.querySelectorAll('.reprint-btn').forEach(btn => { btn.addEventListener('click', (e) => { reprintReceipt(JSON.parse(btn.dataset.receipt)); e.stopPropagation(); }); });
-    document.querySelectorAll('.lucky-btn').forEach(btn => { btn.addEventListener('click', (e) => { openLuckyDraw(btn.dataset.txid); e.stopPropagation(); }); });
-  }
-
-  async function reprintReceipt(receipt) {
-    if (!window.printerAPI || !window.printerAPI.isConnected) { await showAlertModal('Printer required', 'Connect Bluetooth printer first.'); return; }
-    const success = await window.printerAPI.printReceipt(receipt);
-    if (success) await showAlertModal('Reprint', `Receipt ${receipt.transaction_id} sent to printer.`);
-    else await showAlertModal('Error', 'Print failed.');
-  }
-
-  function openLuckyDraw(transactionId) { window.open(`https://teohmarcus584.github.io/LUCKYDRAW/?receipt=${encodeURIComponent(transactionId)}`, '_blank'); }
-
-  // Cart functions
-  function updateCartUI() {
-    if (!cartContainer) return;
-    if (cart.length === 0) { cartContainer.innerHTML = '<div style="color:#94a3b8; text-align:center;">Cart is empty</div>'; subtotalSpan.innerText = `RM 0.00`; totalSpan.innerText = `RM 0.00`; return; }
-    let html = '', subtotal = 0;
-    cart.forEach((item, idx) => {
-      const itemTotal = item.product.price * item.quantity;
-      subtotal += itemTotal;
-      const categoryDisplay = item.product.category ? `<div class="cart-item-category">${escapeHtml(item.product.category)}</div>` : '';
-      html += `<div class="cart-item">
-        <div class="cart-item-info">
-          <div class="cart-item-name">${escapeHtml(item.product.name)}</div>
-          ${categoryDisplay}
-          <div class="cart-item-price">RM ${item.product.price.toFixed(2)}</div>
-        </div>
-        <div class="cart-item-qty">
-          <button class="qty-btn" data-index="${idx}" data-delta="-1">−</button>
-          <span>${item.quantity}</span>
-          <button class="qty-btn" data-index="${idx}" data-delta="1">+</button>
-        </div>
-        <div class="cart-item-total">RM ${itemTotal.toFixed(2)}</div>
-        <button class="remove-item" data-index="${idx}">✕</button>
-      </div>`;
-    });
-    cartContainer.innerHTML = html;
-    subtotalSpan.innerText = `RM ${subtotal.toFixed(2)}`;
-    totalSpan.innerText = `RM ${subtotal.toFixed(2)}`;
-    document.querySelectorAll('.qty-btn').forEach(btn => { btn.addEventListener('click', (e) => { const idx = parseInt(btn.dataset.index), delta = parseInt(btn.dataset.delta); if (!isNaN(idx) && !isNaN(delta)) updateQuantity(idx, delta); e.stopPropagation(); }); });
-    document.querySelectorAll('.remove-item').forEach(btn => { btn.addEventListener('click', (e) => { const idx = parseInt(btn.dataset.index); if (!isNaN(idx)) removeCartItem(idx); e.stopPropagation(); }); });
-  }
-
-  function updateQuantity(index, delta) {
-    const item = cart[index];
-    if (!item) return;
-    const newQty = item.quantity + delta;
-    if (newQty <= 0) cart.splice(index, 1);
-    else {
-      const productStock = item.product.stock;
-      if (newQty > productStock && productStock !== undefined) { showAlertModal('Stock limit', `Only ${productStock} left in stock.`); return; }
-      item.quantity = newQty;
-    }
-    updateCartUI();
-  }
-
-  function removeCartItem(index) { cart.splice(index, 1); updateCartUI(); }
-  function addToCart(product) {
-    if (product.stock <= 0) { showAlertModal('Out of Stock', `${product.name} is out of stock.`); return; }
-    const existing = cart.find(item => item.product.id === product.id);
-    if (existing) { if (existing.quantity + 1 > product.stock) { showAlertModal('Stock limit', `Cannot add more than ${product.stock} units.`); return; } existing.quantity += 1; }
-    else cart.push({ product: { ...product }, quantity: 1 });
-    updateCartUI();
-  }
-  function clearCart() { if (cart.length === 0) return; cart = []; updateCartUI(); }
-
-  async function startCheckout() {
-    if (cart.length === 0) { await showAlertModal('Empty Cart', 'No items to checkout.'); return; }
-    for (let item of cart) { const originalProduct = products.find(p => p.id === item.product.id); if (!originalProduct || originalProduct.stock < item.quantity) { await showAlertModal('Stock changed', `${item.product.name} stock insufficient. Please refresh products and adjust cart.`); return; } }
-    const totalAmount = cart.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
-    pendingTransaction = { totalAmount };
-    showPaymentModal(totalAmount);
-  }
-
-  function showPaymentModal(totalAmount) {
-    const modal = document.getElementById('paymentModal'), cashOptionsDiv = document.getElementById('cashOptions'), otherOptionsDiv = document.getElementById('otherPaymentOptions'), suggestionsContainer = document.getElementById('suggestionsContainer');
-    cashOptionsDiv.style.display = 'none'; otherOptionsDiv.style.display = 'none'; modal.style.display = 'flex';
-    const paymentBtns = document.querySelectorAll('.payment-btn');
-    paymentBtns.forEach(btn => {
-      btn.classList.remove('selected');
-      btn.addEventListener('click', () => {
-        paymentBtns.forEach(b => b.classList.remove('selected'));
-        btn.classList.add('selected');
-        if (btn.dataset.method === 'Cash') {
-          cashOptionsDiv.style.display = 'block'; otherOptionsDiv.style.display = 'none';
-          
-          // Generate suggestion amounts: nearest round-up to 10 or 50, plus common values
-          const suggestions = new Set();
-          // Add common denominations
-          [100, 50, 20, 10].forEach(amt => { if (amt >= totalAmount) suggestions.add(amt); });
-          // Add round-up to next 10
-          const roundedUp10 = Math.ceil(totalAmount / 10) * 10;
-          if (roundedUp10 >= totalAmount) suggestions.add(roundedUp10);
-          // Add round-up to next 50
-          const roundedUp50 = Math.ceil(totalAmount / 50) * 50;
-          if (roundedUp50 >= totalAmount) suggestions.add(roundedUp50);
-          // Also add totalAmount itself as an option
-          suggestions.add(totalAmount);
-          
-          suggestionsContainer.innerHTML = '';
-          Array.from(suggestions).sort((a,b) => a-b).forEach(amt => {
-            const btn = document.createElement('button');
-            btn.className = 'suggestion-btn';
-            btn.innerText = `RM ${amt.toFixed(2)}`;
-            btn.onclick = () => { document.getElementById('customCashInput').value = amt.toFixed(2); };
-            suggestionsContainer.appendChild(btn);
-          });
-          document.getElementById('customCashInput').value = '';
-        } else {
-          cashOptionsDiv.style.display = 'none'; otherOptionsDiv.style.display = 'block';
-        }
-      });
-    });
-    document.getElementById('confirmCashBtn').onclick = async () => {
-      const cashVal = parseFloat(document.getElementById('customCashInput').value);
-      if (isNaN(cashVal) || cashVal < totalAmount) { await showAlertModal('Invalid', `Cash amount must be at least RM ${totalAmount.toFixed(2)}`); return; }
-      await showAlertModal('Change', `Change: RM ${(cashVal - totalAmount).toFixed(2)}`);
-      completeCheckout('Cash', cashVal);
-    };
-    document.getElementById('confirmOtherBtn').onclick = () => { const selected = document.querySelector('.payment-btn.selected'); if (!selected) { showAlertModal('Error', 'Please select a payment method.'); return; } completeCheckout(selected.dataset.method, null); };
-    document.getElementById('cancelPaymentBtn').onclick = () => modal.style.display = 'none';
-    document.getElementById('cancelOtherBtn').onclick = () => modal.style.display = 'none';
-    document.getElementById('closePaymentModal').onclick = () => modal.style.display = 'none';
-  }
-
-  async function completeCheckout(paymentMethod, cashReceived) {
-    document.getElementById('paymentModal').style.display = 'none';
-    const totalAmount = pendingTransaction.totalAmount;
-    const transactionId = `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    const saleItems = cart.map(item => ({ 
-      id: item.product.id, 
-      category: item.product.category,
-      name: item.product.name, 
-      price: item.product.price, 
-      quantity: item.quantity, 
-      total: item.product.price * item.quantity 
-    }));
-    const transaction = { transaction_id: transactionId, items: saleItems, total: totalAmount, payment_method: paymentMethod, cash_received: cashReceived, timestamp: new Date().toISOString() };
-    const success = await saveTransactionToSheet(transaction);
-    if (success) {
-      // Clear product cache for current store
-      localStorage.removeItem(`products_${currentStore}`);
-      
-      // Print receipt if printer connected
-      if (window.printerAPI?.isConnected && window.printerAPI.printReceipt) {
-        const transactionWithName = { ...transaction, employee_name: currentEmployee.name };
-        await window.printerAPI.printReceipt(transactionWithName);
-      } else {
-        await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
-      }
-      await showAlertModal('✅ Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
-      document.getElementById('luckyTxId').innerText = transactionId;
-      const luckyModal = document.getElementById('luckyDrawModal');
-      luckyModal.style.display = 'flex';
-      document.getElementById('openLuckyDrawBtn').onclick = () => { openLuckyDraw(transactionId); luckyModal.style.display = 'none'; };
-      document.getElementById('closeLuckyDrawBtn').onclick = () => luckyModal.style.display = 'none';
-      document.getElementById('closeLuckyDrawModal').onclick = () => luckyModal.style.display = 'none';
+  storeSelect.addEventListener('change', async () => {
+    if (!storeSelect.disabled) {
+      currentStore = storeSelect.value;
       await fetchProductsFromSheet();
       clearCart();
-    } else await showAlertModal('Error', 'Failed to record sale. Check network / Apps Script.');
-  }
+    }
+  });
+  document.getElementById('checkoutBtn').addEventListener('click', startCheckout);
+  document.getElementById('clearCartBtn').addEventListener('click', clearCart);
+  document.getElementById('refreshProductsBtn').addEventListener('click', () => {
+    localStorage.removeItem(`products_${currentStore}`);
+    fetchProductsFromSheet();
+  });
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => renderProductGrid(), 300);
+  });
+  categorySelect.addEventListener('change', renderProductGrid);
+  document.getElementById('logoutButton').addEventListener('click', () => {
+    currentEmployee = null;
+    document.getElementById('mainContent').style.display = 'none';
+    document.getElementById('loginModal').style.display = 'flex';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('loginError').innerText = '';
+    cart = [];
+    products = [];
+  });
+  document.getElementById('closeLoginModal').addEventListener('click', () => {});
+  document.getElementById('gridViewBtn').addEventListener('click', () => setViewMode('grid'));
+  document.getElementById('listViewBtn').addEventListener('click', () => setViewMode('list'));
 
-  function renderProductGrid() {
-    const searchTerm = searchInput.value.toLowerCase();
-    const selectedCategory = categorySelect.value;
-    let filtered = products;
-    if (selectedCategory !== 'all') filtered = filtered.filter(p => p.category === selectedCategory);
-    if (searchTerm) filtered = filtered.filter(p => p.name.toLowerCase().includes(searchTerm));
-    if (filtered.length === 0) { productGridEl.innerHTML = '<div style="text-align:center; padding:20px;">No products found</div>'; return; }
-    let html = '';
-    filtered.forEach(prod => {
-      const stockStatus = prod.stock > 0 ? `📦 Stock: ${prod.stock}` : '❌ Out of stock';
-      html += `<div class="product-card">
-        <div class="product-name">${escapeHtml(prod.name)}</div>
-        <div class="product-price">RM ${prod.price.toFixed(2)}</div>
-        <div class="product-stock">${stockStatus}</div>
-        <button class="add-btn" data-id="${prod.id}" ${prod.stock <= 0 ? 'disabled' : ''}>+ Add to cart</button>
-      </div>`;
+  const pinInput = document.getElementById('pinInput');
+  document.querySelectorAll('.keypad-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.digit && pinInput.value.length < 4) pinInput.value += btn.dataset.digit;
+      else if (btn.dataset.action === 'clear') pinInput.value = pinInput.value.slice(0, -1);
+      else if (btn.dataset.action === 'enter' && pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value);
+      else if (btn.dataset.action === 'enter') document.getElementById('loginError').innerText = 'Please enter 4-digit PIN';
     });
-    productGridEl.innerHTML = html;
-    productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
-    document.querySelectorAll('.add-btn').forEach(btn => { btn.addEventListener('click', (e) => { const product = products.find(p => p.id == btn.dataset.id); if (product && product.stock > 0) addToCart(product); e.stopPropagation(); }); });
-  }
+  });
+  pinInput.addEventListener('input', () => {
+    if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value);
+  });
 
-  function setViewMode(mode) {
-    viewMode = mode;
-    document.getElementById('gridViewBtn').classList.toggle('active', mode === 'grid');
-    document.getElementById('listViewBtn').classList.toggle('active', mode === 'list');
-    renderProductGrid();
-  }
-
-  function escapeHtml(str) { return String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
-
-  async function populateEmployeeSelects() {
-    if (!currentEmployee?.isAdmin) return;
-    const employees = await fetchEmployees();
-    const adminReportEmpSelect = document.getElementById('adminReportEmployeeSelect');
-    const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
-    adminReportEmpSelect.innerHTML = '<option value="all">All Employees</option>';
-    receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
-    employees.forEach(emp => {
-      const opt1 = document.createElement('option'); opt1.value = emp.id; opt1.textContent = `${emp.name} (ID: ${emp.id})`;
-      const opt2 = document.createElement('option'); opt2.value = emp.id; opt2.textContent = `${emp.name} (ID: ${emp.id})`;
-      adminReportEmpSelect.appendChild(opt1);
-      receiptsEmpSelect.appendChild(opt2);
-    });
-    document.getElementById('receiptsEmployeeFilter').style.display = currentEmployee.isAdmin ? 'flex' : 'none';
+  // Helper for select population
+  async function fetchEmployees() {
+    try {
+      const response = await fetch(`${APPS_SCRIPT_URL}?action=getEmployees`);
+      const result = await response.json();
+      return result.success ? result.employees : [];
+    } catch (err) {
+      console.error(err);
+      return [];
+    }
   }
 
   function populateStoreSelects() {
@@ -1951,7 +2352,9 @@
     const receiptsStore = document.getElementById('receiptsStoreSelect');
     receiptsStore.innerHTML = '<option value="all">All Stores</option>';
     stores.forEach(s => {
-      const opt = document.createElement('option'); opt.value = s.value; opt.textContent = s.text;
+      const opt = document.createElement('option');
+      opt.value = s.value;
+      opt.textContent = s.text;
       receiptsStore.appendChild(opt);
     });
   }
@@ -1990,23 +2393,6 @@
     fetchReceipts(store, employeeId, from, to, search);
   }
 
-  // Event listeners
-  document.getElementById('reportsButton').addEventListener('click', async () => {
-    await populateEmployeeSelects();
-    populateStoreSelects();
-    const modal = document.getElementById('adminReportModal');
-    modal.style.display = 'flex';
-    setTimeout(() => { updateAdminReport(); }, 200);
-  });
-  document.getElementById('closeAdminReportBtn').addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
-  document.getElementById('closeAdminReportModal').addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
-  document.getElementById('adminReportStoreSelect').addEventListener('change', updateAdminReport);
-  document.getElementById('adminReportEmployeeSelect').addEventListener('change', updateAdminReport);
-  document.getElementById('adminReportDateRangeSelect').addEventListener('change', (e) => { document.getElementById('adminReportCustomDateRange').style.display = e.target.value === 'custom' ? 'flex' : 'none'; updateAdminReport(); });
-  document.getElementById('adminReportFromDate').addEventListener('change', updateAdminReport);
-  document.getElementById('adminReportToDate').addEventListener('change', updateAdminReport);
-
-  // Toggle product details visibility
   const toggleBtn = document.getElementById('toggleProductDetailsBtn');
   const productDetailsContainer = document.getElementById('productDetailsContainer');
   toggleBtn.addEventListener('click', () => {
@@ -2014,214 +2400,12 @@
     if (productDetailsVisible) {
       productDetailsContainer.style.display = 'block';
       toggleBtn.innerText = '📦 Hide Product Details';
-      if (lastProductData) {
-        renderProductDetails(lastProductData);
-      }
+      if (lastProductData) renderProductDetails(lastProductData);
     } else {
       productDetailsContainer.style.display = 'none';
       toggleBtn.innerText = '📦 Show Product Details';
     }
   });
-
-  document.getElementById('receiptsButton').addEventListener('click', async () => { if (currentEmployee?.isAdmin) await populateEmployeeSelects(); populateStoreSelects(); document.getElementById('receiptsModal').style.display = 'flex'; updateReceipts(); });
-  document.getElementById('closeReceiptsBtn').addEventListener('click', () => document.getElementById('receiptsModal').style.display = 'none');
-  document.getElementById('closeReceiptsModal').addEventListener('click', () => document.getElementById('receiptsModal').style.display = 'none');
-  document.getElementById('receiptsStoreSelect').addEventListener('change', updateReceipts);
-  document.getElementById('receiptsEmployeeSelect').addEventListener('change', updateReceipts);
-  document.getElementById('receiptsDateRangeSelect').addEventListener('change', (e) => { document.getElementById('receiptsCustomDateRange').style.display = e.target.value === 'custom' ? 'flex' : 'none'; updateReceipts(); });
-  document.getElementById('receiptsFromDate').addEventListener('change', updateReceipts);
-  document.getElementById('receiptsToDate').addEventListener('change', updateReceipts);
-  document.getElementById('receiptsSearch').addEventListener('input', updateReceipts);
-
-  storeSelect.addEventListener('change', async () => { 
-    if (!storeSelect.disabled) {
-      currentStore = storeSelect.value; 
-      await fetchProductsFromSheet(); 
-      clearCart(); 
-    }
-  });
-  document.getElementById('checkoutBtn').addEventListener('click', startCheckout);
-  document.getElementById('clearCartBtn').addEventListener('click', clearCart);
-  document.getElementById('refreshProductsBtn').addEventListener('click', () => {
-    localStorage.removeItem(`products_${currentStore}`);
-    fetchProductsFromSheet();
-  });
-
-  // Debounced search input
-  searchInput.addEventListener('input', () => {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => renderProductGrid(), 300);
-  });
-  categorySelect.addEventListener('change', renderProductGrid);
-
-  document.getElementById('logoutButton').addEventListener('click', () => { currentEmployee = null; document.getElementById('mainContent').style.display = 'none'; document.getElementById('loginModal').style.display = 'flex'; document.getElementById('pinInput').value = ''; document.getElementById('loginError').innerText = ''; cart = []; products = []; });
-  document.getElementById('closeLoginModal').addEventListener('click', () => { /* optional */ });
-
-  document.getElementById('gridViewBtn').addEventListener('click', () => setViewMode('grid'));
-  document.getElementById('listViewBtn').addEventListener('click', () => setViewMode('list'));
-
-  const pinInput = document.getElementById('pinInput');
-  document.querySelectorAll('.keypad-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (btn.dataset.digit && pinInput.value.length < 4) pinInput.value += btn.dataset.digit;
-      else if (btn.dataset.action === 'clear') pinInput.value = pinInput.value.slice(0, -1);
-      else if (btn.dataset.action === 'enter' && pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value);
-      else if (btn.dataset.action === 'enter') document.getElementById('loginError').innerText = 'Please enter 4-digit PIN';
-    });
-  });
-  pinInput.addEventListener('input', () => { if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value); });
-
-  // Printer setup with cash drawer support and receipt cut, plus open drawer button
-  (function setupPrinter() {
-    let gattServer = null, printerCharacteristic = null, isConnected = false;
-    const connectBtn = document.getElementById('connectPrinterButton'), printerStatusDiv = document.getElementById('printerStatus');
-    const openDrawerBtn = document.getElementById('openDrawerBtn');
-    
-    function formatDateForReceipt(date) { const d = date.getDate().toString().padStart(2,'0'), m = (date.getMonth()+1).toString().padStart(2,'0'), y = date.getFullYear(), h = date.getHours().toString().padStart(2,'0'), min = date.getMinutes().toString().padStart(2,'0'); return `${d}/${m}/${y} ${h}:${min}`; }
-    
-    // Generate receipt data with optional cash drawer open
-    function generateReceiptData(transaction, openDrawer = false) {
-      const encoder = new TextEncoder();
-      const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
-      const lines = ['', '    ★ POS INVOICE ★', '-----------------------------', `Txn: ${transaction.transaction_id}`, `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`, `Employee: ${employeeName}`, '-----------------------------'];
-      let total = 0;
-      for (let item of transaction.items) {
-        const displayName = item.category ? `${item.category}: ${item.name}` : item.name;
-        lines.push(`${displayName} x${item.quantity}`, `  ${item.price.toFixed(2)} x ${item.quantity} = RM ${(item.price * item.quantity).toFixed(2)}`);
-        total += item.price * item.quantity;
-      }
-      lines.push('-----------------------------', `TOTAL: RM ${total.toFixed(2)}`, `Payment: ${transaction.payment_method}`);
-      if (transaction.cash_received) lines.push(`Cash: RM ${transaction.cash_received} | Change: RM ${(transaction.cash_received - total).toFixed(2)}`);
-      lines.push('-----------------------------', 'Thank you & come again!', '');
-      const text = lines.join('\n');
-      
-      // Build command array
-      let commands = [];
-      // Initialize printer (ESC @)
-      commands.push(0x1B, 0x40);
-      // Align center (ESC a 1)
-      commands.push(0x1B, 0x61, 0x01);
-      // Add text
-      commands.push(...encoder.encode(text));
-      // Feed 3 lines (ESC d 3)
-      commands.push(0x1B, 0x64, 0x03);
-      // Full cut (GS V A 0)
-      commands.push(0x1D, 0x56, 0x41, 0x00);
-      
-      // If cash transaction, add cash drawer kick command BEFORE the cut
-      if (openDrawer) {
-        // Standard ESC/POS cash drawer kick: ESC p m t1 t2
-        // m=0, t1=0x19, t2=0xFA (pulse 25ms on, 250ms off)
-        const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
-        // Insert drawer command before the cut (the last 4 bytes)
-        commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
-      }
-      
-      return new Uint8Array(commands);
-    }
-    
-    // Open cash drawer only (no receipt)
-    async function openCashDrawer() {
-      if (!isConnected || !printerCharacteristic) {
-        printerStatusDiv.innerText = '❌ Printer not connected';
-        return false;
-      }
-      try {
-        // Just send the drawer kick command
-        const drawerCommand = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]);
-        await printerCharacteristic.writeValue(drawerCommand);
-        printerStatusDiv.innerText = '💰 Drawer opened';
-        setTimeout(() => {
-          if (isConnected) printerStatusDiv.innerText = '✅ Printer ready';
-        }, 2000);
-        return true;
-      } catch (err) {
-        console.error(err);
-        printerStatusDiv.innerText = `❌ Drawer error`;
-        return false;
-      }
-    }
-    
-    async function printReceipt(transaction) { 
-      if (!isConnected || !printerCharacteristic) { 
-        printerStatusDiv.innerText = '❌ Printer not connected'; 
-        return false; 
-      } 
-      try {
-        const openDrawer = (transaction.payment_method === 'Cash');
-        const data = generateReceiptData(transaction, openDrawer);
-        await printerCharacteristic.writeValue(data); 
-        printerStatusDiv.innerText = '✅ Receipt printed'; 
-        return true; 
-      } catch (err) { 
-        console.error(err); 
-        printerStatusDiv.innerText = `❌ Print error`; 
-        return false; 
-      } 
-    }
-    
-    async function connectPrinter() { 
-      try { 
-        printerStatusDiv.innerText = '🔍 Scanning...'; 
-        connectBtn.disabled = true; 
-        const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] }); 
-        gattServer = await device.gatt.connect(); 
-        const services = await gattServer.getPrimaryServices(); 
-        let foundChar = null; 
-        for (const service of services) { 
-          const chars = await service.getCharacteristics(); 
-          for (const char of chars) { 
-            if (char.properties.write || char.properties.writeWithoutResponse) { 
-              foundChar = char; 
-              break; 
-            } 
-          } 
-          if (foundChar) break; 
-        } 
-        if (!foundChar) throw new Error('No writable characteristic'); 
-        printerCharacteristic = foundChar; 
-        isConnected = true; 
-        window.printerAPI.isConnected = true; 
-        printerStatusDiv.innerText = '✅ Printer ready'; 
-        connectBtn.innerText = '🔌 Disconnect';
-        openDrawerBtn.disabled = false;
-      } catch (err) { 
-        printerStatusDiv.innerText = `❌ ${err.message}`; 
-        gattServer = null; 
-        printerCharacteristic = null; 
-      } finally { 
-        connectBtn.disabled = false; 
-      } 
-    }
-    
-    async function disconnectPrinter() { 
-      if (gattServer) { 
-        gattServer.disconnect(); 
-        gattServer = null; 
-        printerCharacteristic = null; 
-      } 
-      isConnected = false; 
-      window.printerAPI.isConnected = false; 
-      printerStatusDiv.innerText = '⚪ Not connected'; 
-      connectBtn.innerText = '🖨️ Connect Printer';
-      openDrawerBtn.disabled = true;
-    }
-    
-    connectBtn.addEventListener('click', () => { 
-      if (!isConnected) connectPrinter(); 
-      else disconnectPrinter(); 
-    });
-    
-    openDrawerBtn.addEventListener('click', async () => {
-      if (!isConnected) {
-        await showAlertModal('Printer not connected', 'Please connect a printer first.');
-        return;
-      }
-      await openCashDrawer();
-    });
-    
-    window.printerAPI = { isConnected: false, printReceipt: printReceipt };
-  })();
 </script>
 </body>
 </html>
