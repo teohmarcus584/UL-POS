@@ -705,7 +705,7 @@
       <div class="stat-item">Total Sales: <span id="adminReportTotalSales" class="stat-value">RM 0.00</span></div>
       <div class="stat-item breakdown">💵 Cash: <span id="adminReportCashTotal" class="stat-value">RM 0.00</span></div>
       <div class="stat-item breakdown">💳 Card: <span id="adminReportCardTotal" class="stat-value">RM 0.00</span></div>
-      <div class="stat-item breakdown">📱 Other: <span id="adminReportOtherTotal" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item breakdown">📱 QR Pay: <span id="adminReportOtherTotal" class="stat-value">RM 0.00</span></div>
      <div class="stat-item breakdown"> 💰 Refunds: <span id="adminReportRefundTotal" class="stat-value">RM 0.00</span></div>
      <div class="stat-item">Transactions: <span id="adminReportTransactionCount" class="stat-value">0</span></div>
       <div class="stat-item">Items Sold: <span id="adminReportTotalItems" class="stat-value">0</span></div>
@@ -861,7 +861,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx2UepazDZNW82gEpH8rBY2HWolTSegPn2NmZME08TzPZ0SfVXMZx1Tt1hxLWxoD5UGkg/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0I-jkk5brCOCnsKII_PK4wtqEIJrZ7FhgNurpdLf2tBhtIIUKsZ0p-W-1fIus8gYaQg/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1475,8 +1475,8 @@ function renderReceiptsList(receipts) {
       return `${displayName} x${i.quantity}`;
     }).join(', ');
     const employeeName = getEmployeeName(rec.employee_id);
-    const isRefund = rec.payment_method === 'Refund' || rec.total < 0;
-    const isRefundedOriginal = rec.refunded === true && !isRefund;
+    const isRefund = rec.total < 0;   // refund entries have negative total
+const isRefundedOriginal = rec.refunded === true;
     const refundClass = isRefund ? 'refund-receipt' : '';
 
     // Add "[REFUND]" badge for refund entries only
