@@ -830,7 +830,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxe0xpNQSKcwL5AQnPbtm8DHlRCI9prolNBA29PYg3BZk429xHC2I7Kyv1VGaf4wgrv3Q/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPQ5jbTT1GgKLsCnpDSxVr-yW7hwAuiitS91AQZUid-h5O_pkihEfvJmaaC4aKoqW8AQ/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1317,21 +1317,22 @@
     document.getElementById('claimPrizeModal').style.display = 'none';
   }
 
-  async function claimPrizeAfterSale(receipt, prizeValue) {
-    try {
-      const formData = new URLSearchParams();
-      formData.append("action", "claim");
-      formData.append("receipt", receipt);
-      formData.append("value", prizeValue);
-      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
-      const result = await response.json();
-      if (!result.success) {
-        console.warn('Prize claim failed after sale:', result.error);
-      }
-    } catch (err) {
-      console.error('Error claiming prize after sale:', err);
+ async function claimPrizeAfterSale(receipt, prizeValue, finalTotal) {
+  try {
+    const formData = new URLSearchParams();
+    formData.append("action", "claim");
+    formData.append("receipt", receipt);
+    formData.append("value", prizeValue);
+    formData.append("finalTotal", finalTotal); // send the final total
+    const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+    const result = await response.json();
+    if (!result.success) {
+      console.warn('Prize claim failed after sale:', result.error);
     }
+  } catch (err) {
+    console.error('Error claiming prize after sale:', err);
   }
+}
 
   // ==================== CHECKOUT ====================
   async function startCheckout() {
@@ -1454,10 +1455,11 @@
     };
     const success = await saveTransactionToSheet(transaction);
     if (success) {
-      if (pendingPrize) {
-        await claimPrizeAfterSale(pendingPrize.receipt, pendingPrize.value);
-        pendingPrize = null;
-      }
+     if (pendingPrize) {
+  // finalTotal is the totalAmount after discount (already used in the sale)
+  await claimPrizeAfterSale(pendingPrize.receipt, pendingPrize.value, totalAmount);
+  pendingPrize = null;
+}
 
       localStorage.removeItem(`products_${currentStore}`);
 
