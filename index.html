@@ -706,7 +706,7 @@
       <div class="stat-item breakdown">💵 Cash: <span id="adminReportCashTotal" class="stat-value">RM 0.00</span></div>
       <div class="stat-item breakdown">💳 Card: <span id="adminReportCardTotal" class="stat-value">RM 0.00</span></div>
       <div class="stat-item breakdown">📱 Other: <span id="adminReportOtherTotal" class="stat-value">RM 0.00</span></div>
-     <div class="stat-item breakdown"> 💰 Refunds: <span id="adminReportRefundTotal" class="stat-value">RM 0.00</span></div> 
+     <div class="stat-item breakdown"> 💰 Refunds: <span id="adminReportRefundTotal" class="stat-value">RM 0.00</span></div>
      <div class="stat-item">Transactions: <span id="adminReportTransactionCount" class="stat-value">0</span></div>
       <div class="stat-item">Items Sold: <span id="adminReportTotalItems" class="stat-value">0</span></div>
       
@@ -770,10 +770,11 @@
       <input type="number" id="pettyCashFloat" class="modal-input" placeholder="Enter starting cash float" step="0.01" value="0.00">
     </div>
     <div class="settlement-stats" id="systemTotalsDisplay">
-      <p>📊 System totals for today (all employees):</p>
-      <p>💵 Cash: <strong id="sysCash">RM 0.00</strong></p>
-      <p>💳 Card: <strong id="sysCard">RM 0.00</strong></p>
-      <p>📱 QR Pay: <strong id="sysQR">RM 0.00</strong></p>
+  <p>📊 System totals for today (all employees):</p>
+  <p>💵 Cash: <strong id="sysCash">RM 0.00</strong></p>
+  <p>💳 Card: <strong id="sysCard">RM 0.00</strong></p>
+  <p>📱 QR Pay: <strong id="sysQR">RM 0.00</strong></p>
+  <p>💰 Refunds: <strong id="sysRefund">RM 0.00</strong></p>   <!-- new line -->
     </div>
     <div class="filter-group">
       <label>Cash Count (Actual)</label>
@@ -860,7 +861,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz9Apxwqg_JPcTaRF4SU9NAIlD4DeaBkle3EXaHYkhhpFHuWKQc-EYKyPz7q8HnHNbB/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw0H4nWbMPdrtkrN4M27XtoKuhJi9C-wKf5Ea5YUrxBbRx4M49-gxsXPW_HuksZyb8EoQ/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1814,17 +1815,19 @@ function renderReceiptsList(receipts) {
   }
 
   async function refreshSettlementTotals(store) {
-    const todayStr = getLocalDateString(new Date());
-    const report = await fetchSalesReport(store, 'all', todayStr, todayStr, true);
-    if (report) {
-      currentSettlementTotals = {
-        cash: report.cashTotal,
-        card: report.cardTotal,
-        qr: report.otherTotal
-      };
-      document.getElementById('sysCash').innerText = `RM ${currentSettlementTotals.cash.toFixed(2)}`;
-      document.getElementById('sysCard').innerText = `RM ${currentSettlementTotals.card.toFixed(2)}`;
-      document.getElementById('sysQR').innerText = `RM ${currentSettlementTotals.qr.toFixed(2)}`;
+  const todayStr = getLocalDateString(new Date());
+  const report = await fetchSalesReport(store, 'all', todayStr, todayStr, true);
+  if (report) {
+    currentSettlementTotals = {
+      cash: report.cashTotal,
+      card: report.cardTotal,
+      qr: report.otherTotal,
+      refund: report.refundTotal
+    };
+    document.getElementById('sysCash').innerText = `RM ${currentSettlementTotals.cash.toFixed(2)}`;
+    document.getElementById('sysCard').innerText = `RM ${currentSettlementTotals.card.toFixed(2)}`;
+    document.getElementById('sysQR').innerText = `RM ${currentSettlementTotals.qr.toFixed(2)}`;
+    document.getElementById('sysRefund').innerText = `RM ${currentSettlementTotals.refund.toFixed(2)}`;
 
       const alreadySettled = await checkSettlementStatus(store, todayStr);
       if (alreadySettled) {
