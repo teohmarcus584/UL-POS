@@ -1408,12 +1408,15 @@
         updateCartUI();
         await showAlertModal('Prize Claimed', `You have claimed ${prizeText} (RM ${prizeValue.toFixed(2)})!\nDiscount applied to current sale.`);
         document.getElementById('claimPrizeModal').style.display = 'none';
+         hideLoading();
       } else {
         await showAlertModal('Error', result.error || 'Failed to claim prize.');
+         hideLoading();
       }
     } catch (err) {
       console.error(err);
       await showAlertModal('Error', 'Connection error while claiming prize.');
+       hideLoading();
     } finally {
       hideLoading();
     }
