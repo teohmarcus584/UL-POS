@@ -860,7 +860,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyyifYRWP-Fh7VW0nHUq--x4AGtEZypOV8Yw7-c9stdzgQ-YGJ8fN44KGZqGHxHlNrYEA/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqWzx2ynDSL8eIlqsQDX2dwLdLesvTJfnAj4L8zgbyRSB1FGTPFfgqWhwu08kdHvOiAg/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1445,11 +1445,14 @@ function renderReceiptsList(receipts) {
     }).join(', ');
     const employeeName = getEmployeeName(rec.employee_id);
     const isRefund = rec.payment_method === 'Refund' || rec.total < 0;
+    const isRefundedOriginal = rec.refunded === true && !isRefund;
     const refundClass = isRefund ? 'refund-receipt' : '';
-    // Add "[REFUND]" badge for refund receipts
-    const receiptIdHtml = isRefund 
-      ? `<span class="receipt-id">[REFUND] ${rec.transaction_id}</span>` 
+
+    // Add "[REFUND]" badge for refund entries only
+    const receiptIdHtml = isRefund
+      ? `<span class="receipt-id">[REFUND] ${rec.transaction_id}</span>`
       : `<span class="receipt-id">${rec.transaction_id}</span>`;
+
     html += `<div class="receipt-item ${refundClass}" data-receipt='${JSON.stringify(rec)}'>
       <div class="receipt-header">
         ${receiptIdHtml}
@@ -1462,14 +1465,21 @@ function renderReceiptsList(receipts) {
       </div>
       <div class="receipt-actions">
         <button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>🖨️ Reprint</button>`;
-    if (!isRefund) {
+    
+    if (!isRefund && !isRefundedOriginal) {
+      // Not a refund entry and not already refunded → show lucky draw and refund buttons
       html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>
                <button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">💰 Refund</button>`;
+    } else if (!isRefund && isRefundedOriginal) {
+      // Original but already refunded → show only lucky draw (optional)
+      html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>`;
     }
+    // For refund entries, no extra buttons
     html += `</div></div>`;
   });
   container.innerHTML = html;
-  // Add event listeners as before
+
+  // Attach event listeners (same as before)
   document.querySelectorAll('.reprint-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       reprintReceipt(JSON.parse(btn.dataset.receipt));
