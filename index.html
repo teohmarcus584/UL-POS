@@ -1270,23 +1270,41 @@
   }
 
   // ==================== CHECKOUT ====================
-  async function startCheckout() {
-    if (cart.length === 0) {
-      await showAlertModal('Empty Cart', 'No items to checkout.');
+ async function startCheckout() {
+  if (cart.length === 0) {
+    await showAlertModal('Empty Cart', 'No items to checkout.');
+    return;
+  }
+
+  // Force refresh products to get latest stock levels
+  showLoading('Refreshing stock data...');
+  const refreshed = await fetchProductsFromSheet(true);
+  hideLoading();
+
+  if (!refreshed) {
+    await showAlertModal('Error', 'Failed to refresh product data. Please check connection and try again.');
+    return;
+  }
+
+  // Validate stock against the refreshed products
+  for (let item of cart) {
+    const originalProduct = products.find(p => p.id === item.product.id);
+    if (!originalProduct) {
+      await showAlertModal('Product Missing', `${item.product.name} no longer exists in the system. Please remove from cart.`);
       return;
     }
-    for (let item of cart) {
-      const originalProduct = products.find(p => p.id === item.product.id);
-      if (!originalProduct || originalProduct.stock < item.quantity) {
-       await fetchProductsFromSheet();
-        await showAlertModal('Stock changed', `${item.product.name} stock insufficient. Please refresh products and adjust cart.`);
-        return;
-      }
+    if (originalProduct.stock < item.quantity) {
+      await showAlertModal('Stock changed', `${item.product.name} stock is now only ${originalProduct.stock} units. Please adjust your cart.`);
+      // Optionally, you could auto-correct the cart quantity here
+      // For now, we just abort checkout
+      return;
     }
-    const totalAmount = cart.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
-    pendingTransaction = { totalAmount };
-    showPaymentModal(totalAmount);
   }
+
+  const totalAmount = cart.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
+  pendingTransaction = { totalAmount };
+  showPaymentModal(totalAmount);
+}
 
   function showPaymentModal(totalAmount) {
     const modal = document.getElementById('paymentModal');
