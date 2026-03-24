@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
   <title>POS System | PIN Login</title>
-  <style>
-    /* All existing styles remain unchanged */
+ <style>
+    /* Base reset */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -15,6 +15,8 @@
       padding: 16px;
       min-height: 100vh;
     }
+
+    /* Header */
     .pos-header {
       display: flex;
       justify-content: space-between;
@@ -59,6 +61,8 @@
     }
     #connectPrinterButton:hover { background: #0f172a; }
     #printerStatus { font-size: 0.8rem; background: #f1f5f9; padding: 6px 12px; border-radius: 30px; color: #334155; }
+
+    /* Employee bar */
     .employee-bar {
       background: white; border-radius: 28px; padding: 10px 20px; margin-bottom: 20px;
       display: flex; justify-content: space-between; align-items: center;
@@ -81,15 +85,9 @@
       font-size: 0.8rem;
       cursor: pointer;
     }
-    .drawer-btn {
-      background: #f59e0b;
-    }
-    .settlement-btn {
-      background: #8b5cf6;
-    }
-    .collection-btn {
-      background: #10b981;
-    }
+    .drawer-btn { background: #f59e0b; }
+    .settlement-btn { background: #8b5cf6; }
+    .collection-btn { background: #10b981; }
     .drawer-btn:hover { background: #d97706; }
     .settlement-btn:hover { background: #7c3aed; }
     .collection-btn:hover { background: #059669; }
@@ -99,37 +97,60 @@
       opacity: 0.6;
     }
     .logout-btn:hover { background: #dc2626; }
+
+    /* Store selector (enhanced) */
     .store-selector {
-      background: white; border-radius: 28px; padding: 12px 20px; margin-bottom: 20px;
+      background: #ffffff;
+      border-radius: 80px;
+      padding: 12px 24px;
+      margin-bottom: 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
       gap: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
-    .store-selector label { font-weight: 500; margin-right: 8px; }
     .store-selector select, #soldBySelect {
-      padding: 12px 20px;
+      padding: 16px 28px;
+      font-size: 1.2rem;
+      font-weight: 600;
       border-radius: 60px;
       border: 1px solid #cbd5e1;
       background: white;
-      font-size: 1rem;
-      font-weight: 500;
       cursor: pointer;
       transition: all 0.2s;
-      min-width: 180px;
+      min-width: 220px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234b5563' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+      background-repeat: no-repeat;
+      background-position: right 20px center;
+      background-size: 16px;
+    }
+    .store-selector select:hover, #soldBySelect:hover {
+      border-color: #3b82f6;
+      background-color: #f8fafc;
     }
     .store-selector select:focus, #soldBySelect:focus {
       outline: none;
       border-color: #3b82f6;
-      box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
     }
     .store-selector select:disabled, #soldBySelect:disabled {
-      background: #f1f5f9;
+      background-color: #f1f5f9;
+      color: #64748b;
       cursor: not-allowed;
-      opacity: 0.7;
+      opacity: 0.8;
     }
+    .store-selector label {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #1e293b;
+      margin-right: 12px;
+    }
+
+    /* Dashboard panels */
     .pos-dashboard { display: flex; flex-wrap: wrap; gap: 20px; }
     .products-panel {
       flex: 2; min-width: 260px; background: white; border-radius: 28px; padding: 20px;
@@ -174,6 +195,8 @@
     }
     #categorySelect { flex: 1; }
     .search-bar { flex: 2; }
+
+    /* Product grid */
     .product-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -231,6 +254,8 @@
     }
     .add-btn:active { transform: scale(0.96); background: #2563eb; }
     .add-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+
+    /* Cart panel */
     .cart-panel {
       flex: 1.2; min-width: 280px; background: white; border-radius: 28px; padding: 20px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; display: flex; flex-direction: column;
@@ -258,6 +283,7 @@
     #refreshProductsBtn { background: #eef2ff; color: #1e40af; }
     button:active { transform: scale(0.97); }
 
+    /* Modals */
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 2000;
@@ -279,6 +305,8 @@
     }
     .close-modal:hover { color: #0f172a; }
     .modal-title { font-size: 1.4rem; font-weight: 600; margin-bottom: 16px; padding-right: 30px; }
+
+    /* Report filters */
     .report-filters, .receipts-filters {
       display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; align-items: flex-end;
     }
@@ -288,10 +316,14 @@
       padding: 12px 16px; border-radius: 60px; border: 1px solid #cbd5e1; font-size: 0.9rem;
     }
     .date-range { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    /* Report stats */
     .report-stats { background: #f8fafc; padding: 16px; border-radius: 20px; margin: 16px 0; }
     .stat-item { display: flex; justify-content: space-between; margin: 8px 0; font-size: 1.1rem; }
     .stat-value { font-weight: 700; color: #2c7a4b; }
     .breakdown { font-size: 1rem; color: #334155; border-top: 1px dashed #e2e8f0; padding-top: 6px; margin-top: 6px; }
+
+    /* Charts */
     .chart-container {
       background: white;
       border-radius: 20px;
@@ -300,6 +332,8 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
     canvas { max-width: 100%; height: auto; }
+
+    /* Receipts list */
     .receipts-list { max-height: 60vh; overflow-y: auto; }
     .receipt-item {
       border: 1px solid #e2e8f0; border-radius: 20px; padding: 12px; margin-bottom: 12px;
@@ -323,10 +357,14 @@
     .reprint-btn:hover { background: #7c3aed; }
     .lucky-btn:hover { background: #d97706; }
     .refund-btn:hover { background: #dc2626; }
+
+    /* Modal buttons */
     .modal-buttons { display: flex; gap: 12px; justify-content: flex-end; margin-top: 16px; }
     .modal-btn { padding: 12px 24px; border-radius: 60px; border: none; font-weight: 500; cursor: pointer; font-size: 1rem; }
     .modal-btn-primary { background: #2c7a4b; color: white; }
     .modal-btn-secondary { background: #e2e8f0; }
+
+    /* Loading overlay */
     .loading-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 3000; flex-direction: column;
@@ -334,6 +372,8 @@
     .loading-spinner { width: 50px; height: 50px; border: 5px solid #e2e8f0; border-top: 5px solid #2c7a4b; border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .loading-text { color: white; margin-top: 12px; }
+
+    /* Responsive */
     @media (max-width: 780px) {
       .pos-dashboard { flex-direction: column; }
       .product-grid { max-height: 40vh; }
@@ -342,6 +382,8 @@
       .product-list .add-btn { width: 100%; }
       .store-selector { flex-direction: column; align-items: stretch; }
     }
+
+    /* Payment modal */
     .payment-buttons {
       display: flex;
       gap: 12px;
@@ -393,6 +435,8 @@
       outline: none;
       border-color: #2c7a4b;
     }
+
+    /* PIN login */
     .pin-input {
       width: 100%;
       text-align: center;
@@ -431,15 +475,73 @@
       background: #2c7a4b;
       color: white;
     }
-    .store-select-modal select {
-      padding: 14px 20px;
+
+    /* Initial store selection modal – enhanced */
+    #storeSelectModal .modal-container {
+      max-width: 480px;
+      text-align: center;
+      border-radius: 32px;
+      padding: 32px 28px;
+      background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+      box-shadow: 0 20px 35px -12px rgba(0,0,0,0.2);
+    }
+    #storeSelectModal .modal-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 24px;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    #storeSelectModal .modal-title::before {
+      content: "🏬";
+      font-size: 2rem;
+    }
+    .store-select-modal {
+      width: 100%;
+      padding: 16px 28px;
+      font-size: 1.2rem;
+      font-weight: 600;
       border-radius: 60px;
       border: 1px solid #cbd5e1;
-      font-size: 1rem;
-      width: 100%;
-      margin-top: 16px;
-      font-weight: 500;
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234b5563' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+      background-repeat: no-repeat;
+      background-position: right 24px center;
+      background-size: 18px;
+      margin: 16px 0 24px;
     }
+    .store-select-modal:hover {
+      border-color: #3b82f6;
+      background-color: #f8fafc;
+    }
+    .store-select-modal:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    }
+    #storeSelectModal .modal-buttons {
+      justify-content: center;
+    }
+    #storeSelectModal .modal-btn-primary {
+      background: #2c7a4b;
+      padding: 14px 32px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border-radius: 60px;
+      transition: transform 0.1s;
+    }
+    #storeSelectModal .modal-btn-primary:hover {
+      background: #1e5a38;
+      transform: scale(1.02);
+    }
+
+    /* Other existing styles */
     .modal-section {
       margin-top: 24px;
       border-top: 1px solid #e2e8f0;
@@ -523,7 +625,7 @@
       font-weight: bold;
       color: #dc2626;
     }
-  </style>
+</style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
