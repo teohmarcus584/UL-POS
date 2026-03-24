@@ -1260,6 +1260,7 @@
     for (let item of cart) {
       const originalProduct = products.find(p => p.id === item.product.id);
       if (!originalProduct || originalProduct.stock < item.quantity) {
+       await fetchProductsFromSheet();
         await showAlertModal('Stock changed', `${item.product.name} stock insufficient. Please refresh products and adjust cart.`);
         return;
       }
