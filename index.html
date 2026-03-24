@@ -1376,7 +1376,9 @@
       document.getElementById('openLuckyDrawBtn').onclick = () => { openLuckyDraw(transactionId); luckyModal.style.display = 'none'; };
       document.getElementById('closeLuckyDrawBtn').onclick = () => luckyModal.style.display = 'none';
       document.getElementById('closeLuckyDrawModal').onclick = () => luckyModal.style.display = 'none';
+      hideLoading();
       await fetchProductsFromSheet();
+      hideLoading();
       clearCart();
     } else {
       await showAlertModal('Error', 'Failed to record sale. Check network / Apps Script.');
