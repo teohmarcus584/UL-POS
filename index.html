@@ -520,21 +520,44 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
-<!-- Store Selection Modal (shown on page load) -->
-<div id="storeSelectModal" class="modal-overlay" style="display: flex;">
-  <div class="modal-container" style="max-width: 400px;">
-    <div class="modal-title">🏬 Select Store</div>
-    <select id="initialStoreSelect" class="store-select-modal">
-      <option value="queens">Queens</option>
-      <option value="sunshine">Sunshine</option>
-      <option value="gurney_paragon">Gurney Paragon</option>
-    </select>
-    <div class="modal-buttons" style="margin-top: 24px;">
-      <button id="confirmStoreBtn" class="modal-btn modal-btn-primary">Next →</button>
-    </div>
-  </div>
-</div>
+/* ===== ENHANCED INITIAL STORE MODAL ===== */
+    #storeSelectModal .modal-container {
+      max-width: 500px;
+      text-align: center;
+      border-radius: 48px;
+      padding: 40px 32px;
+      background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+    }
 
+    #storeSelectModal .modal-title {
+      font-size: 2rem;
+      font-weight: 800;
+      margin-bottom: 32px;
+      color: #0f172a;
+    }
+
+    .store-select-modal {
+      width: 100%;
+      padding: 16px 28px;
+      font-size: 1.2rem;
+      font-weight: 600;
+      border-radius: 60px;
+      border: 1px solid #cbd5e1;
+      background: white;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234b5563' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+      background-repeat: no-repeat;
+      background-position: right 24px center;
+      background-size: 18px;
+      margin: 16px 0 32px;
+    }
+
+    #storeSelectModal .modal-btn-primary {
+      background: #2c7a4b;
+      padding: 14px 40px;
+      font-size: 1.1rem;
+    }
 <!-- PIN Login Modal (hidden initially) -->
 <div id="loginModal" class="modal-overlay" style="display: none;">
   <div class="modal-container" style="max-width: 400px;">
