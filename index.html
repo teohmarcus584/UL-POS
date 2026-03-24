@@ -2207,22 +2207,30 @@ const isRefundedOriginal = rec.refunded === true;
   document.getElementById('adminReportToDate').addEventListener('change', updateAdminReport);
 
   document.getElementById('receiptsButton').addEventListener('click', async () => {
-    if (currentEmployee?.isAdmin) {
-      const employees = await fetchEmployees();
-      const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
-      receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
-      employees.forEach(emp => {
-        const opt = document.createElement('option'); opt.value = emp.id; opt.textContent = `${emp.name} (ID: ${emp.id})`;
-        receiptsEmpSelect.appendChild(opt);
-      });
-      document.getElementById('receiptsEmployeeFilter').style.display = 'flex';
-    } else {
-      document.getElementById('receiptsEmployeeFilter').style.display = 'none';
-    }
-    populateStoreSelects();
-    document.getElementById('receiptsModal').style.display = 'flex';
-    updateReceipts();
-  });
+  if (currentEmployee?.isAdmin) {
+    const employees = await fetchEmployees();
+    const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
+    receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
+    employees.forEach(emp => {
+      const opt = document.createElement('option'); 
+      opt.value = emp.id; 
+      opt.textContent = `${emp.name} (ID: ${emp.id})`;
+      receiptsEmpSelect.appendChild(opt);
+    });
+    document.getElementById('receiptsEmployeeFilter').style.display = 'flex';
+    // Show store filter for admin
+    document.getElementById('receiptsStoreFilterGroup').style.display = 'flex';
+  } else {
+    document.getElementById('receiptsEmployeeFilter').style.display = 'none';
+    // Hide store filter for non-admin
+    document.getElementById('receiptsStoreFilterGroup').style.display = 'none';
+    // Set the store select to the current store (so the hidden value is used in the request)
+    document.getElementById('receiptsStoreSelect').value = currentStore;
+  }
+  populateStoreSelects();
+  document.getElementById('receiptsModal').style.display = 'flex';
+  updateReceipts();
+});
 
   document.getElementById('closeReceiptsBtn').addEventListener('click', () => document.getElementById('receiptsModal').style.display = 'none');
   document.getElementById('closeReceiptsModal').addEventListener('click', () => document.getElementById('receiptsModal').style.display = 'none');
@@ -2427,11 +2435,16 @@ const isRefundedOriginal = rec.refunded === true;
   }
 
   function updateReceipts() {
-    const store = document.getElementById('receiptsStoreSelect').value;
-    let employeeId = 'all';
-    if (currentEmployee?.isAdmin) employeeId = document.getElementById('receiptsEmployeeSelect').value;
-    const range = document.getElementById('receiptsDateRangeSelect').value;
-    const search = document.getElementById('receiptsSearch').value;
+  let store;
+  if (currentEmployee?.isAdmin) {
+    store = document.getElementById('receiptsStoreSelect').value;
+  } else {
+    store = currentStore;  // non‑admin can only see their own store
+  }
+  let employeeId = 'all';
+  if (currentEmployee?.isAdmin) employeeId = document.getElementById('receiptsEmployeeSelect').value;
+  const range = document.getElementById('receiptsDateRangeSelect').value;
+  const search = document.getElementById('receiptsSearch').value;
     let from = null, to = null;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
