@@ -1276,27 +1276,25 @@
     return;
   }
 
-  // Force refresh products to get latest stock levels
+  // Force a live refresh of all products (bypassing cache)
   showLoading('Refreshing stock data...');
   const refreshed = await fetchProductsFromSheet(true);
   hideLoading();
 
   if (!refreshed) {
-    await showAlertModal('Error', 'Failed to refresh product data. Please check connection and try again.');
+    await showAlertModal('Error', 'Failed to refresh product data. Please check your connection and try again.');
     return;
   }
 
-  // Validate stock against the refreshed products
+  // Validate cart items against the updated product list
   for (let item of cart) {
     const originalProduct = products.find(p => p.id === item.product.id);
     if (!originalProduct) {
-      await showAlertModal('Product Missing', `${item.product.name} no longer exists in the system. Please remove from cart.`);
+      await showAlertModal('Product Missing', `${item.product.name} no longer exists. Please remove it from the cart.`);
       return;
     }
     if (originalProduct.stock < item.quantity) {
-      await showAlertModal('Stock changed', `${item.product.name} stock is now only ${originalProduct.stock} units. Please adjust your cart.`);
-      // Optionally, you could auto-correct the cart quantity here
-      // For now, we just abort checkout
+      await showAlertModal('Stock Changed', `${item.product.name} stock is now only ${originalProduct.stock} units. Please adjust your cart.`);
       return;
     }
   }
