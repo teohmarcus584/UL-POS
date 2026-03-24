@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
   <title>POS System | PIN Login</title>
   <style>
-    /* All existing styles remain unchanged – kept from previous version */
+    /* All existing styles remain unchanged */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -520,9 +520,9 @@
       border-color: #ef4444;
     }
     .refund-receipt .receipt-total {
-  font-weight: bold;
-  color: #dc2626;
-}
+      font-weight: bold;
+      color: #dc2626;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -705,12 +705,11 @@
       <div class="stat-item">Total Sales: <span id="adminReportTotalSales" class="stat-value">RM 0.00</span></div>
       <div class="stat-item breakdown">💵 Cash: <span id="adminReportCashTotal" class="stat-value">RM 0.00</span></div>
       <div class="stat-item breakdown">💳 Card: <span id="adminReportCardTotal" class="stat-value">RM 0.00</span></div>
-      <div class="stat-item breakdown">📱 QR Pay: <span id="adminReportOtherTotal" class="stat-value">RM 0.00</span></div>
-     <div class="stat-item breakdown"> 💰 Refunds: <span id="adminReportRefundTotal" class="stat-value">RM 0.00</span></div>
-     <div class="stat-item">Transactions: <span id="adminReportTransactionCount" class="stat-value">0</span></div>
-     <div class="stat-item breakdown">📄 Refunded Bills: <span id="adminReportRefundedBills" class="stat-value">0</span></div>
+      <div class="stat-item breakdown">📱 Other: <span id="adminReportOtherTotal" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item breakdown">💰 Refunds: <span id="adminReportRefundTotal" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item breakdown">📄 Refunded Bills: <span id="adminReportRefundedBills" class="stat-value">0</span></div>
+      <div class="stat-item">Transactions: <span id="adminReportTransactionCount" class="stat-value">0</span></div>
       <div class="stat-item">Items Sold: <span id="adminReportTotalItems" class="stat-value">0</span></div>
-      
     </div>
 
     <!-- Sales by Store chart (admin only) -->
@@ -742,9 +741,9 @@
                 </tr>
             </thead>
             <tbody id="productDetailsBody">
-              <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
+               response<td colspan="4" style="text-align: center;">Loading...</td>
             </tbody>
-          </table>
+           </table>
         </div>
       </div>
     </div>
@@ -771,11 +770,11 @@
       <input type="number" id="pettyCashFloat" class="modal-input" placeholder="Enter starting cash float" step="0.01" value="0.00">
     </div>
     <div class="settlement-stats" id="systemTotalsDisplay">
-  <p>📊 System totals for today (all employees):</p>
-  <p>💵 Cash: <strong id="sysCash">RM 0.00</strong></p>
-  <p>💳 Card: <strong id="sysCard">RM 0.00</strong></p>
-  <p>📱 QR Pay: <strong id="sysQR">RM 0.00</strong></p>
-  <p>💰 Refunds: <strong id="sysRefund">RM 0.00</strong></p>   <!-- new line -->
+      <p>📊 System totals for today (all employees):</p>
+      <p>💵 Cash: <strong id="sysCash">RM 0.00</strong></p>
+      <p>💳 Card: <strong id="sysCard">RM 0.00</strong></p>
+      <p>📱 QR Pay: <strong id="sysQR">RM 0.00</strong></p>
+      <p>💰 Refunds: <strong id="sysRefund">RM 0.00</strong></p>
     </div>
     <div class="filter-group">
       <label>Cash Count (Actual)</label>
@@ -818,12 +817,12 @@
     <div style="overflow-x: auto;">
       <table class="collection-table" id="collectionTable">
         <thead>
-           <tr>
+          <tr>
             <th><input type="checkbox" id="selectAllCheckbox"></th>
             <th>Date</th>
             <th>Employee</th>
             <th style="text-align: right;">Cash Amount (RM)</th>
-           </tr>
+          </tr>
         </thead>
         <tbody id="collectionTableBody">
           <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
@@ -843,8 +842,14 @@
     <span class="close-modal" id="closeReceiptsModal">×</span>
     <div class="modal-title">📜 Receipt History</div>
     <div class="receipts-filters">
-      <div class="filter-group"><label>Store</label><select id="receiptsStoreSelect"><option value="all">All Stores</option></select></div>
-      <div id="receiptsEmployeeFilter" class="filter-group" style="display: none;"><label>Employee</label><select id="receiptsEmployeeSelect"><option value="all">All Employees</option></select></div>
+      <div class="filter-group" id="receiptsStoreFilterGroup">
+        <label>Store</label>
+        <select id="receiptsStoreSelect"><option value="all">All Stores</option></select>
+      </div>
+      <div id="receiptsEmployeeFilter" class="filter-group" style="display: none;">
+        <label>Employee</label>
+        <select id="receiptsEmployeeSelect"><option value="all">All Employees</option></select>
+      </div>
       <div class="filter-group"><label>Date Range</label><select id="receiptsDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div>
       <div id="receiptsCustomDateRange" style="display: none;" class="date-range"><input type="date" id="receiptsFromDate"><input type="date" id="receiptsToDate"></div>
       <div class="filter-group" style="flex: 2;"><label>Search (Receipt # or Product)</label><input type="text" id="receiptsSearch" placeholder="Type to filter..."></div>
@@ -1015,7 +1020,6 @@
 
   // ==================== INITIAL DATA LOAD (BEFORE PIN) ====================
   async function loadInitialData() {
-    
     try {
       const url = `${APPS_SCRIPT_URL}?action=getInitialData&store=${currentStore}`;
       const response = await fetch(url);
@@ -1067,77 +1071,71 @@
 
   // ==================== PRODUCT GRID (with caching) ====================
   async function fetchProductsFromSheet(force = false) {
-  showLoading('Fetching products...');
-  try {
-    const cacheKey = `products_${currentStore}`;
-    const now = Date.now();
+    showLoading('Fetching products...');
+    try {
+      const cacheKey = `products_${currentStore}`;
+      const now = Date.now();
 
-    // If not forced, try to use localStorage cache (5 minutes)
-    if (!force) {
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        const { timestamp, products: cachedProducts } = JSON.parse(cached);
-        if (now - timestamp < 5 * 60 * 1000) { // 5 minutes
-          products = cachedProducts;
-          const categories = [...new Set(products.map(p => p.category))].sort();
-          categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
-          categories.forEach(cat => {
-            const option = document.createElement('option');
-            option.value = cat;
-            option.textContent = cat;
-            categorySelect.appendChild(option);
-          });
-          renderProductGrid();
-          hideLoading();
-          return true;
+      if (!force) {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const { timestamp, products: cachedProducts } = JSON.parse(cached);
+          if (now - timestamp < 5 * 60 * 1000) {
+            products = cachedProducts;
+            const categories = [...new Set(products.map(p => p.category))].sort();
+            categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
+            categories.forEach(cat => {
+              const option = document.createElement('option');
+              option.value = cat;
+              option.textContent = cat;
+              categorySelect.appendChild(option);
+            });
+            renderProductGrid();
+            hideLoading();
+            return true;
+          }
         }
       }
+
+      let url = `${APPS_SCRIPT_URL}?action=getProducts&store=${currentStore}`;
+      if (force) url += `&_=${now}`;
+
+      const response = await fetch(url);
+      const result = await response.json();
+
+      if (result.success && Array.isArray(result.products)) {
+        products = result.products.map(p => ({
+          id: p.id,
+          name: p.name,
+          price: parseFloat(p.price),
+          stock: parseInt(p.stock) || 0,
+          category: p.category || "Uncategorized"
+        })).sort((a, b) => a.name.localeCompare(b.name));
+
+        const categories = [...new Set(products.map(p => p.category))].sort();
+        categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
+        categories.forEach(cat => {
+          const option = document.createElement('option');
+          option.value = cat;
+          option.textContent = cat;
+          categorySelect.appendChild(option);
+        });
+
+        renderProductGrid();
+        localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, products }));
+        return true;
+      } else {
+        throw new Error('Invalid data format');
+      }
+    } catch (err) {
+      console.error(err);
+      await showAlertModal('Error', 'Failed to load products. Check URL & sheet.');
+      return false;
+    } finally {
+      hideLoading();
     }
-
-    // Build URL with optional cache‑busting parameter
-    let url = `${APPS_SCRIPT_URL}?action=getProducts&store=${currentStore}`;
-    if (force) {
-      url += `&_=${now}`; // unique timestamp to bypass backend cache
-    }
-
-    const response = await fetch(url);
-    const result = await response.json();
-
-    if (result.success && Array.isArray(result.products)) {
-      products = result.products.map(p => ({
-        id: p.id,
-        name: p.name,
-        price: parseFloat(p.price),
-        stock: parseInt(p.stock) || 0,
-        category: p.category || "Uncategorized"
-      })).sort((a, b) => a.name.localeCompare(b.name));
-
-      // Update categories dropdown
-      const categories = [...new Set(products.map(p => p.category))].sort();
-      categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
-      categories.forEach(cat => {
-        const option = document.createElement('option');
-        option.value = cat;
-        option.textContent = cat;
-        categorySelect.appendChild(option);
-      });
-
-      renderProductGrid();
-
-      // Store in localStorage (even if forced, store fresh data)
-      localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, products }));
-      return true;
-    } else {
-      throw new Error('Invalid data format');
-    }
-  } catch (err) {
-    console.error(err);
-    await showAlertModal('Error', 'Failed to load products. Check URL & sheet.');
-    return false;
-  } finally {
-    hideLoading();
   }
-}
+
   function renderProductGrid() {
     const searchTerm = searchInput.value.toLowerCase();
     const selectedCategory = categorySelect.value;
@@ -1272,39 +1270,37 @@
   }
 
   // ==================== CHECKOUT ====================
- async function startCheckout() {
-  if (cart.length === 0) {
-    await showAlertModal('Empty Cart', 'No items to checkout.');
-    return;
-  }
-
-  // Force a live refresh of all products (bypassing cache)
-  showLoading('Refreshing stock data...');
-  const refreshed = await fetchProductsFromSheet(true);
-  hideLoading();
-
-  if (!refreshed) {
-    await showAlertModal('Error', 'Failed to refresh product data. Please check your connection and try again.');
-    return;
-  }
-
-  // Validate cart items against the updated product list
-  for (let item of cart) {
-    const originalProduct = products.find(p => p.id === item.product.id);
-    if (!originalProduct) {
-      await showAlertModal('Product Missing', `${item.product.name} no longer exists. Please remove it from the cart.`);
+  async function startCheckout() {
+    if (cart.length === 0) {
+      await showAlertModal('Empty Cart', 'No items to checkout.');
       return;
     }
-    if (originalProduct.stock < item.quantity) {
-      await showAlertModal('Stock Changed', `${item.product.name} stock is now only ${originalProduct.stock} units. Please adjust your cart.`);
+
+    showLoading('Refreshing stock data...');
+    const refreshed = await fetchProductsFromSheet(true);
+    hideLoading();
+
+    if (!refreshed) {
+      await showAlertModal('Error', 'Failed to refresh product data. Please check your connection and try again.');
       return;
     }
-  }
 
-  const totalAmount = cart.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
-  pendingTransaction = { totalAmount };
-  showPaymentModal(totalAmount);
-}
+    for (let item of cart) {
+      const originalProduct = products.find(p => p.id === item.product.id);
+      if (!originalProduct) {
+        await showAlertModal('Product Missing', `${item.product.name} no longer exists. Please remove it from the cart.`);
+        return;
+      }
+      if (originalProduct.stock < item.quantity) {
+        await showAlertModal('Stock Changed', `${item.product.name} stock is now only ${originalProduct.stock} units. Please adjust your cart.`);
+        return;
+      }
+    }
+
+    const totalAmount = cart.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
+    pendingTransaction = { totalAmount };
+    showPaymentModal(totalAmount);
+  }
 
   function showPaymentModal(totalAmount) {
     const modal = document.getElementById('paymentModal');
@@ -1391,10 +1387,8 @@
     };
     const success = await saveTransactionToSheet(transaction);
     if (success) {
-      // Clear product cache for current store
       localStorage.removeItem(`products_${currentStore}`);
 
-      // Print receipt if printer connected
       if (window.printerAPI?.isConnected && window.printerAPI.printReceipt) {
         const transactionWithName = { ...transaction, employee_name: currentEmployee.name };
         await window.printerAPI.printReceipt(transactionWithName);
@@ -1462,80 +1456,77 @@
       hideLoading();
     }
   }
-function renderReceiptsList(receipts) {
-  const container = document.getElementById('receiptsList');
-  if (!receipts.length) {
-    container.innerHTML = '<div style="text-align:center; padding:30px;">No receipts found.</div>';
-    return;
-  }
-  let html = '';
-  receipts.forEach(rec => {
-    const date = new Date(rec.timestamp).toLocaleString();
-    const itemsSummary = rec.items.map(i => {
-      const displayName = i.category ? `${i.category}: ${i.name}` : i.name;
-      return `${displayName} x${i.quantity}`;
-    }).join(', ');
-    const employeeName = getEmployeeName(rec.employee_id);
-    const isRefund = rec.total < 0;   // refund entries have negative total
-const isRefundedOriginal = rec.refunded === true;
-    const refundClass = isRefund ? 'refund-receipt' : '';
 
-    // Add "[REFUND]" badge for refund entries only
-    const receiptIdHtml = isRefund
-      ? `<span class="receipt-id">[REFUND] ${rec.transaction_id}</span>`
-      : `<span class="receipt-id">${rec.transaction_id}</span>`;
-
-    html += `<div class="receipt-item ${refundClass}" data-receipt='${JSON.stringify(rec)}'>
-      <div class="receipt-header">
-        ${receiptIdHtml}
-        <span class="receipt-date">${date}</span>
-        <span class="receipt-total">RM ${rec.total.toFixed(2)}</span>
-      </div>
-      <div class="receipt-details">
-        <div>Store: ${rec.store} | Payment: ${rec.payment_method} | Employee: ${employeeName}</div>
-        <div>Items: ${itemsSummary}</div>
-      </div>
-      <div class="receipt-actions">
-        <button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>🖨️ Reprint</button>`;
-    
-    if (!isRefund && !isRefundedOriginal) {
-      // Not a refund entry and not already refunded → show lucky draw and refund buttons
-      html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>
-               <button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">💰 Refund</button>`;
-    } else if (!isRefund && isRefundedOriginal) {
-      // Original but already refunded → show only lucky draw (optional)
-      html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>`;
+  function renderReceiptsList(receipts) {
+    const container = document.getElementById('receiptsList');
+    if (!receipts.length) {
+      container.innerHTML = '<div style="text-align:center; padding:30px;">No receipts found.</div>';
+      return;
     }
-    // For refund entries, no extra buttons
-    html += `</div></div>`;
-  });
-  container.innerHTML = html;
+    let html = '';
+    receipts.forEach(rec => {
+      const date = new Date(rec.timestamp).toLocaleString();
+      const itemsSummary = rec.items.map(i => {
+        const displayName = i.category ? `${i.category}: ${i.name}` : i.name;
+        return `${displayName} x${i.quantity}`;
+      }).join(', ');
+      const employeeName = getEmployeeName(rec.employee_id);
+      const isRefund = rec.total < 0;
+      const isRefundedOriginal = rec.refunded === true && !isRefund;
+      const refundClass = isRefund ? 'refund-receipt' : '';
 
-  // Attach event listeners (same as before)
-  document.querySelectorAll('.reprint-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      reprintReceipt(JSON.parse(btn.dataset.receipt));
-      e.stopPropagation();
-    });
-  });
-  document.querySelectorAll('.lucky-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      openLuckyDraw(btn.dataset.txid);
-      e.stopPropagation();
-    });
-  });
-  document.querySelectorAll('.refund-btn').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const transactionId = btn.dataset.txid;
-      const store = btn.dataset.store;
-      e.stopPropagation();
-      const confirm = await showConfirmModal('Refund Transaction', `Are you sure you want to refund transaction ${transactionId}? This will reverse the sale and restore stock.`);
-      if (confirm) {
-        await processRefund(transactionId, store);
+      const receiptIdHtml = isRefund
+        ? `<span class="receipt-id">[REFUND] ${rec.transaction_id}</span>`
+        : `<span class="receipt-id">${rec.transaction_id}</span>`;
+
+      html += `<div class="receipt-item ${refundClass}" data-receipt='${JSON.stringify(rec)}'>
+        <div class="receipt-header">
+          ${receiptIdHtml}
+          <span class="receipt-date">${date}</span>
+          <span class="receipt-total">RM ${rec.total.toFixed(2)}</span>
+        </div>
+        <div class="receipt-details">
+          <div>Store: ${rec.store} | Payment: ${rec.payment_method} | Employee: ${employeeName}</div>
+          <div>Items: ${itemsSummary}</div>
+        </div>
+        <div class="receipt-actions">
+          <button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>🖨️ Reprint</button>`;
+      
+      if (!isRefund && !isRefundedOriginal) {
+        html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>
+                 <button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">💰 Refund</button>`;
+      } else if (!isRefund && isRefundedOriginal) {
+        html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>`;
       }
+      html += `</div></div>`;
     });
-  });
-}
+    container.innerHTML = html;
+
+    document.querySelectorAll('.reprint-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        reprintReceipt(JSON.parse(btn.dataset.receipt));
+        e.stopPropagation();
+      });
+    });
+    document.querySelectorAll('.lucky-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        openLuckyDraw(btn.dataset.txid);
+        e.stopPropagation();
+      });
+    });
+    document.querySelectorAll('.refund-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const transactionId = btn.dataset.txid;
+        const store = btn.dataset.store;
+        e.stopPropagation();
+        const confirm = await showConfirmModal('Refund Transaction', `Are you sure you want to refund transaction ${transactionId}? This will reverse the sale and restore stock.`);
+        if (confirm) {
+          await processRefund(transactionId, store);
+        }
+      });
+    });
+  }
+
   async function reprintReceipt(receipt) {
     if (!window.printerAPI || !window.printerAPI.isConnected) {
       await showAlertModal('Printer required', 'Connect Bluetooth printer first.');
@@ -1561,9 +1552,9 @@ const isRefundedOriginal = rec.refunded === true;
       const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
       const result = await response.json();
       if (result.success) {
-      hideLoading();
+        hideLoading();
         await showAlertModal('Refund Successful', `Refund ID: ${result.refundId}\nStock restored.`);
-        updateReceipts(); // refresh the list
+        updateReceipts();
         localStorage.removeItem(`products_${currentStore}`);
         await fetchProductsFromSheet();
         hideLoading();
@@ -1580,33 +1571,33 @@ const isRefundedOriginal = rec.refunded === true;
 
   // ==================== REPORTS ====================
   async function fetchSalesReport(store, employeeId, from, to, unsettledOnly) {
-  showLoading('Loading report...');
-  try {
-    let url = `${APPS_SCRIPT_URL}?action=getSalesReport&store=${store}&employeeId=${employeeId}`;
-    if (from) url += `&from=${encodeURIComponent(from)}`;
-    if (to) url += `&to=${encodeURIComponent(to)}`;
-    if (unsettledOnly) url += `&unsettledOnly=true`;
-    const response = await fetch(url);
-    const result = await response.json();
-    if (result.success) {
-      document.getElementById('adminReportTotalSales').innerText = `RM ${result.totalSales.toFixed(2)}`;
-      document.getElementById('adminReportCashTotal').innerText = `RM ${result.cashTotal.toFixed(2)}`;
-      document.getElementById('adminReportCardTotal').innerText = `RM ${result.cardTotal.toFixed(2)}`;
-      document.getElementById('adminReportOtherTotal').innerText = `RM ${result.otherTotal.toFixed(2)}`;
-      document.getElementById('adminReportRefundTotal').innerText = `RM ${Math.abs(result.refundTotal).toFixed(2)}`; // optional: use absolute value
-      document.getElementById('adminReportRefundedBills').innerText = result.refundedTransactionCount; // <-- NEW LINE
-      document.getElementById('adminReportTransactionCount').innerText = result.transactionCount;
-      document.getElementById('adminReportTotalItems').innerText = result.totalItems;
-      return result;
-    } else throw new Error('Report data error');
-  } catch (err) {
-    console.error(err);
-    await showAlertModal('Error', 'Failed to load report.');
-    return null;
-  } finally {
-    hideLoading();
+    showLoading('Loading report...');
+    try {
+      let url = `${APPS_SCRIPT_URL}?action=getSalesReport&store=${store}&employeeId=${employeeId}`;
+      if (from) url += `&from=${encodeURIComponent(from)}`;
+      if (to) url += `&to=${encodeURIComponent(to)}`;
+      if (unsettledOnly) url += `&unsettledOnly=true`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        document.getElementById('adminReportTotalSales').innerText = `RM ${result.totalSales.toFixed(2)}`;
+        document.getElementById('adminReportCashTotal').innerText = `RM ${result.cashTotal.toFixed(2)}`;
+        document.getElementById('adminReportCardTotal').innerText = `RM ${result.cardTotal.toFixed(2)}`;
+        document.getElementById('adminReportOtherTotal').innerText = `RM ${result.otherTotal.toFixed(2)}`;
+        document.getElementById('adminReportRefundTotal').innerText = `RM ${Math.abs(result.refundTotal).toFixed(2)}`;
+        document.getElementById('adminReportRefundedBills').innerText = result.refundedTransactionCount;
+        document.getElementById('adminReportTransactionCount').innerText = result.transactionCount;
+        document.getElementById('adminReportTotalItems').innerText = result.totalItems;
+        return result;
+      } else throw new Error('Report data error');
+    } catch (err) {
+      console.error(err);
+      await showAlertModal('Error', 'Failed to load report.');
+      return null;
+    } finally {
+      hideLoading();
+    }
   }
-}
 
   async function fetchSalesChartData(store, employeeId, from, to) {
     try {
@@ -1618,7 +1609,6 @@ const isRefundedOriginal = rec.refunded === true;
       if (result.success) {
         await new Promise(resolve => setTimeout(resolve, 200));
 
-        // Store chart (admin only)
         if (currentEmployee.isAdmin && result.salesByStore) {
           const storeCanvas = document.getElementById('storeChart');
           if (storeCanvas) {
@@ -1642,7 +1632,6 @@ const isRefundedOriginal = rec.refunded === true;
           }
         }
 
-        // Day chart
         const dayCanvas = document.getElementById('dayChart');
         if (dayCanvas) {
           if (window.dayChart && typeof window.dayChart.destroy === 'function') window.dayChart.destroy();
@@ -1817,19 +1806,19 @@ const isRefundedOriginal = rec.refunded === true;
   }
 
   async function refreshSettlementTotals(store) {
-  const todayStr = getLocalDateString(new Date());
-  const report = await fetchSalesReport(store, 'all', todayStr, todayStr, true);
-  if (report) {
-    currentSettlementTotals = {
-      cash: report.cashTotal,
-      card: report.cardTotal,
-      qr: report.otherTotal,
-      refund: report.refundTotal
-    };
-    document.getElementById('sysCash').innerText = `RM ${currentSettlementTotals.cash.toFixed(2)}`;
-    document.getElementById('sysCard').innerText = `RM ${currentSettlementTotals.card.toFixed(2)}`;
-    document.getElementById('sysQR').innerText = `RM ${currentSettlementTotals.qr.toFixed(2)}`;
-    document.getElementById('sysRefund').innerText = `RM ${currentSettlementTotals.refund.toFixed(2)}`;
+    const todayStr = getLocalDateString(new Date());
+    const report = await fetchSalesReport(store, 'all', todayStr, todayStr, true);
+    if (report) {
+      currentSettlementTotals = {
+        cash: report.cashTotal,
+        card: report.cardTotal,
+        qr: report.otherTotal,
+        refund: report.refundTotal
+      };
+      document.getElementById('sysCash').innerText = `RM ${currentSettlementTotals.cash.toFixed(2)}`;
+      document.getElementById('sysCard').innerText = `RM ${currentSettlementTotals.card.toFixed(2)}`;
+      document.getElementById('sysQR').innerText = `RM ${currentSettlementTotals.qr.toFixed(2)}`;
+      document.getElementById('sysRefund').innerText = `RM ${Math.abs(currentSettlementTotals.refund).toFixed(2)}`;
 
       const alreadySettled = await checkSettlementStatus(store, todayStr);
       if (alreadySettled) {
@@ -2104,7 +2093,7 @@ const isRefundedOriginal = rec.refunded === true;
     currentStore = initialStore;
     storeSelect.value = initialStore;
     document.getElementById('storeSelectModal').style.display = 'none';
-    initialDataPromise = loadInitialData(); // start loading data in background
+    initialDataPromise = loadInitialData();
     document.getElementById('loginModal').style.display = 'flex';
     document.getElementById('pinInput').focus();
   });
@@ -2121,8 +2110,8 @@ const isRefundedOriginal = rec.refunded === true;
         document.getElementById('loginModal').style.display = 'none';
         document.getElementById('mainContent').style.display = 'block';
 
-        if (initialDataPromise) await initialDataPromise; // wait for data if not ready
-        else await loadInitialData(); // fallback
+        if (initialDataPromise) await initialDataPromise;
+        else await loadInitialData();
 
         if (!currentEmployee.isAdmin) {
           storeSelect.disabled = true;
@@ -2186,8 +2175,11 @@ const isRefundedOriginal = rec.refunded === true;
         receiptsEmpSelect.appendChild(opt2);
       });
       document.getElementById('receiptsEmployeeFilter').style.display = 'flex';
+      document.getElementById('receiptsStoreFilterGroup').style.display = 'flex';
     } else {
       document.getElementById('receiptsEmployeeFilter').style.display = 'none';
+      document.getElementById('receiptsStoreFilterGroup').style.display = 'none';
+      document.getElementById('receiptsStoreSelect').value = currentStore;
     }
     populateStoreSelects();
     const modal = document.getElementById('adminReportModal');
@@ -2216,8 +2208,11 @@ const isRefundedOriginal = rec.refunded === true;
         receiptsEmpSelect.appendChild(opt);
       });
       document.getElementById('receiptsEmployeeFilter').style.display = 'flex';
+      document.getElementById('receiptsStoreFilterGroup').style.display = 'flex';
     } else {
       document.getElementById('receiptsEmployeeFilter').style.display = 'none';
+      document.getElementById('receiptsStoreFilterGroup').style.display = 'none';
+      document.getElementById('receiptsStoreSelect').value = currentStore;
     }
     populateStoreSelects();
     document.getElementById('receiptsModal').style.display = 'flex';
@@ -2367,10 +2362,9 @@ const isRefundedOriginal = rec.refunded === true;
   document.getElementById('checkoutBtn').addEventListener('click', startCheckout);
   document.getElementById('clearCartBtn').addEventListener('click', clearCart);
   document.getElementById('refreshProductsBtn').addEventListener('click', () => {
-  // Clear frontend cache and force a fresh fetch
-  localStorage.removeItem(`products_${currentStore}`);
-  fetchProductsFromSheet(true);
-});
+    localStorage.removeItem(`products_${currentStore}`);
+    fetchProductsFromSheet(true);
+  });
   searchInput.addEventListener('input', () => {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => renderProductGrid(), 300);
@@ -2402,7 +2396,6 @@ const isRefundedOriginal = rec.refunded === true;
     if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value);
   });
 
-  // Helper for select population
   async function fetchEmployees() {
     try {
       const response = await fetch(`${APPS_SCRIPT_URL}?action=getEmployees`);
@@ -2427,7 +2420,12 @@ const isRefundedOriginal = rec.refunded === true;
   }
 
   function updateReceipts() {
-    const store = document.getElementById('receiptsStoreSelect').value;
+    let store;
+    if (currentEmployee?.isAdmin) {
+      store = document.getElementById('receiptsStoreSelect').value;
+    } else {
+      store = currentStore;
+    }
     let employeeId = 'all';
     if (currentEmployee?.isAdmin) employeeId = document.getElementById('receiptsEmployeeSelect').value;
     const range = document.getElementById('receiptsDateRangeSelect').value;
