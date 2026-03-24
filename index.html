@@ -1064,12 +1064,15 @@
   }
 
   // ==================== PRODUCT GRID (with caching) ====================
-  async function fetchProductsFromSheet() {
-    showLoading('Fetching products...')
-    try {
-      const cacheKey = `products_${currentStore}`;
+  async function fetchProductsFromSheet(force = false) {
+  showLoading('Fetching products...');
+  try {
+    const cacheKey = `products_${currentStore}`;
+    const now = Date.now();
+
+    // If not forced, try to use localStorage cache (5 minutes)
+    if (!force) {
       const cached = localStorage.getItem(cacheKey);
-      const now = Date.now();
       if (cached) {
         const { timestamp, products: cachedProducts } = JSON.parse(cached);
         if (now - timestamp < 5 * 60 * 1000) { // 5 minutes
@@ -1087,41 +1090,52 @@
           return true;
         }
       }
-
-      const url = `${APPS_SCRIPT_URL}?action=getProducts&store=${currentStore}`;
-      const response = await fetch(url);
-      const result = await response.json();
-      if (result.success && Array.isArray(result.products)) {
-        products = result.products.map(p => ({
-          id: p.id,
-          name: p.name,
-          price: parseFloat(p.price),
-          stock: parseInt(p.stock) || 0,
-          category: p.category || "Uncategorized"
-        })).sort((a, b) => a.name.localeCompare(b.name));
-        const categories = [...new Set(products.map(p => p.category))].sort();
-        categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
-        categories.forEach(cat => {
-          const option = document.createElement('option');
-          option.value = cat;
-          option.textContent = cat;
-          categorySelect.appendChild(option);
-        });
-        renderProductGrid();
-        localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, products }));
-        return true;
-      } else {
-        throw new Error('Invalid data format');
-      }
-    } catch (err) {
-      console.error(err);
-      await showAlertModal('Error', 'Failed to load products. Check URL & sheet.');
-      return false;
-    } finally {
-      hideLoading();
     }
-  }
 
+    // Build URL with optional cache‑busting parameter
+    let url = `${APPS_SCRIPT_URL}?action=getProducts&store=${currentStore}`;
+    if (force) {
+      url += `&_=${now}`; // unique timestamp to bypass backend cache
+    }
+
+    const response = await fetch(url);
+    const result = await response.json();
+
+    if (result.success && Array.isArray(result.products)) {
+      products = result.products.map(p => ({
+        id: p.id,
+        name: p.name,
+        price: parseFloat(p.price),
+        stock: parseInt(p.stock) || 0,
+        category: p.category || "Uncategorized"
+      })).sort((a, b) => a.name.localeCompare(b.name));
+
+      // Update categories dropdown
+      const categories = [...new Set(products.map(p => p.category))].sort();
+      categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
+      categories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat;
+        categorySelect.appendChild(option);
+      });
+
+      renderProductGrid();
+
+      // Store in localStorage (even if forced, store fresh data)
+      localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, products }));
+      return true;
+    } else {
+      throw new Error('Invalid data format');
+    }
+  } catch (err) {
+    console.error(err);
+    await showAlertModal('Error', 'Failed to load products. Check URL & sheet.');
+    return false;
+  } finally {
+    hideLoading();
+  }
+}
   function renderProductGrid() {
     const searchTerm = searchInput.value.toLowerCase();
     const selectedCategory = categorySelect.value;
@@ -2332,9 +2346,10 @@ function renderReceiptsList(receipts) {
   document.getElementById('checkoutBtn').addEventListener('click', startCheckout);
   document.getElementById('clearCartBtn').addEventListener('click', clearCart);
   document.getElementById('refreshProductsBtn').addEventListener('click', () => {
-    localStorage.removeItem(`products_${currentStore}`);
-    fetchProductsFromSheet();
-  });
+  // Clear frontend cache and force a fresh fetch
+  localStorage.removeItem(`products_${currentStore}`);
+  fetchProductsFromSheet(true);
+});
   searchInput.addEventListener('input', () => {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => renderProductGrid(), 300);
