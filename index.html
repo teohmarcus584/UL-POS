@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes, viewport-fit=cover">
   <title>POS System | PIN Login</title>
   <style>
-    /* ========== ALL EXISTING STYLES (unchanged) ========== */
+    /* ========== ALL EXISTING STYLES ========== */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -236,7 +236,42 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; display: flex; flex-direction: column;
       height: fit-content;
     }
-    .cart-title { font-size: 1.3rem; font-weight: 600; margin-bottom: 16px; border-bottom: 2px solid #eef2ff; padding-bottom: 10px; }
+    .cart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .cart-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #0f172a;
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .cart-header-buttons {
+      display: flex;
+      gap: 8px;
+    }
+    .cart-header-btn {
+      background: #f1f5f9;
+      border: none;
+      border-radius: 40px;
+      padding: 8px 16px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.2s;
+      color: #334155;
+    }
+    .cart-header-btn:hover {
+      background: #e2e8f0;
+    }
+    .cart-header-btn:active {
+      transform: scale(0.97);
+    }
     .cart-items { max-height: 50vh; overflow-y: auto; margin-bottom: 20px; }
     .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #edf2f7; }
     .cart-item-info { flex: 2; }
@@ -255,9 +290,8 @@
     .cart-actions button { flex: 1; padding: 12px; border-radius: 40px; font-weight: 600; border: none; cursor: pointer; }
     #checkoutBtn { background: #2c7a4b; color: white; }
     #claimPrizeBtn { background: #f59e0b; color: white; }
-    #specialPromoBtn { background: #8b5cf6; color: white; }  /* NEW */
-    #clearCartBtn { background: #f1f5f9; color: #334155; }
-    #refreshProductsBtn { background: #eef2ff; color: #1e40af; }
+    #specialPromoBtn { background: #8b5cf6; color: white; }
+    #clearCartBtn, #refreshProductsBtn { /* handled by .cart-header-btn */ }
     button:active { transform: scale(0.97); }
 
     .modal-overlay {
@@ -307,7 +341,6 @@
       border: 1px solid #e2e8f0; border-radius: 20px; padding: 12px; margin-bottom: 12px;
       background: #f8fafc; transition: 0.1s;
     }
-    /* ADDED: Highlight refund receipts in red */
     .receipt-item.refund-receipt {
       background-color: #ffe6e6;
       border-left: 5px solid #ef4444;
@@ -542,140 +575,99 @@
     .collection-table td:nth-child(4) {
       text-align: right;
     }
-    /* Enhanced discount rows */
-.summary-row.discount-row {
-  background: #f9fafb;
-  border-radius: 12px;
-  margin: 6px 0;
-  padding: 8px 12px;
-  transition: background 0.2s;
-}
-.summary-row.discount-row:hover {
-  background: #f1f5f9;
-}
-.summary-row.discount-row span:first-child {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.summary-row.discount-row span:first-child i {
-  font-style: normal;
-  font-size: 1.1rem;
-}
-.summary-row.discount-row span:last-child {
-  font-weight: 600;
-  color: #dc2626;
-}
-.summary-row.discount-row span:last-child::before {
-  content: "-";
-}
-.cart-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-.cart-title {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: #0f172a;
-  border-bottom: none;
-  padding-bottom: 0;
-}
-.cart-header-buttons {
-  display: flex;
-  gap: 8px;
-}
-.cart-header-btn {
-  background: #f1f5f9;
-  border: none;
-  border-radius: 40px;
-  padding: 8px 16px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: 0.2s;
-  color: #334155;
-}
-.cart-header-btn:hover {
-  background: #e2e8f0;
-}
-.cart-header-btn:active {
-  transform: scale(0.97);
-}
-/* Special Promo Modal Enhancements */
-.promo-option-btn {
-  width: 100%;
-  margin-bottom: 12px;
-  font-size: 1rem;
-  padding: 12px;
-  background: #0a7b3c;
-  transition: background 0.2s;
-}
-.promo-option-btn:hover {
-  background: #0c8f47;
-}
-.custom-discount-section {
-  margin: 20px 0 16px;
-  padding-top: 8px;
-  border-top: 1px solid #e2e8f0;
-}
-.custom-discount-section label {
-  display: block;
-  font-weight: 500;
-  margin-bottom: 8px;
-  color: #1e293b;
-}
-.currency-input {
-  position: relative;
-  display: flex;
-  align-items: center;
-  background: white;
-  border: 1px solid #cbd5e1;
-  border-radius: 60px;
-  overflow: hidden;
-  margin-bottom: 12px;
-}
-.currency-symbol {
-  padding: 12px 0 12px 16px;
-  font-weight: 500;
-  color: #2c7a4b;
-  background: #f8fafc;
-  border-right: 1px solid #e2e8f0;
-}
-.currency-field {
-  flex: 1;
-  border: none;
-  padding: 12px 12px 12px 8px;
-  font-size: 1rem;
-  outline: none;
-  background: transparent;
-  text-align: right;
-}
-.currency-field:focus {
-  outline: none;
-}
-.apply-btn {
-  width: 100%;
-  margin-top: 8px;
-  background: #8b5cf6;
-}
-.apply-btn:hover {
-  background: #7c3aed;
-}
+
+    /* Discount rows styling */
+    .summary-row.discount-row {
+      background: #f9fafb;
+      border-radius: 12px;
+      margin: 6px 0;
+      padding: 8px 12px;
+      transition: background 0.2s;
+    }
+    .summary-row.discount-row:hover {
+      background: #f1f5f9;
+    }
+    .summary-row.discount-row span:first-child {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .summary-row.discount-row span:first-child i {
+      font-style: normal;
+      font-size: 1.1rem;
+    }
+    .summary-row.discount-row span:last-child {
+      font-weight: 600;
+      color: #dc2626;
+    }
+    .summary-row.discount-row span:last-child::before {
+      content: "-";
+    }
+
+    /* Special Promo Modal Enhancements */
+    .promo-option-btn {
+      width: 100%;
+      margin-bottom: 12px;
+      font-size: 1rem;
+      padding: 12px;
+      background: #0a7b3c;
+      transition: background 0.2s;
+    }
+    .promo-option-btn:hover {
+      background: #0c8f47;
+    }
+    .custom-discount-section {
+      margin: 20px 0 16px;
+      padding-top: 8px;
+      border-top: 1px solid #e2e8f0;
+    }
+    .custom-discount-section label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: #1e293b;
+    }
+    .currency-input {
+      position: relative;
+      display: flex;
+      align-items: center;
+      background: white;
+      border: 1px solid #cbd5e1;
+      border-radius: 60px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .currency-symbol {
+      padding: 12px 0 12px 16px;
+      font-weight: 500;
+      color: #2c7a4b;
+      background: #f8fafc;
+      border-right: 1px solid #e2e8f0;
+    }
+    .currency-field {
+      flex: 1;
+      border: none;
+      padding: 12px 12px 12px 8px;
+      font-size: 1rem;
+      outline: none;
+      background: transparent;
+      text-align: right;
+    }
+    .currency-field:focus {
+      outline: none;
+    }
+    .apply-btn {
+      width: 100%;
+      margin-top: 8px;
+      background: #8b5cf6;
+    }
+    .apply-btn:hover {
+      background: #7c3aed;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
-// Promo discount row elements
-const promoBuy2Free1Row = document.getElementById('promoBuy2Free1Row');
-const promoBuy2Free1Amount = document.getElementById('promoBuy2Free1Amount');
-const promoBuy3Free1Row = document.getElementById('promoBuy3Free1Row');
-const promoBuy3Free1Amount = document.getElementById('promoBuy3Free1Amount');
-const customDiscountRow = document.getElementById('customDiscountRow');
-const customDiscountAmount = document.getElementById('customDiscountAmount');
 <!-- Store Selection Modal (shown on page load) -->
 <div id="storeSelectModal" class="modal-overlay" style="display: flex;">
   <div class="modal-container" style="max-width: 400px;">
@@ -767,41 +759,45 @@ const customDiscountAmount = document.getElementById('customDiscountAmount');
       </div>
       <div id="productGrid" class="product-grid">Loading products...</div>
     </div>
-<div class="cart-panel">
-  <div class="cart-header">
-    <div class="cart-title">🧾 Current Sale</div>
-    <div class="cart-header-buttons">
-      <button id="clearCartBtn" class="cart-header-btn">🗑️ Clear</button>
-      <button id="refreshProductsBtn" class="cart-header-btn">🔄 Refresh</button>
+
+    <div class="cart-panel">
+      <div class="cart-header">
+        <div class="cart-title">🧾 Current Sale</div>
+        <div class="cart-header-buttons">
+          <button id="clearCartBtn" class="cart-header-btn">🗑️ Clear</button>
+          <button id="refreshProductsBtn" class="cart-header-btn">🔄 Refresh</button>
+        </div>
+      </div>
+      <div id="cartItemsContainer" class="cart-items">Cart is empty</div>
+      <div class="cart-summary">
+        <div class="summary-row"><span>Subtotal</span><span id="subtotal">RM 0.00</span></div>
+        <div id="discountRow" class="summary-row discount-row" style="display: none;">
+          <span><i>🎲</i> Lucky Draw</span>
+          <span id="discountAmount">RM 0.00</span>
+        </div>
+        <div id="promoBuy2Free1Row" class="summary-row discount-row" style="display: none;">
+          <span><i>🎯</i> Buy 2 Free 1 (Perfume)</span>
+          <span id="promoBuy2Free1Amount">RM 0.00</span>
+        </div>
+        <div id="promoBuy3Free1Row" class="summary-row discount-row" style="display: none;">
+          <span><i>🎯</i> Buy 3 Free 1 (Excluding Perfume)</span>
+          <span id="promoBuy3Free1Amount">RM 0.00</span>
+        </div>
+        <div id="customDiscountRow" class="summary-row discount-row" style="display: none;">
+          <span><i>💰</i> Custom Discount</span>
+          <span id="customDiscountAmount">RM 0.00</span>
+        </div>
+        <div class="summary-row total-row"><span>TOTAL</span><span id="totalAmount">RM 0.00</span></div>
+      </div>
+      <div class="cart-actions">
+        <button id="checkoutBtn">💳 CHECKOUT</button>
+        <button id="claimPrizeBtn">🎁 Claim Prize</button>
+        <button id="specialPromoBtn">🎁 Special Promo</button>
+      </div>
     </div>
-  </div>
-  <div id="cartItemsContainer" class="cart-items">Cart is empty</div>
-  <div class="cart-summary">
-    <div class="summary-row"><span>Subtotal</span><span id="subtotal">RM 0.00</span></div>
-    <div id="discountRow" class="summary-row discount-row" style="display: none;">
-      <span><i>🎲</i> Lucky Draw</span>
-      <span id="discountAmount">RM 0.00</span>
-    </div>
-    <div id="promoBuy2Free1Row" class="summary-row discount-row" style="display: none;">
-      <span><i>🎯</i> Buy 2 Free 1 (Perfume)</span>
-      <span id="promoBuy2Free1Amount">RM 0.00</span>
-    </div>
-    <div id="promoBuy3Free1Row" class="summary-row discount-row" style="display: none;">
-      <span><i>🎯</i> Buy 3 Free 1 (Excluding Perfume)</span>
-      <span id="promoBuy3Free1Amount">RM 0.00</span>
-    </div>
-    <div id="customDiscountRow" class="summary-row discount-row" style="display: none;">
-      <span><i>💰</i> Custom Discount</span>
-      <span id="customDiscountAmount">RM 0.00</span>
-    </div>
-    <div class="summary-row total-row"><span>TOTAL</span><span id="totalAmount">RM 0.00</span></div>
-  </div>
-  <div class="cart-actions">
-    <button id="checkoutBtn">💳 CHECKOUT</button>
-    <button id="claimPrizeBtn">🎁 Claim Prize</button>
-    <button id="specialPromoBtn">🎁 Special Promo</button>
   </div>
 </div>
+
 <!-- Payment Modal -->
 <div id="paymentModal" class="modal-overlay">
   <div class="modal-container" style="max-width: 400px;">
@@ -881,10 +877,10 @@ const customDiscountAmount = document.getElementById('customDiscountAmount');
     <div class="modal-title">🎁 Special Promo</div>
     <div id="promoOptions">
       <button id="promoBuy2Free1Perfume" class="modal-btn modal-btn-primary promo-option-btn">
-         Buy 2 Free 1 (100ml Perfume EDP)
+        🎯 Buy 2 Free 1 (100ml Perfume EDP)
       </button>
       <button id="promoBuy3Free1ExcludePerfume" class="modal-btn modal-btn-primary promo-option-btn">
-         Buy 3 Free 1 (Excluding Perfume)
+        🎯 Buy 3 Free 1 (Excluding Perfume)
       </button>
       <div class="custom-discount-section">
         <label>Custom Discount (RM)</label>
@@ -951,7 +947,7 @@ const customDiscountAmount = document.getElementById('customDiscountAmount');
           <table class="product-details-table">
             <thead>   </thead>
             <tbody id="productDetailsBody">   </tbody>
-           </table>
+          </table>
         </div>
       </div>
     </div>
@@ -1028,12 +1024,12 @@ const customDiscountAmount = document.getElementById('customDiscountAmount');
   let searchTimeout = null;
   let initialDataPromise = null;
   let discountAmount = 0;          // Lucky Draw discount
-  let promoDiscount = 0;           // Promo discount
+  let buy2Free1Discount = 0;      // discount from Buy 2 Free 1 (Perfume)
+  let buy3Free1Discount = 0;      // discount from Buy 3 Free 1 (Excluding Perfume)
+  let customDiscount = 0;          // manually entered custom discount
   let claimedReceiptInfo = null;
   let pendingPrize = null;          // { receipt, value, name }
-let buy2Free1Discount = 0;      // discount from Buy 2 Free 1 (Perfume)
-let buy3Free1Discount = 0;      // discount from Buy 3 Free 1 (Excluding Perfume)
-let customDiscount = 0;          // manually entered custom discount
+
   // DOM elements
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -1041,8 +1037,12 @@ let customDiscount = 0;          // manually entered custom discount
   const totalSpan = document.getElementById('totalAmount');
   const discountRow = document.getElementById('discountRow');
   const discountAmountSpan = document.getElementById('discountAmount');
-  const promoRow = document.getElementById('promoRow');
-  const promoDiscountDisplay = document.getElementById('promoDiscountDisplay');
+  const promoBuy2Free1Row = document.getElementById('promoBuy2Free1Row');
+  const promoBuy2Free1Amount = document.getElementById('promoBuy2Free1Amount');
+  const promoBuy3Free1Row = document.getElementById('promoBuy3Free1Row');
+  const promoBuy3Free1Amount = document.getElementById('promoBuy3Free1Amount');
+  const customDiscountRow = document.getElementById('customDiscountRow');
+  const customDiscountAmount = document.getElementById('customDiscountAmount');
   const searchInput = document.getElementById('searchInput');
   const categorySelect = document.getElementById('categorySelect');
   const storeSelect = document.getElementById('storeSelect');
@@ -1327,91 +1327,108 @@ let customDiscount = 0;          // manually entered custom discount
   }
 
   // ==================== CART FUNCTIONS ====================
-function updateCartUI() {
-  if (!cartContainer) return;
-  if (cart.length === 0) {
-    cartContainer.innerHTML = '<div style="color:#94a3b8; text-align:center;">Cart is empty</div>';
-    subtotalSpan.innerText = `RM 0.00`;
-    discountAmount = 0;
-    buy2Free1Discount = 0;
-    buy3Free1Discount = 0;
-    customDiscount = 0;
-    claimedReceiptInfo = null;
-    pendingPrize = null;
-    discountRow.style.display = 'none';
-    promoRow.style.display = 'none';
-    totalSpan.innerText = `RM 0.00`;
-    return;
-  }
+  function updateCartUI() {
+    if (!cartContainer) return;
+    if (cart.length === 0) {
+      cartContainer.innerHTML = '<div style="color:#94a3b8; text-align:center;">Cart is empty</div>';
+      subtotalSpan.innerText = `RM 0.00`;
+      discountAmount = 0;
+      buy2Free1Discount = 0;
+      buy3Free1Discount = 0;
+      customDiscount = 0;
+      claimedReceiptInfo = null;
+      pendingPrize = null;
+      discountRow.style.display = 'none';
+      promoBuy2Free1Row.style.display = 'none';
+      promoBuy3Free1Row.style.display = 'none';
+      customDiscountRow.style.display = 'none';
+      totalSpan.innerText = `RM 0.00`;
+      return;
+    }
 
-  let html = '';
-  let subtotal = 0;
-  cart.forEach((item, idx) => {
-    const itemTotal = item.product.price * item.quantity;
-    subtotal += itemTotal;
-    const categoryDisplay = item.product.category
-      ? `<div class="cart-item-category">${escapeHtml(item.product.category)}</div>`
-      : '';
-    html += `
-      <div class="cart-item">
-        <div class="cart-item-info">
-          <div class="cart-item-name">${escapeHtml(item.product.name)}</div>
-          ${categoryDisplay}
-          <div class="cart-item-price">RM ${item.product.price.toFixed(2)}</div>
+    let html = '';
+    let subtotal = 0;
+    cart.forEach((item, idx) => {
+      const itemTotal = item.product.price * item.quantity;
+      subtotal += itemTotal;
+      const categoryDisplay = item.product.category
+        ? `<div class="cart-item-category">${escapeHtml(item.product.category)}</div>`
+        : '';
+      html += `
+        <div class="cart-item">
+          <div class="cart-item-info">
+            <div class="cart-item-name">${escapeHtml(item.product.name)}</div>
+            ${categoryDisplay}
+            <div class="cart-item-price">RM ${item.product.price.toFixed(2)}</div>
+          </div>
+          <div class="cart-item-qty">
+            <button class="qty-btn" data-index="${idx}" data-delta="-1">−</button>
+            <span>${item.quantity}</span>
+            <button class="qty-btn" data-index="${idx}" data-delta="1">+</button>
+          </div>
+          <div class="cart-item-total">RM ${itemTotal.toFixed(2)}</div>
+          <button class="remove-item" data-index="${idx}">✕</button>
         </div>
-        <div class="cart-item-qty">
-          <button class="qty-btn" data-index="${idx}" data-delta="-1">−</button>
-          <span>${item.quantity}</span>
-          <button class="qty-btn" data-index="${idx}" data-delta="1">+</button>
-        </div>
-        <div class="cart-item-total">RM ${itemTotal.toFixed(2)}</div>
-        <button class="remove-item" data-index="${idx}">✕</button>
-      </div>
-    `;
-  });
-  cartContainer.innerHTML = html;
-
-  subtotalSpan.innerText = `RM ${subtotal.toFixed(2)}`;
-
-  // Sum all promo discounts
-  const totalPromoDiscount = buy2Free1Discount + buy3Free1Discount + customDiscount;
-  const total = subtotal - discountAmount - totalPromoDiscount;
-
-  // Lucky Draw discount row
-  if (discountAmount > 0) {
-    discountRow.style.display = 'flex';
-    discountAmountSpan.innerText = `RM ${discountAmount.toFixed(2)}`;   // minus sign added via CSS
-  } else {
-    discountRow.style.display = 'none';
-  }
-
-  // Promo discount row (all promotions combined)
-  if (totalPromoDiscount > 0) {
-    promoRow.style.display = 'flex';
-    promoDiscountDisplay.innerText = `RM ${totalPromoDiscount.toFixed(2)}`; // minus sign added via CSS
-  } else {
-    promoRow.style.display = 'none';
-  }
-
-  totalSpan.innerText = `RM ${total.toFixed(2)}`;
-
-  // Reattach quantity and remove event listeners
-  document.querySelectorAll('.qty-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const idx = parseInt(btn.dataset.index);
-      const delta = parseInt(btn.dataset.delta);
-      if (!isNaN(idx) && !isNaN(delta)) updateQuantity(idx, delta);
-      e.stopPropagation();
+      `;
     });
-  });
-  document.querySelectorAll('.remove-item').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const idx = parseInt(btn.dataset.index);
-      if (!isNaN(idx)) removeCartItem(idx);
-      e.stopPropagation();
+    cartContainer.innerHTML = html;
+
+    subtotalSpan.innerText = `RM ${subtotal.toFixed(2)}`;
+
+    const totalPromoDiscount = buy2Free1Discount + buy3Free1Discount + customDiscount;
+    const total = subtotal - discountAmount - totalPromoDiscount;
+
+    // Lucky Draw discount
+    if (discountAmount > 0) {
+      discountRow.style.display = 'flex';
+      discountAmountSpan.innerText = `RM ${discountAmount.toFixed(2)}`;
+    } else {
+      discountRow.style.display = 'none';
+    }
+
+    // Buy 2 Free 1 (Perfume)
+    if (buy2Free1Discount > 0) {
+      promoBuy2Free1Row.style.display = 'flex';
+      promoBuy2Free1Amount.innerText = `RM ${buy2Free1Discount.toFixed(2)}`;
+    } else {
+      promoBuy2Free1Row.style.display = 'none';
+    }
+
+    // Buy 3 Free 1 (Excluding Perfume)
+    if (buy3Free1Discount > 0) {
+      promoBuy3Free1Row.style.display = 'flex';
+      promoBuy3Free1Amount.innerText = `RM ${buy3Free1Discount.toFixed(2)}`;
+    } else {
+      promoBuy3Free1Row.style.display = 'none';
+    }
+
+    // Custom Discount
+    if (customDiscount > 0) {
+      customDiscountRow.style.display = 'flex';
+      customDiscountAmount.innerText = `RM ${customDiscount.toFixed(2)}`;
+    } else {
+      customDiscountRow.style.display = 'none';
+    }
+
+    totalSpan.innerText = `RM ${total.toFixed(2)}`;
+
+    // Reattach quantity and remove buttons
+    document.querySelectorAll('.qty-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const idx = parseInt(btn.dataset.index);
+        const delta = parseInt(btn.dataset.delta);
+        if (!isNaN(idx) && !isNaN(delta)) updateQuantity(idx, delta);
+        e.stopPropagation();
+      });
     });
-  });
-}
+    document.querySelectorAll('.remove-item').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const idx = parseInt(btn.dataset.index);
+        if (!isNaN(idx)) removeCartItem(idx);
+        e.stopPropagation();
+      });
+    });
+  }
 
   function updateQuantity(index, delta) {
     const item = cart[index];
@@ -1460,17 +1477,20 @@ function updateCartUI() {
     if (cart.length === 0) return;
     cart = [];
     discountAmount = 0;
-    promoDiscount = 0;
+    buy2Free1Discount = 0;
+    buy3Free1Discount = 0;
+    customDiscount = 0;
     claimedReceiptInfo = null;
     pendingPrize = null;
     updateCartUI();
   }
-function clearPromo() {
-  buy2Free1Discount = 0;
-  buy3Free1Discount = 0;
-  customDiscount = 0;
-  updateCartUI();
-}
+
+  function clearPromo() {
+    buy2Free1Discount = 0;
+    buy3Free1Discount = 0;
+    customDiscount = 0;
+    updateCartUI();
+  }
 
   // ==================== CLAIM PRIZE FUNCTIONS ====================
   function showClaimPrizeModal() {
@@ -1625,94 +1645,91 @@ function clearPromo() {
     document.getElementById('customPromoValue').value = '';
   }
 
- function applyBuy2Free1Perfume() {
-  // Debug: show all items in cart
-  console.log("Cart items:", cart.map(item => ({
-    name: item.product.name,
-    category: item.product.category,
-    quantity: item.quantity,
-    price: item.product.price
-  })));
+  function applyBuy2Free1Perfume() {
+    // Debug: show all items in cart
+    console.log("Cart items:", cart.map(item => ({
+      name: item.product.name,
+      category: item.product.category,
+      quantity: item.quantity,
+      price: item.product.price
+    })));
 
-  // Sum quantities of items that match the perfume category
-  let totalPerfumeUnits = 0;
-  let cheapestPrice = Infinity;
-  for (let item of cart) {
-    const cat = (item.product.category || "").trim().toLowerCase();
-    if (cat.includes("100ml perfume edp")) {
-      totalPerfumeUnits += item.quantity;
-      if (item.product.price < cheapestPrice) {
-        cheapestPrice = item.product.price;
+    // Sum quantities of items that match the perfume category
+    let totalPerfumeUnits = 0;
+    let cheapestPrice = Infinity;
+    for (let item of cart) {
+      const cat = (item.product.category || "").trim().toLowerCase();
+      if (cat.includes("100ml perfume edp")) {
+        totalPerfumeUnits += item.quantity;
+        if (item.product.price < cheapestPrice) {
+          cheapestPrice = item.product.price;
+        }
       }
     }
+
+    console.log("Total perfume units:", totalPerfumeUnits, "Cheapest price:", cheapestPrice);
+
+    if (totalPerfumeUnits < 2) {
+      const msgDiv = document.getElementById('promoMessage');
+      msgDiv.innerText = `Need at least 2 items in '100ML PERFUME EDP' category. Found ${totalPerfumeUnits}.`;
+      msgDiv.style.display = 'block';
+      return;
+    }
+
+    buy2Free1Discount = cheapestPrice;
+    updateCartUI();
+    document.getElementById('specialPromoModal').style.display = 'none';
   }
 
-  console.log("Total perfume units:", totalPerfumeUnits, "Cheapest price:", cheapestPrice);
+  function applyBuy3Free1ExcludePerfume() {
+    // Debug: show all items in cart
+    console.log("Cart items:", cart.map(item => ({
+      name: item.product.name,
+      category: item.product.category,
+      quantity: item.quantity,
+      price: item.product.price
+    })));
 
-  if (totalPerfumeUnits < 2) {
-    const msgDiv = document.getElementById('promoMessage');
-    msgDiv.innerText = `Need at least 2 items in '100ML PERFUME EDP' category. Found ${totalPerfumeUnits}.`;
-    msgDiv.style.display = 'block';
-    return;
-  }
-
-  // Set the Buy2Free1 discount (this can be stacked with others)
-  buy2Free1Discount = cheapestPrice;
-  updateCartUI();
-  document.getElementById('specialPromoModal').style.display = 'none';
-}
-
-function applyBuy3Free1ExcludePerfume() {
-  // Debug: show all items in cart
-  console.log("Cart items:", cart.map(item => ({
-    name: item.product.name,
-    category: item.product.category,
-    quantity: item.quantity,
-    price: item.product.price
-  })));
-
-  // Sum quantities of items that are NOT in the perfume category
-  let totalNonPerfumeUnits = 0;
-  let cheapestPrice = Infinity;
-  for (let item of cart) {
-    const cat = (item.product.category || "").trim().toLowerCase();
-    if (!cat.includes("100ml perfume edp")) {
-      totalNonPerfumeUnits += item.quantity;
-      if (item.product.price < cheapestPrice) {
-        cheapestPrice = item.product.price;
+    // Sum quantities of items that are NOT in the perfume category
+    let totalNonPerfumeUnits = 0;
+    let cheapestPrice = Infinity;
+    for (let item of cart) {
+      const cat = (item.product.category || "").trim().toLowerCase();
+      if (!cat.includes("100ml perfume edp")) {
+        totalNonPerfumeUnits += item.quantity;
+        if (item.product.price < cheapestPrice) {
+          cheapestPrice = item.product.price;
+        }
       }
     }
+
+    console.log("Total non‑perfume units:", totalNonPerfumeUnits, "Cheapest price:", cheapestPrice);
+
+    if (totalNonPerfumeUnits < 3) {
+      const msgDiv = document.getElementById('promoMessage');
+      msgDiv.innerText = `Need at least 3 items excluding Perfume category. Found ${totalNonPerfumeUnits}.`;
+      msgDiv.style.display = 'block';
+      return;
+    }
+
+    buy3Free1Discount = cheapestPrice;
+    updateCartUI();
+    document.getElementById('specialPromoModal').style.display = 'none';
   }
 
-  console.log("Total non‑perfume units:", totalNonPerfumeUnits, "Cheapest price:", cheapestPrice);
+  function applyCustomDiscount() {
+    const val = parseFloat(document.getElementById('customPromoValue').value);
+    if (isNaN(val) || val <= 0) {
+      const msgDiv = document.getElementById('promoMessage');
+      msgDiv.innerText = "Please enter a valid positive discount amount.";
+      msgDiv.style.display = 'block';
+      return;
+    }
 
-  if (totalNonPerfumeUnits < 3) {
-    const msgDiv = document.getElementById('promoMessage');
-    msgDiv.innerText = `Need at least 3 items excluding Perfume category. Found ${totalNonPerfumeUnits}.`;
-    msgDiv.style.display = 'block';
-    return;
+    customDiscount = val;
+    updateCartUI();
+    document.getElementById('specialPromoModal').style.display = 'none';
   }
-
-  // Set the Buy3Free1 discount (this can be stacked with others)
-  buy3Free1Discount = cheapestPrice;
-  updateCartUI();
-  document.getElementById('specialPromoModal').style.display = 'none';
-}
-
-function applyCustomDiscount() {
-  const val = parseFloat(document.getElementById('customPromoValue').value);
-  if (isNaN(val) || val <= 0) {
-    const msgDiv = document.getElementById('promoMessage');
-    msgDiv.innerText = "Please enter a valid positive discount amount.";
-    msgDiv.style.display = 'block';
-    return;
-  }
-
-  // Set the custom discount (this can be stacked with others)
-  customDiscount = val;
-  updateCartUI();
-  document.getElementById('specialPromoModal').style.display = 'none';
-}
 
   // ==================== CHECKOUT ====================
   async function startCheckout() {
@@ -1743,7 +1760,7 @@ function applyCustomDiscount() {
     }
 
     const subtotal = cart.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
-    const totalAmount = subtotal - discountAmount - promoDiscount;
+    const totalAmount = subtotal - discountAmount - (buy2Free1Discount + buy3Free1Discount + customDiscount);
     pendingTransaction = { totalAmount };
     showPaymentModal(totalAmount);
   }
@@ -1831,7 +1848,9 @@ function applyCustomDiscount() {
       cash_received: cashReceived,
       timestamp: new Date().toISOString(),
       discount: discountAmount,
-      promo_discount: promoDiscount,
+      buy2_free1_discount: buy2Free1Discount,
+      buy3_free1_discount: buy3Free1Discount,
+      custom_discount: customDiscount,
       prize_claimed: claimedReceiptInfo
     };
     const success = await saveTransactionToSheet(transaction);
@@ -1881,7 +1900,9 @@ function applyCustomDiscount() {
       formData.append("store", currentStore);
       formData.append("employee_id", employeeIdForRecord);
       formData.append("discount", transaction.discount || 0);
-      formData.append("promo_discount", transaction.promo_discount || 0);
+      formData.append("buy2_free1_discount", transaction.buy2_free1_discount || 0);
+      formData.append("buy3_free1_discount", transaction.buy3_free1_discount || 0);
+      formData.append("custom_discount", transaction.custom_discount || 0);
       formData.append("prize_claimed", transaction.prize_claimed ? JSON.stringify(transaction.prize_claimed) : '');
       const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
       const result = await response.json();
@@ -1894,7 +1915,7 @@ function applyCustomDiscount() {
     }
   }
 
-  // ==================== RECEIPTS ====================
+  // ==================== RECEIPTS (unchanged) ====================
   async function fetchReceipts(store, employeeId, from, to, search) {
     showLoading('Loading receipts...');
     try {
@@ -1993,7 +2014,7 @@ function applyCustomDiscount() {
 
   function openLuckyDraw(transactionId) { window.open(`https://teohmarcus584.github.io/salesanalysis/?receipt=${encodeURIComponent(transactionId)}`, '_blank'); }
 
-  async function processRefund(transactionId, store) {
+async function processRefund(transactionId, store) {
     showLoading('Processing refund...');
     try {
       const formData = new URLSearchParams();
