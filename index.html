@@ -1257,38 +1257,57 @@
     document.getElementById('claimPrizeModal').style.display = 'flex';
   }
 
-  async function checkReceiptForClaim() {
-    const receipt = document.getElementById('claimReceiptInput').value.trim();
-    if (!receipt) {
-      showClaimError('Please enter a receipt number.');
-      return;
-    }
-    showLoading('Checking receipt...');
-    try {
-      const url = `${APPS_SCRIPT_URL}?action=get&receipt=${encodeURIComponent(receipt)}`;
-      const response = await fetch(url);
-      const result = await response.json();
-      if (result.success) {
-        const data = result.data;
-        if (data.claimed) {
-          showClaimError('This prize has already been claimed.');
-          return;
-        }
-        document.getElementById('validReceiptId').innerText = data.receipt;
-        document.getElementById('claimStep1').style.display = 'none';
-        document.getElementById('claimStep2').style.display = 'block';
-        document.getElementById('claimError').style.display = 'none';
-        window.pendingClaimReceipt = data;
-      } else {
-        showClaimError(result.error || 'Receipt not found.');
-      }
-    } catch (err) {
-      console.error(err);
-      showClaimError('Connection error. Please try again.');
-    } finally {
-      hideLoading();
-    }
+ async function checkReceiptForClaim() {
+  const receipt = document.getElementById('claimReceiptInput').value.trim();
+  if (!receipt) {
+    showClaimError('Please enter a receipt number.');
+    return;
   }
+  showLoading('Checking receipt...');
+  try {
+    const url = `${APPS_SCRIPT_URL}?action=get&receipt=${encodeURIComponent(receipt)}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    if (result.success) {
+      const data = result.data;
+      if (data.claimed) {
+        showClaimError('This prize has already been claimed.');
+        return;
+      }
+      // Extract discount value from prize name
+      const prizeName = data.prize;
+      const match = prizeName.match(/\b(\d+(?:\.\d+)?)\b/);
+      const discountValue = match ? parseFloat(match[1]) : 0;
+      if (discountValue === 0) {
+        showClaimError('Could not determine discount amount from prize name.');
+        return;
+      }
+
+      // Store prize info for later claiming after sale
+      pendingPrize = {
+        receipt: data.receipt,
+        value: discountValue,
+        name: prizeName
+      };
+
+      // Apply discount immediately
+      discountAmount = discountValue;
+      claimedReceiptInfo = pendingPrize;
+      updateCartUI();
+
+      // Show confirmation and close modal
+      showAlertModal('Prize Applied', `Discount of RM ${discountValue.toFixed(2)} has been applied to this sale.\nThe prize will be marked as claimed only after successful payment.`);
+      document.getElementById('claimPrizeModal').style.display = 'none';
+    } else {
+      showClaimError(result.error || 'Receipt not found.');
+    }
+  } catch (err) {
+    console.error(err);
+    showClaimError('Connection error. Please try again.');
+  } finally {
+    hideLoading();
+  }
+}
 
   function showClaimError(msg) {
     const errorDiv = document.getElementById('claimError');
@@ -1296,26 +1315,26 @@
     errorDiv.style.display = 'block';
   }
 
-  function applyPrizeToCart() {
-    const receiptData = window.pendingClaimReceipt;
-    if (!receiptData) return;
-    const prizeValue = parseFloat(document.getElementById('prizeSelect').value);
-    const prizeText = document.getElementById('prizeSelect').selectedOptions[0].text;
+function applyPrizeToCart() {
+  const receiptData = window.pendingClaimReceipt;
+  if (!receiptData) return;
+  const prizeValue = parseFloat(document.getElementById('prizeSelect').value);
+  const prizeText = document.getElementById('prizeSelect').selectedOptions[0].text;
 
-    pendingPrize = {
-      receipt: receiptData.receipt,
-      value: prizeValue,
-      name: prizeText
-    };
+  pendingPrize = {
+    receipt: receiptData.receipt,
+    value: prizeValue,
+    name: prizeText
+  };
 
-    discountAmount = prizeValue;
-    claimedReceiptInfo = pendingPrize;
-    updateCartUI();
+  discountAmount = prizeValue;
+  claimedReceiptInfo = pendingPrize;
+  updateCartUI();
 
-    showAlertModal('Prize Applied', `Discount of RM ${prizeValue.toFixed(2)} has been applied to this sale.\nThe prize will be marked as claimed only after successful payment.`);
+  showAlertModal('Prize Applied', `Discount of RM ${prizeValue.toFixed(2)} has been applied to this sale.\nThe prize will be marked as claimed only after successful payment.`);
 
-    document.getElementById('claimPrizeModal').style.display = 'none';
-  }
+  document.getElementById('claimPrizeModal').style.display = 'none';
+}
 
  async function claimPrizeAfterSale(receipt, prizeValue, finalTotal) {
   try {
