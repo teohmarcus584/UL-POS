@@ -1024,8 +1024,8 @@
   let searchTimeout = null;
   let initialDataPromise = null;
   let discountAmount = 0;          // Lucky Draw discount
-  let buy2Free1Discount = 0;      // discount from Buy 2 Free 1 (Perfume)
-  let buy3Free1Discount = 0;      // discount from Buy 3 Free 1 (Excluding Perfume)
+  let buy2Free1Discount = 0;      // discount from Buy 3 Free 1 (Perfume)
+  let buy3Free1Discount = 0;      // discount from Buy 4 Free 1 (Excluding Perfume)
   let customDiscount = 0;          // manually entered custom discount
   let claimedReceiptInfo = null;
   let pendingPrize = null;          // { receipt, value, name }
@@ -1189,7 +1189,7 @@
         })).sort((a, b) => a.name.localeCompare(b.name));
 
         const categories = [...new Set(products.map(p => p.category))].sort();
-        categorySelect.innerHTML = '<option value="all">?? All Categories</option>';
+        categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
         categories.forEach(cat => {
           const option = document.createElement('option');
           option.value = cat;
@@ -1235,7 +1235,7 @@
           if (now - timestamp < 5 * 60 * 1000) {
             products = cachedProducts;
             const categories = [...new Set(products.map(p => p.category))].sort();
-            categorySelect.innerHTML = '<option value="all">?? All Categories</option>';
+            categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
             categories.forEach(cat => {
               const option = document.createElement('option');
               option.value = cat;
@@ -1265,7 +1265,7 @@
         })).sort((a, b) => a.name.localeCompare(b.name));
 
         const categories = [...new Set(products.map(p => p.category))].sort();
-        categorySelect.innerHTML = '<option value="all">?? All Categories</option>';
+        categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
         categories.forEach(cat => {
           const option = document.createElement('option');
           option.value = cat;
@@ -1300,7 +1300,7 @@
     }
     let html = '';
     filtered.forEach(prod => {
-      const stockStatus = prod.stock > 0 ? `?? Stock: ${prod.stock}` : '? Out of stock';
+      const stockStatus = prod.stock > 0 ? `📦 Stock: ${prod.stock}` : '❌ Out of stock';
       html += `<div class="product-card">
         <div class="product-name">${escapeHtml(prod.name)}</div>
         <div class="product-price">RM ${prod.price.toFixed(2)}</div>
@@ -1362,12 +1362,12 @@
             <div class="cart-item-price">RM ${item.product.price.toFixed(2)}</div>
           </div>
           <div class="cart-item-qty">
-            <button class="qty-btn" data-index="${idx}" data-delta="-1">?</button>
+            <button class="qty-btn" data-index="${idx}" data-delta="-1">−</button>
             <span>${item.quantity}</span>
             <button class="qty-btn" data-index="${idx}" data-delta="1">+</button>
           </div>
           <div class="cart-item-total">RM ${itemTotal.toFixed(2)}</div>
-          <button class="remove-item" data-index="${idx}">?</button>
+          <button class="remove-item" data-index="${idx}">✕</button>
         </div>
       `;
     });
@@ -1386,7 +1386,7 @@
       discountRow.style.display = 'none';
     }
 
-    // Buy 2 Free 1 (Perfume)
+    // Buy 3 Free 1 (Perfume)
     if (buy2Free1Discount > 0) {
       promoBuy2Free1Row.style.display = 'flex';
       promoBuy2Free1Amount.innerText = `RM ${buy2Free1Discount.toFixed(2)}`;
@@ -1394,7 +1394,7 @@
       promoBuy2Free1Row.style.display = 'none';
     }
 
-    // Buy 3 Free 1 (Excluding Perfume)
+    // Buy 4 Free 1 (Excluding Perfume)
     if (buy3Free1Discount > 0) {
       promoBuy3Free1Row.style.display = 'flex';
       promoBuy3Free1Amount.innerText = `RM ${buy3Free1Discount.toFixed(2)}`;
@@ -1699,7 +1699,7 @@
       }
     }
 
-    console.log("Total non?perfume units:", totalNonPerfumeUnits, "Cheapest price:", cheapestPrice);
+    console.log("Total non‑perfume units:", totalNonPerfumeUnits, "Cheapest price:", cheapestPrice);
 
     if (totalNonPerfumeUnits < 4) {
       const msgDiv = document.getElementById('promoMessage');
@@ -1861,7 +1861,7 @@
       } else {
         await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
       }
-      await showAlertModal('? Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
+      await showAlertModal('✅ Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
       document.getElementById('luckyTxId').innerText = transactionId;
       const luckyModal = document.getElementById('luckyDrawModal');
       luckyModal.style.display = 'flex';
@@ -1959,12 +1959,12 @@
           <div>Items: ${itemsSummary}</div>
         </div>
         <div class="receipt-actions">
-          <button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>??? Reprint</button>`;
+          <button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>🖨️ Reprint</button>`;
       if (!isRefund && !isRefundedOriginal) {
-        html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">?? Lucky Draw</button>
-                 <button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">?? Refund</button>`;
+        html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>
+                 <button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">💰 Refund</button>`;
       } else if (!isRefund && isRefundedOriginal) {
-        html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">?? Lucky Draw</button>`;
+        html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>`;
       }
       html += `</div></div>`;
     });
@@ -2186,7 +2186,12 @@
     }
     let html = '';
     productsData.forEach(p => {
-      html += `<tr><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.category)}</td><td style="text-align: right;">${p.quantity}</td><td style="text-align: right;">RM ${p.total.toFixed(2)}</td></tr>`;
+      html += `<tr>
+        <td>${escapeHtml(p.name)}</td>
+        <td>${escapeHtml(p.category)}</td>
+        <td style="text-align: right;">${p.quantity}</td>
+        <td style="text-align: right;">RM ${p.total.toFixed(2)}</td>
+      </tr>`;
     });
     tbody.innerHTML = html;
   }
@@ -2268,7 +2273,7 @@
       document.getElementById('sysRefund').innerText = `RM ${Math.abs(currentSettlementTotals.refund).toFixed(2)}`;
       const alreadySettled = await checkSettlementStatus(store, todayStr);
       if (alreadySettled) {
-        document.getElementById('settlementError').innerHTML = '?? Settlement has already been recorded for today. No further settlement allowed.';
+        document.getElementById('settlementError').innerHTML = '⚠️ Settlement has already been recorded for today. No further settlement allowed.';
         document.getElementById('settlementError').style.display = 'block';
         document.getElementById('checkSettlementBtn').disabled = true;
         document.getElementById('recordSettlementBtn').style.display = 'none';
@@ -2409,7 +2414,7 @@
     function generateReceiptData(transaction, openDrawer = false) {
       const encoder = new TextEncoder();
       const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
-      const lines = ['', '    ? POS INVOICE ?', '-----------------------------', `Txn: ${transaction.transaction_id}`, `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`, `Employee: ${employeeName}`, '-----------------------------'];
+      const lines = ['', '    ★ POS INVOICE ★', '-----------------------------', `Txn: ${transaction.transaction_id}`, `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`, `Employee: ${employeeName}`, '-----------------------------'];
       let total = 0;
       for (let item of transaction.items) {
         const displayName = item.category ? `${item.category}: ${item.name}` : item.name;
@@ -2437,43 +2442,43 @@
 
     async function openCashDrawer() {
       if (!isConnected || !printerCharacteristic) {
-        printerStatusDiv.innerText = '? Printer not connected';
+        printerStatusDiv.innerText = '❌ Printer not connected';
         return false;
       }
       try {
         const drawerCommand = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]);
         await printerCharacteristic.writeValue(drawerCommand);
-        printerStatusDiv.innerText = '?? Drawer opened';
-        setTimeout(() => { if (isConnected) printerStatusDiv.innerText = '? Printer ready'; }, 2000);
+        printerStatusDiv.innerText = '💰 Drawer opened';
+        setTimeout(() => { if (isConnected) printerStatusDiv.innerText = '✅ Printer ready'; }, 2000);
         return true;
       } catch (err) {
         console.error(err);
-        printerStatusDiv.innerText = `? Drawer error`;
+        printerStatusDiv.innerText = `❌ Drawer error`;
         return false;
       }
     }
 
     async function printReceipt(transaction) {
       if (!isConnected || !printerCharacteristic) {
-        printerStatusDiv.innerText = '? Printer not connected';
+        printerStatusDiv.innerText = '❌ Printer not connected';
         return false;
       }
       try {
         const openDrawer = (transaction.payment_method === 'Cash');
         const data = generateReceiptData(transaction, openDrawer);
         await printerCharacteristic.writeValue(data);
-        printerStatusDiv.innerText = '? Receipt printed';
+        printerStatusDiv.innerText = '✅ Receipt printed';
         return true;
       } catch (err) {
         console.error(err);
-        printerStatusDiv.innerText = `? Print error`;
+        printerStatusDiv.innerText = `❌ Print error`;
         return false;
       }
     }
 
     async function connectPrinter() {
       try {
-        printerStatusDiv.innerText = '?? Scanning...';
+        printerStatusDiv.innerText = '🔍 Scanning...';
         connectBtn.disabled = true;
         const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] });
         gattServer = await device.gatt.connect();
@@ -2493,11 +2498,11 @@
         printerCharacteristic = foundChar;
         isConnected = true;
         window.printerAPI.isConnected = true;
-        printerStatusDiv.innerText = '? Printer ready';
-        connectBtn.innerText = '?? Disconnect';
+        printerStatusDiv.innerText = '✅ Printer ready';
+        connectBtn.innerText = '🔌 Disconnect';
         openDrawerBtn.disabled = false;
       } catch (err) {
-        printerStatusDiv.innerText = `? ${err.message}`;
+        printerStatusDiv.innerText = `❌ ${err.message}`;
         gattServer = null;
         printerCharacteristic = null;
       } finally {
@@ -2509,8 +2514,8 @@
       if (gattServer) { gattServer.disconnect(); gattServer = null; printerCharacteristic = null; }
       isConnected = false;
       window.printerAPI.isConnected = false;
-      printerStatusDiv.innerText = '? Not connected';
-      connectBtn.innerText = '??? Connect Printer';
+      printerStatusDiv.innerText = '⚪ Not connected';
+      connectBtn.innerText = '🖨️ Connect Printer';
       openDrawerBtn.disabled = true;
     }
 
@@ -2779,7 +2784,7 @@
         if (!qrOk) errorMessages.push(`QR (System: RM ${currentSettlementTotals.qr.toFixed(2)}, Entered: RM ${actualQR.toFixed(2)})`);
         const settlementError = document.getElementById('settlementError');
         if (settlementError) {
-          settlementError.innerHTML = `? Mismatch in:<br>${errorMessages.join('<br>')}<br>Please correct and try again.`;
+          settlementError.innerHTML = `❌ Mismatch in:<br>${errorMessages.join('<br>')}<br>Please correct and try again.`;
           settlementError.style.display = 'block';
         }
       }
@@ -3024,11 +3029,11 @@
       productDetailsVisible = !productDetailsVisible;
       if (productDetailsVisible) {
         productDetailsContainer.style.display = 'block';
-        toggleBtn.innerText = '?? Hide Product Details';
+        toggleBtn.innerText = '📦 Hide Product Details';
         if (lastProductData) renderProductDetails(lastProductData);
       } else {
         productDetailsContainer.style.display = 'none';
-        toggleBtn.innerText = '?? Show Product Details';
+        toggleBtn.innerText = '📦 Show Product Details';
       }
     });
   }
