@@ -665,20 +665,20 @@
       background: #7c3aed;
     }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <!-- Store Selection Modal (shown on page load) -->
 <div id="storeSelectModal" class="modal-overlay" style="display: flex;">
   <div class="modal-container" style="max-width: 400px;">
-    <div class="modal-title">?? Select Store</div>
+    <div class="modal-title">🏬 Select Store</div>
     <select id="initialStoreSelect" class="store-select-modal">
       <option value="queens">Queens</option>
       <option value="sunshine">Sunshine</option>
       <option value="gurney_paragon">Gurney Paragon</option>
     </select>
     <div class="modal-buttons" style="margin-top: 24px;">
-      <button id="confirmStoreBtn" class="modal-btn modal-btn-primary">Next ?</button>
+      <button id="confirmStoreBtn" class="modal-btn modal-btn-primary">Next →</button>
     </div>
   </div>
 </div>
@@ -687,7 +687,7 @@
 <div id="loginModal" class="modal-overlay" style="display: none;">
   <div class="modal-container" style="max-width: 400px;">
     <span class="close-modal" id="closeLoginModal">×</span>
-    <div class="modal-title">?? Enter PIN</div>
+    <div class="modal-title">🔐 Enter PIN</div>
     <div class="login-form">
       <input type="password" id="pinInput" class="pin-input" placeholder="****" maxlength="4" inputmode="numeric" autofocus>
       <div class="pin-keypad">
@@ -700,9 +700,9 @@
         <button class="keypad-btn" data-digit="7">7</button>
         <button class="keypad-btn" data-digit="8">8</button>
         <button class="keypad-btn" data-digit="9">9</button>
-        <button class="keypad-btn clear" data-action="clear">?</button>
+        <button class="keypad-btn clear" data-action="clear">⌫</button>
         <button class="keypad-btn" data-digit="0">0</button>
-        <button class="keypad-btn enter" data-action="enter">?</button>
+        <button class="keypad-btn enter" data-action="enter">↵</button>
       </div>
       <div id="loginError" class="error-msg" style="color:#ef4444; font-size:0.9rem; text-align:center; margin-top:12px;"></div>
     </div>
@@ -711,28 +711,28 @@
 
 <div id="mainContent" style="display: none;">
   <div class="pos-header">
-    <h1>??? POS System</h1>
+    <h1>🛍️ POS System</h1>
     <div class="header-buttons">
-      <button id="reportsButton">?? Reports</button>
-      <button id="receiptsButton">?? Receipts</button>
-      <button id="connectPrinterButton">??? Connect Printer</button>
-      <div id="printerStatus">? Not connected</div>
+      <button id="reportsButton">📊 Reports</button>
+      <button id="receiptsButton">📜 Receipts</button>
+      <button id="connectPrinterButton">🖨️ Connect Printer</button>
+      <div id="printerStatus">⚪ Not connected</div>
     </div>
   </div>
 
   <div class="employee-bar">
-    <span class="employee-info">?? Cashier: <span id="employeeName"></span></span>
+    <span class="employee-info">👤 Cashier: <span id="employeeName"></span></span>
     <div class="employee-actions">
-      <button id="openDrawerBtn" class="drawer-btn" disabled>?? Open Drawer</button>
-      <button id="settlementBtn" class="settlement-btn">?? Settlement</button>
-      <button id="collectionBtn" class="collection-btn" style="display: none;">?? Cash Collection</button>
+      <button id="openDrawerBtn" class="drawer-btn" disabled>💰 Open Drawer</button>
+      <button id="settlementBtn" class="settlement-btn">💰 Settlement</button>
+      <button id="collectionBtn" class="collection-btn" style="display: none;">💵 Cash Collection</button>
       <button id="logoutButton" class="logout-btn">Logout</button>
     </div>
   </div>
 
   <div class="store-selector">
     <div style="display: flex; align-items: center; gap: 12px;">
-      <label>?? Store:</label>
+      <label>🏬 Store:</label>
       <select id="storeSelect">
         <option value="queens">Queens</option>
         <option value="sunshine">Sunshine</option>
@@ -740,7 +740,7 @@
       </select>
     </div>
     <div style="display: flex; align-items: center; gap: 12px;">
-      <label>?? Sold By:</label>
+      <label>👤 Sold By:</label>
       <select id="soldBySelect">
         <option value="">Loading...</option>
       </select>
@@ -750,8 +750,8 @@
   <div class="pos-dashboard">
     <div class="products-panel">
       <div class="filter-bar">
-        <select id="categorySelect"><option value="all">?? All Categories</option></select>
-        <input type="text" id="searchInput" class="search-bar" placeholder="?? Search product...">
+        <select id="categorySelect"><option value="all">📂 All Categories</option></select>
+        <input type="text" id="searchInput" class="search-bar" placeholder="🔍 Search product...">
         <div class="view-toggle">
           <button id="gridViewBtn" class="active">Grid View</button>
           <button id="listViewBtn">List View</button>
@@ -762,37 +762,37 @@
 
     <div class="cart-panel">
       <div class="cart-header">
-        <div class="cart-title">?? Current Sale</div>
+        <div class="cart-title">🧾 Current Sale</div>
         <div class="cart-header-buttons">
-          <button id="clearCartBtn" class="cart-header-btn">??? Clear</button>
-          <button id="refreshProductsBtn" class="cart-header-btn">?? Refresh</button>
+          <button id="clearCartBtn" class="cart-header-btn">🗑️ Clear</button>
+          <button id="refreshProductsBtn" class="cart-header-btn">🔄 Refresh</button>
         </div>
       </div>
       <div id="cartItemsContainer" class="cart-items">Cart is empty</div>
       <div class="cart-summary">
         <div class="summary-row"><span>Subtotal</span><span id="subtotal">RM 0.00</span></div>
         <div id="discountRow" class="summary-row discount-row" style="display: none;">
-          <span><i>??</i> Lucky Draw</span>
+          <span><i>🎲</i> Lucky Draw</span>
           <span id="discountAmount">RM 0.00</span>
         </div>
         <div id="promoBuy2Free1Row" class="summary-row discount-row" style="display: none;">
-          <span><i>??</i> Buy 2 Free 1 (Perfume)</span>
+          <span><i>🎯</i> Buy 2 Free 1 (Perfume)</span>
           <span id="promoBuy2Free1Amount">RM 0.00</span>
         </div>
         <div id="promoBuy3Free1Row" class="summary-row discount-row" style="display: none;">
-          <span><i>??</i> Buy 3 Free 1 (Excluding Perfume)</span>
+          <span><i>🎯</i> Buy 3 Free 1 (Excluding Perfume)</span>
           <span id="promoBuy3Free1Amount">RM 0.00</span>
         </div>
         <div id="customDiscountRow" class="summary-row discount-row" style="display: none;">
-          <span><i>??</i> Custom Discount</span>
+          <span><i>💰</i> Custom Discount</span>
           <span id="customDiscountAmount">RM 0.00</span>
         </div>
         <div class="summary-row total-row"><span>TOTAL</span><span id="totalAmount">RM 0.00</span></div>
       </div>
       <div class="cart-actions">
-        <button id="checkoutBtn">?? CHECKOUT</button>
-        <button id="claimPrizeBtn">?? Claim Prize</button>
-        <button id="specialPromoBtn">?? Special Promo</button>
+        <button id="checkoutBtn">💳 CHECKOUT</button>
+        <button id="claimPrizeBtn">🎁 Claim Prize</button>
+        <button id="specialPromoBtn">🎁 Special Promo</button>
       </div>
     </div>
   </div>
@@ -802,11 +802,11 @@
 <div id="paymentModal" class="modal-overlay">
   <div class="modal-container" style="max-width: 400px;">
     <span class="close-modal" id="closePaymentModal">×</span>
-    <div class="modal-title">?? Select Payment Method</div>
+    <div class="modal-title">💳 Select Payment Method</div>
     <div class="payment-buttons">
-      <button class="payment-btn" data-method="Cash">?? Cash</button>
-      <button class="payment-btn" data-method="Card">?? Card</button>
-      <button class="payment-btn" data-method="QR Pay">?? QR Pay</button>
+      <button class="payment-btn" data-method="Cash">💵 Cash</button>
+      <button class="payment-btn" data-method="Card">💳 Card</button>
+      <button class="payment-btn" data-method="QR Pay">📱 QR Pay</button>
     </div>
     <div id="cashOptions" style="display: none;">
       <div class="suggestions" id="suggestionsContainer"></div>
@@ -829,11 +829,11 @@
 <div id="luckyDrawModal" class="modal-overlay">
   <div class="modal-container" style="max-width: 400px;">
     <span class="close-modal" id="closeLuckyDrawModal">×</span>
-    <div class="modal-title">?? Lucky Draw</div>
+    <div class="modal-title">🎲 Lucky Draw</div>
     <p>Transaction ID: <strong id="luckyTxId"></strong></p>
     <p>Click below to enter the Lucky Draw with this receipt number.</p>
     <div class="modal-buttons">
-      <button id="openLuckyDrawBtn" class="modal-btn modal-btn-primary">?? Go to Lucky Draw</button>
+      <button id="openLuckyDrawBtn" class="modal-btn modal-btn-primary">🎁 Go to Lucky Draw</button>
       <button id="closeLuckyDrawBtn" class="modal-btn modal-btn-secondary">Close</button>
     </div>
   </div>
@@ -843,7 +843,7 @@
 <div id="claimPrizeModal" class="modal-overlay">
   <div class="modal-container" style="max-width: 400px;">
     <span class="close-modal" id="closeClaimPrizeModal">×</span>
-    <div class="modal-title">?? Claim Prize</div>
+    <div class="modal-title">🎁 Claim Prize</div>
     <div id="claimStep1">
       <p>Enter the receipt number from your Lucky Draw:</p>
       <input type="text" id="claimReceiptInput" class="modal-input" placeholder="e.g., TXN-1234567890-123" style="width: 100%; margin: 12px 0; padding: 12px;">
@@ -874,13 +874,13 @@
 <div id="specialPromoModal" class="modal-overlay">
   <div class="modal-container" style="max-width: 400px;">
     <span class="close-modal" id="closeSpecialPromoModal">×</span>
-    <div class="modal-title">?? Special Promo</div>
+    <div class="modal-title">🎁 Special Promo</div>
     <div id="promoOptions">
       <button id="promoBuy2Free1Perfume" class="modal-btn modal-btn-primary promo-option-btn">
-        ?? Buy 2 Free 1 (100ml Perfume EDP)
+        🎯 Buy 2 Free 1 (100ml Perfume EDP)
       </button>
       <button id="promoBuy3Free1ExcludePerfume" class="modal-btn modal-btn-primary promo-option-btn">
-        ?? Buy 3 Free 1 (Excluding Perfume)
+        🎯 Buy 3 Free 1 (Excluding Perfume)
       </button>
       <div class="custom-discount-section">
         <label>Custom Discount (RM)</label>
@@ -889,7 +889,7 @@
           <input type="number" id="customPromoValue" class="modal-input currency-field" placeholder="0.00" step="0.01" min="0">
         </div>
         <button id="applyCustomPromoBtn" class="modal-btn modal-btn-primary apply-btn">
-          ?? Apply Custom Discount
+          💰 Apply Custom Discount
         </button>
       </div>
     </div>
@@ -904,7 +904,7 @@
 <div id="adminReportModal" class="modal-overlay">
   <div class="modal-container">
     <span class="close-modal" id="closeAdminReportModal">×</span>
-    <div class="modal-title">?? Sales Report</div>
+    <div class="modal-title">📊 Sales Report</div>
     <div class="report-filters">
       <div class="filter-group" id="reportStoreFilterGroup" style="display: none;">
         <label>Store</label>
@@ -924,11 +924,11 @@
     </div>
     <div class="report-stats">
       <div class="stat-item">Total Sales: <span id="adminReportTotalSales" class="stat-value">RM 0.00</span></div>
-      <div class="stat-item breakdown">?? Cash: <span id="adminReportCashTotal" class="stat-value">RM 0.00</span></div>
-      <div class="stat-item breakdown">?? Card: <span id="adminReportCardTotal" class="stat-value">RM 0.00</span></div>
-      <div class="stat-item breakdown">?? Other: <span id="adminReportOtherTotal" class="stat-value">RM 0.00</span></div>
-      <div class="stat-item breakdown">?? Refunds: <span id="adminReportRefundTotal" class="stat-value">RM 0.00</span></div>
-      <div class="stat-item breakdown">?? Refunded Bills: <span id="adminReportRefundedBills" class="stat-value">0</span></div>
+      <div class="stat-item breakdown">💵 Cash: <span id="adminReportCashTotal" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item breakdown">💳 Card: <span id="adminReportCardTotal" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item breakdown">📱 Other: <span id="adminReportOtherTotal" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item breakdown">💰 Refunds: <span id="adminReportRefundTotal" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item breakdown">📄 Refunded Bills: <span id="adminReportRefundedBills" class="stat-value">0</span></div>
       <div class="stat-item">Transactions: <span id="adminReportTransactionCount" class="stat-value">0</span></div>
       <div class="stat-item">Items Sold: <span id="adminReportTotalItems" class="stat-value">0</span></div>
     </div>
@@ -940,14 +940,14 @@
       <canvas id="employeeChart" width="400" height="200"></canvas>
     </div>
     <div class="modal-section">
-      <button id="toggleProductDetailsBtn" class="modal-btn modal-btn-secondary" style="margin-bottom: 12px;">?? Show Product Details</button>
+      <button id="toggleProductDetailsBtn" class="modal-btn modal-btn-secondary" style="margin-bottom: 12px;">📦 Show Product Details</button>
       <div id="productDetailsContainer" style="display: none;">
         <h3 style="margin: 0 0 12px 0;">Product Sales Breakdown</h3>
         <div id="productDetailsTable" style="max-height: 300px; overflow-y: auto;">
           <table class="product-details-table">
             <thead>   </thead>
             <tbody id="productDetailsBody">   </tbody>
-           </table>
+          </table>
         </div>
       </div>
     </div>
@@ -959,10 +959,10 @@
 <div id="settlementModal" class="modal-overlay">
   <div class="modal-container" style="max-width: 500px;">
     <span class="close-modal" id="closeSettlementModal">×</span>
-    <div class="modal-title">?? Daily Settlement</div>
+    <div class="modal-title">💰 Daily Settlement</div>
     <div class="filter-group"><label>Store Location</label><select id="settlementStoreSelect"><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div>
     <div class="filter-group"><label>Petty Cash Float (Starting Cash)</label><input type="number" id="pettyCashFloat" class="modal-input" placeholder="Enter starting cash float" step="0.01" value="0.00"></div>
-    <div class="settlement-stats" id="systemTotalsDisplay"><p>?? System totals for today (all employees):</p><p>?? Cash: <strong id="sysCash">RM 0.00</strong></p><p>?? Card: <strong id="sysCard">RM 0.00</strong></p><p>?? QR Pay: <strong id="sysQR">RM 0.00</strong></p><p>?? Refunds: <strong id="sysRefund">RM 0.00</strong></p></div>
+    <div class="settlement-stats" id="systemTotalsDisplay"><p>📊 System totals for today (all employees):</p><p>💵 Cash: <strong id="sysCash">RM 0.00</strong></p><p>💳 Card: <strong id="sysCard">RM 0.00</strong></p><p>📱 QR Pay: <strong id="sysQR">RM 0.00</strong></p><p>💰 Refunds: <strong id="sysRefund">RM 0.00</strong></p></div>
     <div class="filter-group"><label>Cash Count (Actual)</label><input type="number" id="actualCash" class="modal-input" placeholder="Enter actual cash count" step="0.01"></div>
     <div class="filter-group"><label>Card Settlement (Actual)</label><input type="number" id="actualCard" class="modal-input" placeholder="Enter actual card settlement" step="0.01"></div>
     <div class="filter-group"><label>QR Settlement (Actual)</label><input type="number" id="actualQR" class="modal-input" placeholder="Enter actual QR settlement" step="0.01"></div>
@@ -975,22 +975,10 @@
 <div id="collectionModal" class="modal-overlay">
   <div class="modal-container" style="max-width: 800px;">
     <span class="close-modal" id="closeCollectionModal">×</span>
-    <div class="modal-title">?? Cash Collection</div>
+    <div class="modal-title">💵 Cash Collection</div>
     <div class="filter-group"><label>Store</label><select id="collectionStoreSelect"><option value="all">All Stores</option><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div>
-    <div id="collectionTotal" class="settlement-stats" style="margin-top: 12px;"><p>?? Total Outstanding Cash: <strong id="totalOutstandingCash">RM 0.00</strong></p></div>
-    <div style="overflow-x: auto;">
-      <table class="collection-table" id="collectionTable">
-        <thead>
-          <tr>
-            <th><input type="checkbox" id="selectAllCheckbox"></th>
-            <th>Date</th>
-            <th>Employee</th>
-            <th>Amount</th>
-          </tr>
-        </thead>
-        <tbody id="collectionTableBody">   </tbody>
-      </table>
-    </div>
+    <div id="collectionTotal" class="settlement-stats" style="margin-top: 12px;"><p>💰 Total Outstanding Cash: <strong id="totalOutstandingCash">RM 0.00</strong></p></div>
+    <div style="overflow-x: auto;"><table class="collection-table" id="collectionTable"><thead>   </thead><tbody id="collectionTableBody">   </tbody></table></div>
     <div class="modal-buttons" style="margin-top: 16px;"><button id="collectSelectedBtn" class="modal-btn modal-btn-primary" disabled>Collect Selected</button><button id="closeCollectionModalBtn" class="modal-btn modal-btn-secondary">Close</button></div>
   </div>
 </div>
@@ -999,7 +987,7 @@
 <div id="receiptsModal" class="modal-overlay">
   <div class="modal-container">
     <span class="close-modal" id="closeReceiptsModal">×</span>
-    <div class="modal-title">?? Receipt History</div>
+    <div class="modal-title">📜 Receipt History</div>
     <div class="receipts-filters">
       <div class="filter-group" id="receiptsStoreFilterGroup"><label>Store</label><select id="receiptsStoreSelect"><option value="all">All Stores</option></select></div>
       <div id="receiptsEmployeeFilter" class="filter-group" style="display: none;"><label>Employee</label><select id="receiptsEmployeeSelect"><option value="all">All Employees</option></select></div>
