@@ -664,6 +664,12 @@
     .apply-btn:hover {
       background: #7c3aed;
     }
+    .pos-logo {
+  max-height: 50px;        /* Adjust to match the original header height */
+  width: auto;
+  object-fit: contain;
+  vertical-align: middle;
+}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -711,7 +717,7 @@
 
 <div id="mainContent" style="display: none;">
   <div class="pos-header">
-    <h1>🛍️ POS System</h1>
+   <img src="https://i.imgur.com/STBkLrm.jpeg" alt="POS System Logo" class="pos-logo">
     <div class="header-buttons">
       <button id="reportsButton">📊 Reports</button>
       <button id="receiptsButton">📜 Receipts</button>
