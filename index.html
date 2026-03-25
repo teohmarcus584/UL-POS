@@ -1304,63 +1304,64 @@
       expiryDate
     };
   }
-// Robust date parser from UL LUCKY SPIN
 function parseSpinDate(timestamp) {
   if (!timestamp) return null;
 
-  // Extract the date part if there's a comma (e.g., "3/25/2025, 10:30:00 AM")
+  // Extract the date part before the comma (if any)
   let dateStr = timestamp;
   if (timestamp.includes(',')) {
     dateStr = timestamp.split(',')[0].trim();
   }
 
-  // Try to parse as a Date object
+  // Try to parse as a Date object directly (works for ISO and some browsers)
   let d = new Date(dateStr);
   if (!isNaN(d.getTime())) {
     // Success: return midnight of that day
     return new Date(d.getFullYear(), d.getMonth(), d.getDate());
   }
 
-  // Manual parsing for formats like "3/25/2025" or "2025-03-25"
+  // Manual parsing: split by '/' or '-'
   const parts = dateStr.split(/[-/]/);
   if (parts.length === 3) {
-    let year, month, day;
-    // If the first part has 4 digits, it's YYYY-MM-DD
-    if (parts[0].length === 4) {
-      year = parseInt(parts[0]);
-      month = parseInt(parts[1]) - 1;
-      day = parseInt(parts[2]);
-    } else {
-      // Assume MM/DD/YYYY (the format from toLocaleString())
-      month = parseInt(parts[0]) - 1;
-      day = parseInt(parts[1]);
-      year = parseInt(parts[2]);
-      d = new Date(year, month, day);
-      if (!isNaN(d.getTime())) return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-
-      // If that fails, try DD/MM/YYYY
-      day = parseInt(parts[0]);
-      month = parseInt(parts[1]) - 1;
-      year = parseInt(parts[2]);
-      d = new Date(year, month, day);
-      if (!isNaN(d.getTime())) return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    }
+    // Assume the format is DD/MM/YYYY (Malaysia locale)
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // JavaScript months are 0‑based
+    const year = parseInt(parts[2], 10);
     d = new Date(year, month, day);
-    if (!isNaN(d.getTime())) return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    if (!isNaN(d.getTime())) {
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+
+    // Fallback: if that fails, try MM/DD/YYYY (for safety)
+    const day2 = parseInt(parts[1], 10);
+    const month2 = parseInt(parts[0], 10) - 1;
+    const year2 = parseInt(parts[2], 10);
+    d = new Date(year2, month2, day2);
+    if (!isNaN(d.getTime())) {
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
   }
+
+  console.warn('Failed to parse timestamp:', timestamp);
   return null;
 }
 
 function getExpiryInfo(timestamp) {
   const spinDate = parseSpinDate(timestamp);
   if (!spinDate) {
-    console.warn('Failed to parse timestamp:', timestamp);
     return { valid: false, message: 'Invalid date format' };
   }
-  const today = new Date();
-  const currentDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const diffDays = Math.floor((currentDay - spinDate) / (1000 * 60 * 60 * 24));
+
+  // Check if the creation date is in the future (invalid)
+  const now = new Date();
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (spinDate > todayMidnight) {
+    return { valid: false, message: 'Creation date is in the future (invalid)' };
+  }
+
+  const diffDays = Math.floor((todayMidnight - spinDate) / (1000 * 60 * 60 * 24));
   const expiryDate = new Date(spinDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+
   return {
     valid: true,
     spinDate,
