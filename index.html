@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes, viewport-fit=cover">
   <title>POS System | PIN Login</title>
   <style>
-    /* ========== ALL EXISTING STYLES (unchanged) ========== */
+    /* ========== ALL EXISTING STYLES ========== */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -776,11 +776,11 @@
           <span id="discountAmount">RM 0.00</span>
         </div>
         <div id="promoBuy2Free1Row" class="summary-row discount-row" style="display: none;">
-          <span><i>🎯</i> Buy 3 Free 1 (Perfume)</span>
+          <span><i>🎯</i> Buy 2 Free 1 (Perfume)</span>
           <span id="promoBuy2Free1Amount">RM 0.00</span>
         </div>
         <div id="promoBuy3Free1Row" class="summary-row discount-row" style="display: none;">
-          <span><i>🎯</i> Buy 4 Free 1 (Excluding Perfume)</span>
+          <span><i>🎯</i> Buy 3 Free 1 (Excluding Perfume)</span>
           <span id="promoBuy3Free1Amount">RM 0.00</span>
         </div>
         <div id="customDiscountRow" class="summary-row discount-row" style="display: none;">
@@ -877,10 +877,10 @@
     <div class="modal-title">🎁 Special Promo</div>
     <div id="promoOptions">
       <button id="promoBuy2Free1Perfume" class="modal-btn modal-btn-primary promo-option-btn">
-        🎯 Buy 3 Free 1 (100ml Perfume EDP)
+        🎯 Buy 2 Free 1 (100ml Perfume EDP)
       </button>
       <button id="promoBuy3Free1ExcludePerfume" class="modal-btn modal-btn-primary promo-option-btn">
-        🎯 Buy 4 Free 1 (Excluding Perfume)
+        🎯 Buy 3 Free 1 (Excluding Perfume)
       </button>
       <div class="custom-discount-section">
         <label>Custom Discount (RM)</label>
@@ -978,7 +978,19 @@
     <div class="modal-title">💵 Cash Collection</div>
     <div class="filter-group"><label>Store</label><select id="collectionStoreSelect"><option value="all">All Stores</option><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div>
     <div id="collectionTotal" class="settlement-stats" style="margin-top: 12px;"><p>💰 Total Outstanding Cash: <strong id="totalOutstandingCash">RM 0.00</strong></p></div>
-    <div style="overflow-x: auto;"><table class="collection-table" id="collectionTable"><thead>   </thead><tbody id="collectionTableBody">   </tbody> </table></div>
+    <div style="overflow-x: auto;">
+      <table class="collection-table" id="collectionTable">
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="selectAllCheckbox"></th>
+            <th>Date</th>
+            <th>Employee</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody id="collectionTableBody">   </tbody>
+      </table>
+    </div>
     <div class="modal-buttons" style="margin-top: 16px;"><button id="collectSelectedBtn" class="modal-btn modal-btn-primary" disabled>Collect Selected</button><button id="closeCollectionModalBtn" class="modal-btn modal-btn-secondary">Close</button></div>
   </div>
 </div>
@@ -1024,8 +1036,8 @@
   let searchTimeout = null;
   let initialDataPromise = null;
   let discountAmount = 0;          // Lucky Draw discount
-  let buy2Free1Discount = 0;      // discount from Buy 3 Free 1 (Perfume)
-  let buy3Free1Discount = 0;      // discount from Buy 4 Free 1 (Excluding Perfume)
+  let buy2Free1Discount = 0;      // discount from Buy 2 Free 1 (Perfume)
+  let buy3Free1Discount = 0;      // discount from Buy 3 Free 1 (Excluding Perfume)
   let customDiscount = 0;          // manually entered custom discount
   let claimedReceiptInfo = null;
   let pendingPrize = null;          // { receipt, value, name }
@@ -1386,7 +1398,7 @@
       discountRow.style.display = 'none';
     }
 
-    // Buy 3 Free 1 (Perfume)
+    // Buy 2 Free 1 (Perfume)
     if (buy2Free1Discount > 0) {
       promoBuy2Free1Row.style.display = 'flex';
       promoBuy2Free1Amount.innerText = `RM ${buy2Free1Discount.toFixed(2)}`;
@@ -1394,7 +1406,7 @@
       promoBuy2Free1Row.style.display = 'none';
     }
 
-    // Buy 4 Free 1 (Excluding Perfume)
+    // Buy 3 Free 1 (Excluding Perfume)
     if (buy3Free1Discount > 0) {
       promoBuy3Free1Row.style.display = 'flex';
       promoBuy3Free1Amount.innerText = `RM ${buy3Free1Discount.toFixed(2)}`;
@@ -2186,12 +2198,7 @@
     }
     let html = '';
     productsData.forEach(p => {
-      html += `<tr>
-        <td>${escapeHtml(p.name)}</td>
-        <td>${escapeHtml(p.category)}</td>
-        <td style="text-align: right;">${p.quantity}</td>
-        <td style="text-align: right;">RM ${p.total.toFixed(2)}</td>
-      </tr>`;
+      html += `<tr><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.category)}</td><td style="text-align: right;">${p.quantity}</td><td style="text-align: right;">RM ${p.total.toFixed(2)}</td></tr>`;
     });
     tbody.innerHTML = html;
   }
