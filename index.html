@@ -59,6 +59,18 @@
     }
     #connectPrinterButton:hover { background: #0f172a; }
     #printerStatus { font-size: 0.8rem; background: #f1f5f9; padding: 6px 12px; border-radius: 30px; color: #334155; }
+    #inventoryModeBtn {
+      background: #8b5cf6;
+      border: none;
+      border-radius: 40px;
+      padding: 10px 20px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: white;
+      cursor: pointer;
+      display: none;
+    }
+    #inventoryModeBtn:hover { background: #7c3aed; }
     .employee-bar {
       background: white; border-radius: 28px; padding: 10px 20px; margin-bottom: 20px;
       display: flex; justify-content: space-between; align-items: center;
@@ -665,178 +677,193 @@
       background: #7c3aed;
     }
     .pos-logo {
-  max-height: 60px;        /* Adjust to match the original header height */
-  width: auto;
-  object-fit: contain;
-  vertical-align: middle;
-}
-.employee-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  background: white;
-  border-radius: 28px;
-  padding: 10px 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
+      max-height: 60px;
+      width: auto;
+      object-fit: contain;
+      vertical-align: middle;
+    }
+    .employee-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      background: white;
+      border-radius: 28px;
+      padding: 10px 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .employee-info-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .employee-info {
+      font-weight: 500;
+      color: #0f172a;
+    }
+    .logout-btn {
+      background: #ef4444;
+      border: none;
+      border-radius: 40px;
+      padding: 6px 16px;
+      color: white;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .logout-btn:hover {
+      background: #dc2626;
+    }
+    .employee-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .employee-selectors {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+    .employee-right-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .selector-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .selector-group label {
+      font-weight: 500;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+    .selector-group select {
+      padding: 8px 12px;
+      border-radius: 40px;
+      border: 1px solid #cbd5e1;
+      background: white;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-width: 140px;
+    }
+    .selector-group select:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+    }
+    .selector-group select:disabled {
+      background: #f1f5f9;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    @media (max-width: 780px) {
+      .employee-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .employee-info-group,
+      .employee-actions,
+      .employee-selectors {
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
+      .employee-selectors {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .selector-group {
+        justify-content: space-between;
+      }
+    }
+    .pos-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+      background: white;
+      padding: 12px 20px;
+      border-radius: 28px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .store-selector-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 8px;
+    }
+    .store-selector-header label {
+      font-weight: 500;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+    .store-header-select {
+      padding: 6px 12px;
+      border-radius: 40px;
+      border: 1px solid #cbd5e1;
+      background: white;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-width: 130px;
+    }
+    .store-header-select:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+    }
+    .store-header-select:disabled {
+      background: #f1f5f9;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
 
-.employee-info-group {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.employee-info {
-  font-weight: 500;
-  color: #0f172a;
-}
-
-.logout-btn {
-  background: #ef4444;
-  border: none;
-  border-radius: 40px;
-  padding: 6px 16px;
-  color: white;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.logout-btn:hover {
-  background: #dc2626;
-}
-
-.employee-actions {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.employee-selectors {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-}
-.employee-right-group {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.selector-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.selector-group label {
-  font-weight: 500;
-  font-size: 0.9rem;
-  white-space: nowrap;
-}
-
-.selector-group select {
-  padding: 8px 12px;
-  border-radius: 40px;
-  border: 1px solid #cbd5e1;
-  background: white;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  min-width: 140px;
-}
-
-.selector-group select:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
-}
-
-.selector-group select:disabled {
-  background: #f1f5f9;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-@media (max-width: 780px) {
-  .employee-bar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .employee-info-group,
-  .employee-actions,
-  .employee-selectors {
-    justify-content: space-between;
-    flex-wrap: wrap;
-  }
-  .employee-selectors {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .selector-group {
-    justify-content: space-between;
-  }
-}
-.pos-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 20px;
-  background: white;
-  padding: 12px 20px;
-  border-radius: 28px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
-
-.store-selector-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: 8px;
-}
-
-.store-selector-header label {
-  font-weight: 500;
-  font-size: 0.9rem;
-  white-space: nowrap;
-}
-
-.store-header-select {
-  padding: 6px 12px;
-  border-radius: 40px;
-  border: 1px solid #cbd5e1;
-  background: white;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  min-width: 130px;
-}
-
-.store-header-select:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
-}
-
-.store-header-select:disabled {
-  background: #f1f5f9;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
+    /* Inventory mode controls */
+    .inventory-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 8px;
+    }
+    .inventory-btn {
+      background: #f1f5f9;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 30px;
+      font-weight: bold;
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: 0.1s;
+    }
+    .inventory-btn:active {
+      transform: scale(0.95);
+    }
+    .stock-display {
+      font-weight: 500;
+      font-size: 0.9rem;
+      background: #f1f5f9;
+      padding: 4px 8px;
+      border-radius: 20px;
+      min-width: 40px;
+      text-align: center;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <div id="storeSelectModal" class="modal-overlay" style="display: flex;">
   <div class="modal-container" style="max-width: 400px;">
-    <!-- Replace title with image -->
     <img src="https://i.imgur.com/HTHfWnm.jpeg" alt="Select Store" style="width: 100%; border-radius: 20px; margin-bottom: 20px;">
     <select id="initialStoreSelect" class="store-select-modal">
       <option value="queens">Queens</option>
@@ -876,42 +903,44 @@
 </div>
 
 <div id="mainContent" style="display: none;">
- <div class="pos-header">
-  <div style="display: flex; align-items: center; gap: 16px;">
-    <img src="https://i.imgur.com/STBkLrm.jpeg" alt="POS System Logo" class="pos-logo">
-    <div class="store-selector-header">
-      <label for="storeSelect">Store:</label>   <!-- fixed: for="storeSelect" -->
-      <select id="storeSelect" class="store-header-select">
-        <option value="queens">Queens</option>
-        <option value="sunshine">Sunshine</option>
-        <option value="gurney_paragon">Gurney Paragon</option>
-      </select>
+  <div class="pos-header">
+    <div style="display: flex; align-items: center; gap: 16px;">
+      <img src="https://i.imgur.com/STBkLrm.jpeg" alt="POS System Logo" class="pos-logo">
+      <div class="store-selector-header">
+        <label for="storeSelect">Store:</label>
+        <select id="storeSelect" class="store-header-select">
+          <option value="queens">Queens</option>
+          <option value="sunshine">Sunshine</option>
+          <option value="gurney_paragon">Gurney Paragon</option>
+        </select>
+      </div>
+    </div>
+    <div class="header-buttons">
+      <button id="reportsButton">📊 Reports</button>
+      <button id="receiptsButton">📜 Receipts</button>
+      <button id="connectPrinterButton">🖨️ Connect Printer</button>
+      <button id="inventoryModeBtn">📦 Inventory Mode</button>
+      <div id="printerStatus">⚪ Not connected</div>
     </div>
   </div>
-  <div class="header-buttons">
-    <button id="reportsButton">📊 Reports</button>
-    <button id="receiptsButton">📜 Receipts</button>
-    <button id="connectPrinterButton">🖨️ Connect Printer</button>
-    <div id="printerStatus">⚪ Not connected</div>
-  </div>
-</div>
-<div class="employee-bar">
-  <div class="employee-info-group">
-    <span class="employee-info">👤 Cashier: <span id="employeeName"></span></span>
-    <button id="logoutButton" class="logout-btn">Logout</button>
-  </div>
-  <div class="employee-right-group">
-    <button id="openDrawerBtn" class="drawer-btn" disabled>💰 Open Drawer</button>
-    <button id="settlementBtn" class="settlement-btn">💰 Settlement</button>
-    <button id="collectionBtn" class="collection-btn" style="display: none;">💵 Cash Collection</button>
-    <div class="selector-group">
-      <label>👤 Sold By:</label>
-      <select id="soldBySelect">
-        <option value="">Loading...</option>
-      </select>
+
+  <div class="employee-bar">
+    <div class="employee-info-group">
+      <span class="employee-info">👤 Cashier: <span id="employeeName"></span></span>
+      <button id="logoutButton" class="logout-btn">Logout</button>
+    </div>
+    <div class="employee-right-group">
+      <button id="openDrawerBtn" class="drawer-btn" disabled>💰 Open Drawer</button>
+      <button id="settlementBtn" class="settlement-btn">💰 Settlement</button>
+      <button id="collectionBtn" class="collection-btn" style="display: none;">💵 Cash Collection</button>
+      <div class="selector-group">
+        <label>👤 Sold By:</label>
+        <select id="soldBySelect">
+          <option value="">Loading...</option>
+        </select>
+      </div>
     </div>
   </div>
-</div>
 
   <div class="pos-dashboard">
     <div class="products-panel">
@@ -1147,12 +1176,7 @@
     <div style="overflow-x: auto;">
       <table class="collection-table" id="collectionTable">
         <thead>
-          <tr>
-            <th><input type="checkbox" id="selectAllCheckbox"></th>
-            <th>Date</th>
-            <th>Employee</th>
-            <th>Amount</th>
-          </tr>
+          <tr><th><input type="checkbox" id="selectAllCheckbox"></th><th>Date</th><th>Employee</th><th>Amount</th></tr>
         </thead>
         <tbody id="collectionTableBody">   </tbody>
       </table>
@@ -1208,6 +1232,9 @@
   let claimedReceiptInfo = null;
   let pendingPrize = null;          // { receipt, value, name }
 
+  let inventoryMode = false;
+  let updateStockTimeout = null;
+
   // DOM elements
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -1225,6 +1252,8 @@
   const categorySelect = document.getElementById('categorySelect');
   const storeSelect = document.getElementById('storeSelect');
   const soldBySelect = document.getElementById('soldBySelect');
+  const inventoryModeBtn = document.getElementById('inventoryModeBtn');
+  const cartPanel = document.querySelector('.cart-panel');
 
   // ==================== HELPER FUNCTIONS ====================
   function showAlertModal(title, message) {
@@ -1466,42 +1495,49 @@
     }
   }
 
-  function renderProductGrid() {
-    const searchTerm = searchInput.value.toLowerCase();
-    const selectedCategory = categorySelect.value;
-    let filtered = products;
-    if (selectedCategory !== 'all') filtered = filtered.filter(p => p.category === selectedCategory);
-    if (searchTerm) filtered = filtered.filter(p => p.name.toLowerCase().includes(searchTerm));
-    if (filtered.length === 0) {
-      productGridEl.innerHTML = '<div style="text-align:center; padding:20px;">No products found</div>';
-      return;
+  // ==================== STOCK UPDATE ====================
+  async function updateStockOnServer(productId, newStock) {
+    try {
+      const formData = new URLSearchParams();
+      formData.append("action", "updateStock");
+      formData.append("productId", productId);
+      formData.append("newStock", newStock);
+      formData.append("store", currentStore);
+      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+      const result = await response.json();
+      if (!result.success) {
+        console.error("Stock update failed:", result.error);
+      } else {
+        // Update local product stock
+        const product = products.find(p => p.id == productId);
+        if (product) product.stock = newStock;
+        // Invalidate cache
+        localStorage.removeItem(`products_${currentStore}`);
+      }
+    } catch (err) {
+      console.error("Error updating stock:", err);
     }
-    let html = '';
-    filtered.forEach(prod => {
-      const stockStatus = prod.stock > 0 ? `📦 Stock: ${prod.stock}` : '❌ Out of stock';
-      html += `<div class="product-card">
-        <div class="product-name">${escapeHtml(prod.name)}</div>
-        <div class="product-price">RM ${prod.price.toFixed(2)}</div>
-        <div class="product-stock">${stockStatus}</div>
-        <button class="add-btn" data-id="${prod.id}" ${prod.stock <= 0 ? 'disabled' : ''}>+ Add to cart</button>
-      </div>`;
-    });
-    productGridEl.innerHTML = html;
-    productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
-    document.querySelectorAll('.add-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const product = products.find(p => p.id == btn.dataset.id);
-        if (product && product.stock > 0) addToCart(product);
-        e.stopPropagation();
-      });
-    });
   }
 
-  function setViewMode(mode) {
-    viewMode = mode;
-    document.getElementById('gridViewBtn').classList.toggle('active', mode === 'grid');
-    document.getElementById('listViewBtn').classList.toggle('active', mode === 'list');
-    renderProductGrid();
+  function scheduleStockUpdate(productId, newStock) {
+    if (updateStockTimeout) clearTimeout(updateStockTimeout);
+    updateStockTimeout = setTimeout(() => {
+      updateStockOnServer(productId, newStock);
+    }, 500);
+  }
+
+  // ==================== INVENTORY MODE TOGGLE ====================
+  function toggleInventoryMode() {
+    inventoryMode = !inventoryMode;
+    if (inventoryMode) {
+      cartPanel.style.display = 'none';
+      inventoryModeBtn.innerText = '🛍️ Exit Inventory';
+      if (updateStockTimeout) clearTimeout(updateStockTimeout);
+    } else {
+      cartPanel.style.display = 'flex';
+      inventoryModeBtn.innerText = '📦 Inventory Mode';
+    }
+    renderProductGrid(); // re-render products with appropriate controls
   }
 
   // ==================== CART FUNCTIONS ====================
@@ -1556,7 +1592,6 @@
     const totalPromoDiscount = buy2Free1Discount + buy3Free1Discount + customDiscount;
     const total = subtotal - discountAmount - totalPromoDiscount;
 
-    // Lucky Draw discount
     if (discountAmount > 0) {
       discountRow.style.display = 'flex';
       discountAmountSpan.innerText = `RM ${discountAmount.toFixed(2)}`;
@@ -1564,7 +1599,6 @@
       discountRow.style.display = 'none';
     }
 
-    // Buy 2 Free 1 (Perfume)
     if (buy2Free1Discount > 0) {
       promoBuy2Free1Row.style.display = 'flex';
       promoBuy2Free1Amount.innerText = `RM ${buy2Free1Discount.toFixed(2)}`;
@@ -1572,7 +1606,6 @@
       promoBuy2Free1Row.style.display = 'none';
     }
 
-    // Buy 3 Free 1 (Excluding Perfume)
     if (buy3Free1Discount > 0) {
       promoBuy3Free1Row.style.display = 'flex';
       promoBuy3Free1Amount.innerText = `RM ${buy3Free1Discount.toFixed(2)}`;
@@ -1580,7 +1613,6 @@
       promoBuy3Free1Row.style.display = 'none';
     }
 
-    // Custom Discount
     if (customDiscount > 0) {
       customDiscountRow.style.display = 'flex';
       customDiscountAmount.innerText = `RM ${customDiscount.toFixed(2)}`;
@@ -1685,7 +1717,6 @@
     errorDiv.style.display = 'block';
   }
 
-  // Robust date parser
   function parseSpinDate(timestamp) {
     if (!timestamp) return null;
     let dateStr = timestamp;
@@ -1823,69 +1854,92 @@
     document.getElementById('customPromoValue').value = '';
   }
 
+  function getUnitPricesFromFilter(filterCallback) {
+    const prices = [];
+    for (let item of cart) {
+      if (filterCallback(item)) {
+        for (let i = 0; i < item.quantity; i++) {
+          prices.push(item.product.price);
+        }
+      }
+    }
+    return prices;
+  }
+
   function applyBuy2Free1Perfume() {
-  console.log("Cart items:", cart.map(item => ({
-    name: item.product.name,
-    category: item.product.category,
-    quantity: item.quantity,
-    price: item.product.price
-  })));
+    console.log("Cart items:", cart.map(item => ({
+      name: item.product.name,
+      category: item.product.category,
+      quantity: item.quantity,
+      price: item.product.price
+    })));
 
-  const perfumePrices = getUnitPricesFromFilter(item => {
-    const cat = (item.product.category || "").trim().toLowerCase();
-    return cat.includes("100ml perfume edp");
-  });
+    const perfumePrices = getUnitPricesFromFilter(item => {
+      const cat = (item.product.category || "").trim().toLowerCase();
+      return cat.includes("100ml perfume edp");
+    });
 
-  const totalUnits = perfumePrices.length;
-  const freeItems = Math.floor(totalUnits / 3);
-  console.log(`Total perfume units: ${totalUnits}, free items: ${freeItems}`);
+    const totalUnits = perfumePrices.length;
+    const freeItems = Math.floor(totalUnits / 3);
+    console.log(`Total perfume units: ${totalUnits}, free items: ${freeItems}`);
 
-  if (freeItems === 0) {
-    const msgDiv = document.getElementById('promoMessage');
-    msgDiv.innerText = `Need at least 3 items in '100ML PERFUME EDP' category. Found ${totalUnits}.`;
-    msgDiv.style.display = 'block';
-    return;
+    if (freeItems === 0) {
+      const msgDiv = document.getElementById('promoMessage');
+      msgDiv.innerText = `Need at least 3 items in '100ML PERFUME EDP' category. Found ${totalUnits}.`;
+      msgDiv.style.display = 'block';
+      return;
+    }
+
+    perfumePrices.sort((a, b) => a - b);
+    const discount = perfumePrices.slice(0, freeItems).reduce((sum, p) => sum + p, 0);
+
+    buy2Free1Discount = discount;
+    updateCartUI();
+    document.getElementById('specialPromoModal').style.display = 'none';
   }
 
-  perfumePrices.sort((a, b) => a - b);
-  const discount = perfumePrices.slice(0, freeItems).reduce((sum, p) => sum + p, 0);
+  function applyBuy3Free1ExcludePerfume() {
+    console.log("Cart items:", cart.map(item => ({
+      name: item.product.name,
+      category: item.product.category,
+      quantity: item.quantity,
+      price: item.product.price
+    })));
 
-  buy2Free1Discount = discount;
-  updateCartUI();
-  document.getElementById('specialPromoModal').style.display = 'none';
-}
+    const nonPerfumePrices = getUnitPricesFromFilter(item => {
+      const cat = (item.product.category || "").trim().toLowerCase();
+      return !cat.includes("100ml perfume edp");
+    });
 
-function applyBuy3Free1ExcludePerfume() {
-  console.log("Cart items:", cart.map(item => ({
-    name: item.product.name,
-    category: item.product.category,
-    quantity: item.quantity,
-    price: item.product.price
-  })));
+    const totalUnits = nonPerfumePrices.length;
+    const freeItems = Math.floor(totalUnits / 4);
+    console.log(`Total non‑perfume units: ${totalUnits}, free items: ${freeItems}`);
 
-  const nonPerfumePrices = getUnitPricesFromFilter(item => {
-    const cat = (item.product.category || "").trim().toLowerCase();
-    return !cat.includes("100ml perfume edp");
-  });
+    if (freeItems === 0) {
+      const msgDiv = document.getElementById('promoMessage');
+      msgDiv.innerText = `Need at least 4 items excluding Perfume category. Found ${totalUnits}.`;
+      msgDiv.style.display = 'block';
+      return;
+    }
 
-  const totalUnits = nonPerfumePrices.length;
-  const freeItems = Math.floor(totalUnits / 4);
-  console.log(`Total non‑perfume units: ${totalUnits}, free items: ${freeItems}`);
+    nonPerfumePrices.sort((a, b) => a - b);
+    const discount = nonPerfumePrices.slice(0, freeItems).reduce((sum, p) => sum + p, 0);
 
-  if (freeItems === 0) {
-    const msgDiv = document.getElementById('promoMessage');
-    msgDiv.innerText = `Need at least 4 items excluding Perfume category. Found ${totalUnits}.`;
-    msgDiv.style.display = 'block';
-    return;
+    buy3Free1Discount = discount;
+    updateCartUI();
+    document.getElementById('specialPromoModal').style.display = 'none';
   }
 
-  nonPerfumePrices.sort((a, b) => a - b);
-  const discount = nonPerfumePrices.slice(0, freeItems).reduce((sum, p) => sum + p, 0);
-
-  buy3Free1Discount = discount;
-  updateCartUI();
-  document.getElementById('specialPromoModal').style.display = 'none';
-}
+  function applyCustomDiscount() {
+    const value = parseFloat(document.getElementById('customPromoValue').value);
+    if (isNaN(value) || value < 0) {
+      showAlertModal('Invalid Discount', 'Please enter a valid discount amount.');
+      return;
+    }
+    customDiscount = value;
+    updateCartUI();
+    document.getElementById('specialPromoModal').style.display = 'none';
+  }
 
   // ==================== CHECKOUT ====================
   async function startCheckout() {
@@ -2349,7 +2403,12 @@ function applyBuy3Free1ExcludePerfume() {
     }
     let html = '';
     productsData.forEach(p => {
-      html += `<tr><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.category)}</td><td style="text-align: right;">${p.quantity}</td><td style="text-align: right;">RM ${p.total.toFixed(2)}</td></tr>`;
+      html += `<tr>
+        <td>${escapeHtml(p.name)}</td>
+        <td>${escapeHtml(p.category)}</td>
+        <td style="text-align: right;">${p.quantity}</td>
+        <td style="text-align: right;">RM ${p.total.toFixed(2)}</td>
+      </tr>`;
     });
     tbody.innerHTML = html;
   }
@@ -2685,6 +2744,89 @@ function applyBuy3Free1ExcludePerfume() {
     window.printerAPI = { isConnected: false, printReceipt: printReceipt };
   })();
 
+  // ==================== RENDER PRODUCT GRID (with inventory mode) ====================
+  function renderProductGrid() {
+    const searchTerm = searchInput.value.toLowerCase();
+    const selectedCategory = categorySelect.value;
+    let filtered = products;
+    if (selectedCategory !== 'all') filtered = filtered.filter(p => p.category === selectedCategory);
+    if (searchTerm) filtered = filtered.filter(p => p.name.toLowerCase().includes(searchTerm));
+    if (filtered.length === 0) {
+      productGridEl.innerHTML = '<div style="text-align:center; padding:20px;">No products found</div>';
+      return;
+    }
+
+    let html = '';
+    filtered.forEach(prod => {
+      if (inventoryMode) {
+        html += `<div class="product-card">
+          <div class="product-name">${escapeHtml(prod.name)}</div>
+          <div class="product-price">RM ${prod.price.toFixed(2)}</div>
+          <div class="inventory-controls">
+            <button class="inventory-btn dec-stock" data-id="${prod.id}" data-current="${prod.stock}">−</button>
+            <span class="stock-display" data-id="${prod.id}">${prod.stock}</span>
+            <button class="inventory-btn inc-stock" data-id="${prod.id}" data-current="${prod.stock}">+</button>
+          </div>
+        </div>`;
+      } else {
+        const stockStatus = prod.stock > 0 ? `📦 Stock: ${prod.stock}` : '❌ Out of stock';
+        html += `<div class="product-card">
+          <div class="product-name">${escapeHtml(prod.name)}</div>
+          <div class="product-price">RM ${prod.price.toFixed(2)}</div>
+          <div class="product-stock">${stockStatus}</div>
+          <button class="add-btn" data-id="${prod.id}" ${prod.stock <= 0 ? 'disabled' : ''}>+ Add to cart</button>
+        </div>`;
+      }
+    });
+    productGridEl.innerHTML = html;
+    productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
+
+    if (inventoryMode) {
+      document.querySelectorAll('.dec-stock').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = btn.dataset.id;
+          const product = products.find(p => p.id == id);
+          if (product && product.stock > 0) {
+            const newStock = product.stock - 1;
+            product.stock = newStock;
+            const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
+            if (displaySpan) displaySpan.innerText = newStock;
+            scheduleStockUpdate(id, newStock);
+            btn.dataset.current = newStock;
+            const incBtn = document.querySelector(`.inc-stock[data-id="${id}"]`);
+            if (incBtn) incBtn.dataset.current = newStock;
+          }
+          e.stopPropagation();
+        });
+      });
+      document.querySelectorAll('.inc-stock').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = btn.dataset.id;
+          const product = products.find(p => p.id == id);
+          if (product) {
+            const newStock = product.stock + 1;
+            product.stock = newStock;
+            const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
+            if (displaySpan) displaySpan.innerText = newStock;
+            scheduleStockUpdate(id, newStock);
+            btn.dataset.current = newStock;
+            const decBtn = document.querySelector(`.dec-stock[data-id="${id}"]`);
+            if (decBtn) decBtn.dataset.current = newStock;
+          }
+          e.stopPropagation();
+        });
+      });
+    } else {
+      document.querySelectorAll('.add-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const product = products.find(p => p.id == btn.dataset.id);
+          if (product && product.stock > 0) addToCart(product);
+          e.stopPropagation();
+        });
+      });
+    }
+  }
+
   // ==================== EVENT LISTENERS ====================
   document.getElementById('confirmStoreBtn').addEventListener('click', () => {
     initialStore = document.getElementById('initialStoreSelect').value;
@@ -2713,7 +2855,13 @@ function applyBuy3Free1ExcludePerfume() {
 
         soldBySelect.value = currentEmployee.id;
 
-        if (!currentEmployee.isAdmin) { storeSelect.disabled = true; } else { storeSelect.disabled = false; }
+        if (!currentEmployee.isAdmin) {
+          storeSelect.disabled = true;
+          inventoryModeBtn.style.display = 'none';
+        } else {
+          storeSelect.disabled = false;
+          inventoryModeBtn.style.display = 'flex';
+        }
 
         const reportStoreFilter = document.getElementById('reportStoreFilterGroup');
         const employeeFilterGroup = document.getElementById('employeeFilterGroup');
@@ -3135,17 +3283,7 @@ function applyBuy3Free1ExcludePerfume() {
       });
     }
   }
-function getUnitPricesFromFilter(filterCallback) {
-  const prices = [];
-  for (let item of cart) {
-    if (filterCallback(item)) {
-      for (let i = 0; i < item.quantity; i++) {
-        prices.push(item.product.price);
-      }
-    }
-  }
-  return prices;
-}
+
   function updateReceipts() {
     let store;
     if (currentEmployee?.isAdmin) {
@@ -3248,6 +3386,11 @@ function getUnitPricesFromFilter(filterCallback) {
   const applyCustomPromoBtn = document.getElementById('applyCustomPromoBtn');
   if (applyCustomPromoBtn) {
     applyCustomPromoBtn.addEventListener('click', applyCustomDiscount);
+  }
+
+  // Inventory mode toggle
+  if (inventoryModeBtn) {
+    inventoryModeBtn.addEventListener('click', toggleInventoryMode);
   }
 </script>
 </body>
