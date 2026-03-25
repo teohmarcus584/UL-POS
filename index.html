@@ -569,6 +569,42 @@
 .summary-row.discount-row span:last-child::before {
   content: "-";
 }
+.cart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.cart-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #0f172a;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.cart-header-buttons {
+  display: flex;
+  gap: 8px;
+}
+.cart-header-btn {
+  background: #f1f5f9;
+  border: none;
+  border-radius: 40px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+  color: #334155;
+}
+.cart-header-btn:hover {
+  background: #e2e8f0;
+}
+.cart-header-btn:active {
+  transform: scale(0.97);
+}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -664,30 +700,33 @@
       </div>
       <div id="productGrid" class="product-grid">Loading products...</div>
     </div>
-
-    <div class="cart-panel">
-      <div class="cart-title">🧾 Current Sale</div>
-      <div id="cartItemsContainer" class="cart-items">Cart is empty</div>
-    <div class="cart-summary">
-  <div class="summary-row"><span>Subtotal</span><span id="subtotal">RM 0.00</span></div>
-  <div id="discountRow" class="summary-row discount-row" style="display: none;">
-    <span><i>🎲</i> Lucky Draw</span>
-    <span id="discountAmount">RM 0.00</span>
-  </div>
-  <div id="promoRow" class="summary-row discount-row" style="display: none;">
-    <span><i>🎁</i> Promo Discount</span>
-    <span id="promoDiscountDisplay">RM 0.00</span>
-  </div>
-  <div class="summary-row total-row"><span>TOTAL</span><span id="totalAmount">RM 0.00</span></div>
-</div>
-      <div class="cart-actions">
-        <button id="checkoutBtn">💳 CHECKOUT</button>
-        <button id="claimPrizeBtn">🎁 Claim Prize</button>
-        <button id="specialPromoBtn">🎁 Special Promo</button>
-        <button id="clearCartBtn">🗑️ Clear</button>
-        <button id="refreshProductsBtn">🔄 Refresh</button>
-      </div>
+<div class="cart-panel">
+  <div class="cart-header">
+    <div class="cart-title">🧾 Current Sale</div>
+    <div class="cart-header-buttons">
+      <button id="clearCartBtn" class="cart-header-btn">🗑️ Clear</button>
+      <button id="refreshProductsBtn" class="cart-header-btn">🔄 Refresh</button>
     </div>
+  </div>
+  <div id="cartItemsContainer" class="cart-items">Cart is empty</div>
+  <div class="cart-summary">
+    <div class="summary-row"><span>Subtotal</span><span id="subtotal">RM 0.00</span></div>
+    <div id="discountRow" class="summary-row discount-row" style="display: none;">
+      <span><i>🎲</i> Lucky Draw</span>
+      <span id="discountAmount">RM 0.00</span>
+    </div>
+    <div id="promoRow" class="summary-row discount-row" style="display: none;">
+      <span><i>🎁</i> Promo Discount</span>
+      <span id="promoDiscountDisplay">RM 0.00</span>
+    </div>
+    <div class="summary-row total-row"><span>TOTAL</span><span id="totalAmount">RM 0.00</span></div>
+  </div>
+  <div class="cart-actions">
+    <button id="checkoutBtn">💳 CHECKOUT</button>
+    <button id="claimPrizeBtn">🎁 Claim Prize</button>
+    <button id="specialPromoBtn">🎁 Special Promo</button>
+  </div>
+</div>
   </div>
 </div>
 
