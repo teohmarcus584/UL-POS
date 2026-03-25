@@ -5,18 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes, viewport-fit=cover">
   <title>POS System | PIN Login</title>
   <style>
-    /* ========== COMPACT TABLET STYLES ========== */
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    /* ========== ALL EXISTING STYLES ========== */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       background: #f4f5f7;
       color: #1e293b;
       line-height: 1.4;
-      padding: 12px;
+      padding: 16px;
       min-height: 100vh;
     }
     .pos-header {
@@ -24,21 +20,17 @@
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 12px;
+      gap: 12px;
+      margin-bottom: 20px;
       background: white;
-      padding: 10px 16px;
-      border-radius: 24px;
+      padding: 12px 20px;
+      border-radius: 28px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
-    h1 {
-      font-size: 1.4rem;
-      font-weight: 600;
-      color: #0f172a;
-    }
+    h1 { font-size: 1.6rem; font-weight: 600; color: #0f172a; }
     .header-buttons {
       display: flex;
-      gap: 8px;
+      gap: 12px;
       align-items: center;
       flex-wrap: wrap;
     }
@@ -46,8 +38,8 @@
       background: #3b82f6;
       border: none;
       border-radius: 40px;
-      padding: 6px 14px;
-      font-size: 0.8rem;
+      padding: 10px 20px;
+      font-size: 0.9rem;
       font-weight: 500;
       color: white;
       cursor: pointer;
@@ -59,54 +51,45 @@
       background: #1e293b;
       border: none;
       border-radius: 40px;
-      padding: 6px 14px;
-      font-size: 0.8rem;
+      padding: 10px 20px;
+      font-size: 0.9rem;
       font-weight: 500;
       color: white;
       cursor: pointer;
     }
     #connectPrinterButton:hover { background: #0f172a; }
-    #printerStatus {
-      font-size: 0.75rem;
-      background: #f1f5f9;
-      padding: 4px 10px;
-      border-radius: 30px;
-      color: #334155;
-    }
+    #printerStatus { font-size: 0.8rem; background: #f1f5f9; padding: 6px 12px; border-radius: 30px; color: #334155; }
     .employee-bar {
-      background: white;
-      border-radius: 24px;
-      padding: 8px 16px;
-      margin-bottom: 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      background: white; border-radius: 28px; padding: 10px 20px; margin-bottom: 20px;
+      display: flex; justify-content: space-between; align-items: center;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 12px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
-    .employee-info {
-      font-weight: 500;
-      font-size: 0.85rem;
-      color: #0f172a;
-    }
+    .employee-info { font-weight: 500; color: #0f172a; }
     .employee-actions {
       display: flex;
-      gap: 8px;
+      gap: 12px;
       align-items: center;
     }
     .logout-btn, .drawer-btn, .settlement-btn, .collection-btn {
       background: #ef4444;
       border: none;
       border-radius: 40px;
-      padding: 4px 12px;
+      padding: 6px 16px;
       color: white;
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       cursor: pointer;
     }
-    .drawer-btn { background: #f59e0b; }
-    .settlement-btn { background: #8b5cf6; }
-    .collection-btn { background: #10b981; }
+    .drawer-btn {
+      background: #f59e0b;
+    }
+    .settlement-btn {
+      background: #8b5cf6;
+    }
+    .collection-btn {
+      background: #10b981;
+    }
     .drawer-btn:hover { background: #d97706; }
     .settlement-btn:hover { background: #7c3aed; }
     .collection-btn:hover { background: #059669; }
@@ -117,79 +100,75 @@
     }
     .logout-btn:hover { background: #dc2626; }
     .store-selector {
-      background: white;
-      border-radius: 24px;
-      padding: 8px 16px;
-      margin-bottom: 12px;
+      background: white; border-radius: 28px; padding: 12px 20px; margin-bottom: 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 12px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
-    .store-selector label {
-      font-weight: 500;
-      font-size: 0.85rem;
-      margin-right: 6px;
-    }
+    .store-selector label { font-weight: 500; margin-right: 8px; }
     .store-selector select, #soldBySelect {
-      padding: 6px 12px;
-      border-radius: 40px;
+      padding: 12px 20px;
+      border-radius: 60px;
       border: 1px solid #cbd5e1;
       background: white;
-      font-size: 0.85rem;
+      font-size: 1rem;
       font-weight: 500;
       cursor: pointer;
-      min-width: 140px;
+      transition: all 0.2s;
+      min-width: 180px;
     }
-    .pos-dashboard {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
+    .store-selector select:focus, #soldBySelect:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
     }
+    .store-selector select:disabled, #soldBySelect:disabled {
+      background: #f1f5f9;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    .pos-dashboard { display: flex; flex-wrap: wrap; gap: 20px; }
     .products-panel {
-      flex: 2;
-      min-width: 240px;
-      background: white;
-      border-radius: 24px;
-      padding: 16px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-      border: 1px solid #e2e8f0;
+      flex: 2; min-width: 260px; background: white; border-radius: 28px; padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid #e2e8f0;
     }
     .filter-bar {
       display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
+      gap: 12px;
+      margin-bottom: 20px;
       flex-wrap: wrap;
       align-items: center;
     }
     .view-toggle {
       display: flex;
-      gap: 4px;
+      gap: 6px;
       background: #f1f5f9;
       border-radius: 40px;
-      padding: 2px;
+      padding: 4px;
     }
     .view-toggle button {
       background: transparent;
       border: none;
-      padding: 4px 12px;
+      padding: 8px 16px;
       border-radius: 32px;
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       font-weight: 500;
       cursor: pointer;
+      transition: 0.1s;
     }
     .view-toggle button.active {
       background: white;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       color: #0f172a;
     }
     #categorySelect, .search-bar {
-      padding: 6px 12px;
-      border-radius: 40px;
+      padding: 12px 20px;
+      border-radius: 60px;
       border: 1px solid #cbd5e1;
-      font-size: 0.85rem;
+      font-size: 1rem;
       outline: none;
       background: white;
     }
@@ -197,8 +176,8 @@
     .search-bar { flex: 2; }
     .product-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 16px;
       max-height: 65vh;
       overflow-y: auto;
       padding-right: 4px;
@@ -206,15 +185,15 @@
     .product-list {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
       max-height: 65vh;
       overflow-y: auto;
       padding-right: 4px;
     }
     .product-card {
       background: #f8fafc;
-      border-radius: 20px;
-      padding: 12px 8px;
+      border-radius: 24px;
+      padding: 16px 12px;
       text-align: center;
       transition: all 0.2s;
       border: 1px solid #e2e8f0;
@@ -224,78 +203,49 @@
       align-items: center;
       justify-content: space-between;
       text-align: left;
-      padding: 8px 16px;
-      gap: 12px;
+      padding: 12px 20px;
+      gap: 16px;
       flex-wrap: wrap;
     }
-    .product-name {
-      font-weight: 600;
-      font-size: 0.85rem;
-      margin-bottom: 4px;
-      color: #0f172a;
-    }
-    .product-list .product-name {
-      margin-bottom: 0;
-      flex: 2;
-    }
-    .product-price {
-      font-weight: 700;
-      color: #2c7a4b;
-      font-size: 1rem;
-      margin: 4px 0;
-    }
-    .product-list .product-price {
-      margin: 0;
-      font-size: 0.9rem;
-      min-width: 70px;
-    }
-    .product-stock {
-      font-size: 0.65rem;
-      color: #64748b;
-      margin-bottom: 6px;
-    }
-    .product-list .product-stock {
-      margin-bottom: 0;
-      min-width: 70px;
-      font-size: 0.7rem;
-    }
+    .product-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.05); border-color: #cbd5e1; }
+    .product-name { font-weight: 600; font-size: 1rem; margin-bottom: 8px; color: #0f172a; }
+    .product-list .product-name { margin-bottom: 0; flex: 2; }
+    .product-price { font-weight: 700; color: #2c7a4b; font-size: 1.2rem; margin: 6px 0; }
+    .product-list .product-price { margin: 0; font-size: 1.1rem; min-width: 80px; }
+    .product-stock { font-size: 0.7rem; color: #64748b; margin-bottom: 10px; }
+    .product-list .product-stock { margin-bottom: 0; min-width: 80px; font-size: 0.8rem; }
     .add-btn {
       background: #3b82f6;
       border: none;
       color: white;
-      padding: 6px 10px;
+      padding: 8px 12px;
       border-radius: 40px;
       font-weight: 500;
-      font-size: 0.7rem;
+      font-size: 0.8rem;
       width: 100%;
       cursor: pointer;
     }
     .product-list .add-btn {
       width: auto;
-      padding: 4px 16px;
+      padding: 6px 20px;
     }
+    .add-btn:active { transform: scale(0.96); background: #2563eb; }
+    .add-btn:disabled { background: #94a3b8; cursor: not-allowed; }
     .cart-panel {
-      flex: 1.2;
-      min-width: 260px;
-      background: white;
-      border-radius: 24px;
-      padding: 16px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-      border: 1px solid #e2e8f0;
-      display: flex;
-      flex-direction: column;
+      flex: 1.2; min-width: 280px; background: white; border-radius: 28px; padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; display: flex; flex-direction: column;
       height: fit-content;
     }
     .cart-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 16px;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 12px;
     }
     .cart-title {
-      font-size: 1.1rem;
+      font-size: 1.3rem;
       font-weight: 600;
       color: #0f172a;
       border-bottom: none;
@@ -303,352 +253,149 @@
     }
     .cart-header-buttons {
       display: flex;
-      gap: 6px;
+      gap: 8px;
     }
     .cart-header-btn {
       background: #f1f5f9;
       border: none;
       border-radius: 40px;
-      padding: 4px 12px;
-      font-size: 0.7rem;
+      padding: 8px 16px;
+      font-size: 0.85rem;
       font-weight: 500;
       cursor: pointer;
+      transition: 0.2s;
       color: #334155;
     }
-    .cart-items {
-      max-height: 45vh;
-      overflow-y: auto;
-      margin-bottom: 12px;
+    .cart-header-btn:hover {
+      background: #e2e8f0;
     }
-    .cart-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 0;
-      border-bottom: 1px solid #edf2f7;
-    }
-    .cart-item-info {
-      flex: 2;
-    }
-    .cart-item-name {
-      font-weight: 500;
-      font-size: 0.8rem;
-    }
-    .cart-item-category {
-      font-size: 0.6rem;
-      color: #64748b;
-      margin-top: 2px;
-    }
-    .cart-item-price {
-      font-size: 0.7rem;
-      color: #2c7a4b;
-    }
-    .cart-item-qty {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin: 0 8px;
-    }
-    .qty-btn {
-      background: #f1f5f9;
-      border: none;
-      width: 24px;
-      height: 24px;
-      border-radius: 30px;
-      font-weight: bold;
-      font-size: 0.9rem;
-      cursor: pointer;
-    }
-    .cart-item-total {
-      font-weight: 600;
-      min-width: 55px;
-      text-align: right;
-      font-size: 0.8rem;
-    }
-    .remove-item {
-      background: none;
-      border: none;
-      color: #ef4444;
-      font-size: 1rem;
-      cursor: pointer;
-      margin-left: 6px;
-      width: 24px;
-    }
-    .cart-summary {
-      border-top: 2px dashed #e2e8f0;
-      padding-top: 12px;
-      margin-top: 6px;
-    }
-    .summary-row {
-      display: flex;
-      justify-content: space-between;
-      margin: 8px 0;
-      font-size: 0.9rem;
-    }
-    .total-row {
-      font-weight: 800;
-      font-size: 1.2rem;
-      color: #0f172a;
-      border-top: 1px solid #cbd5e1;
-      padding-top: 8px;
-      margin-top: 6px;
-    }
-    .cart-actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-      flex-wrap: wrap;
-    }
-    .cart-actions button {
-      flex: 1;
-      padding: 8px;
-      border-radius: 40px;
-      font-weight: 600;
-      border: none;
-      cursor: pointer;
-      font-size: 0.8rem;
-    }
-    #checkoutBtn {
-      background: #2c7a4b;
-      color: white;
-    }
-    #claimPrizeBtn {
-      background: #f59e0b;
-      color: white;
-    }
-    #specialPromoBtn {
-      background: #8b5cf6;
-      color: white;
-    }
-    button:active {
+    .cart-header-btn:active {
       transform: scale(0.97);
     }
+    .cart-items { max-height: 50vh; overflow-y: auto; margin-bottom: 20px; }
+    .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #edf2f7; }
+    .cart-item-info { flex: 2; }
+    .cart-item-name { font-weight: 500; font-size: 0.9rem; }
+    .cart-item-category { font-size: 0.7rem; color: #64748b; margin-top: 2px; }
+    .cart-item-price { font-size: 0.8rem; color: #2c7a4b; }
+    .cart-item-qty { display: flex; align-items: center; gap: 8px; margin: 0 12px; }
+    .qty-btn { background: #f1f5f9; border: none; width: 28px; height: 28px; border-radius: 30px; font-weight: bold; font-size: 1rem; cursor: pointer; }
+    .qty-btn:active { background: #e2e8f0; }
+    .cart-item-total { font-weight: 600; min-width: 65px; text-align: right; }
+    .remove-item { background: none; border: none; color: #ef4444; font-size: 1.2rem; cursor: pointer; margin-left: 8px; width: 28px; }
+    .cart-summary { border-top: 2px dashed #e2e8f0; padding-top: 16px; margin-top: 8px; }
+    .summary-row { display: flex; justify-content: space-between; margin: 10px 0; font-size: 1.1rem; }
+    .total-row { font-weight: 800; font-size: 1.4rem; color: #0f172a; border-top: 1px solid #cbd5e1; padding-top: 12px; margin-top: 8px; }
+    .cart-actions { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+    .cart-actions button { flex: 1; padding: 12px; border-radius: 40px; font-weight: 600; border: none; cursor: pointer; }
+    #checkoutBtn { background: #2c7a4b; color: white; }
+    #claimPrizeBtn { background: #f59e0b; color: white; }
+    #specialPromoBtn { background: #8b5cf6; color: white; }
+    #clearCartBtn, #refreshProductsBtn { /* handled by .cart-header-btn */ }
+    button:active { transform: scale(0.97); }
+
     .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.6);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 2000;
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 2000;
     }
     .modal-container {
-      background: white;
-      max-width: 90%;
-      width: 380px;
-      border-radius: 24px;
-      padding: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-      max-height: 85vh;
-      overflow-y: auto;
+      background: white; max-width: 800px; width: 90%; border-radius: 28px; padding: 24px;
+      box-shadow: 0 20px 35px rgba(0,0,0,0.2); max-height: 85vh; overflow-y: auto;
       position: relative;
     }
     .close-modal {
       position: absolute;
-      top: 12px;
-      right: 16px;
-      font-size: 24px;
+      top: 16px;
+      right: 20px;
+      font-size: 28px;
       font-weight: bold;
       cursor: pointer;
       color: #64748b;
+      line-height: 1;
     }
-    .close-modal:hover {
-      color: #0f172a;
-    }
-    .modal-title {
-      font-size: 1.2rem;
-      font-weight: 600;
-      margin-bottom: 12px;
-      padding-right: 30px;
-    }
+    .close-modal:hover { color: #0f172a; }
+    .modal-title { font-size: 1.4rem; font-weight: 600; margin-bottom: 16px; padding-right: 30px; }
     .report-filters, .receipts-filters {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-bottom: 16px;
-      align-items: flex-end;
+      display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; align-items: flex-end;
     }
-    .filter-group {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      flex: 1;
-      min-width: 120px;
-    }
-    .filter-group label {
-      font-weight: 500;
-      font-size: 0.8rem;
-    }
+    .filter-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 140px; }
+    .filter-group label { font-weight: 500; font-size: 0.9rem; }
     .filter-group select, .filter-group input {
-      padding: 8px 12px;
-      border-radius: 40px;
-      border: 1px solid #cbd5e1;
-      font-size: 0.85rem;
+      padding: 12px 16px; border-radius: 60px; border: 1px solid #cbd5e1; font-size: 0.9rem;
     }
-    .date-range {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .report-stats {
-      background: #f8fafc;
-      padding: 12px;
-      border-radius: 16px;
-      margin: 12px 0;
-    }
-    .stat-item {
-      display: flex;
-      justify-content: space-between;
-      margin: 6px 0;
-      font-size: 0.9rem;
-    }
-    .stat-value {
-      font-weight: 700;
-      color: #2c7a4b;
-    }
-    .breakdown {
-      font-size: 0.85rem;
-      color: #334155;
-      border-top: 1px dashed #e2e8f0;
-      padding-top: 4px;
-      margin-top: 4px;
-    }
+    .date-range { display: flex; gap: 12px; flex-wrap: wrap; }
+    .report-stats { background: #f8fafc; padding: 16px; border-radius: 20px; margin: 16px 0; }
+    .stat-item { display: flex; justify-content: space-between; margin: 8px 0; font-size: 1.1rem; }
+    .stat-value { font-weight: 700; color: #2c7a4b; }
+    .breakdown { font-size: 1rem; color: #334155; border-top: 1px dashed #e2e8f0; padding-top: 6px; margin-top: 6px; }
     .chart-container {
       background: white;
-      border-radius: 16px;
-      padding: 8px;
-      margin-top: 12px;
+      border-radius: 20px;
+      padding: 12px;
+      margin-top: 20px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
-    canvas {
-      max-width: 100%;
-      height: auto;
-    }
-    .receipts-list {
-      max-height: 60vh;
-      overflow-y: auto;
-    }
+    canvas { max-width: 100%; height: auto; }
+    .receipts-list { max-height: 60vh; overflow-y: auto; }
     .receipt-item {
-      border: 1px solid #e2e8f0;
-      border-radius: 16px;
-      padding: 8px;
-      margin-bottom: 8px;
-      background: #f8fafc;
+      border: 1px solid #e2e8f0; border-radius: 20px; padding: 12px; margin-bottom: 12px;
+      background: #f8fafc; transition: 0.1s;
     }
     .receipt-item.refund-receipt {
       background-color: #ffe6e6;
       border-left: 5px solid #ef4444;
     }
     .receipt-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 6px;
-      padding-bottom: 6px;
-      border-bottom: 1px dashed #cbd5e1;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;
+      gap: 8px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #cbd5e1;
     }
-    .receipt-id {
-      font-weight: 600;
-      font-size: 0.8rem;
-    }
-    .receipt-date, .receipt-total {
-      font-size: 0.75rem;
-    }
-    .receipt-details {
-      font-size: 0.7rem;
-      margin: 6px 0;
-    }
-    .receipt-actions {
-      display: flex;
-      gap: 6px;
-      justify-content: flex-end;
-      margin-top: 6px;
-    }
+    .receipt-id { font-weight: 600; color: #0f172a; }
+    .receipt-date { font-size: 0.8rem; color: #64748b; }
+    .receipt-total { font-weight: 700; color: #2c7a4b; }
+    .receipt-details { font-size: 0.85rem; margin: 8px 0; color: #334155; }
+    .receipt-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
     .reprint-btn, .lucky-btn, .refund-btn {
-      background: #8b5cf6;
-      border: none;
-      color: white;
-      padding: 2px 8px;
-      border-radius: 30px;
-      font-size: 0.65rem;
-      cursor: pointer;
+      background: #8b5cf6; border: none; color: white; padding: 4px 12px;
+      border-radius: 30px; font-size: 0.75rem; cursor: pointer;
     }
     .lucky-btn { background: #f59e0b; }
     .refund-btn { background: #ef4444; }
     .reprint-btn:hover { background: #7c3aed; }
     .lucky-btn:hover { background: #d97706; }
     .refund-btn:hover { background: #dc2626; }
-    .modal-buttons {
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-      margin-top: 12px;
-    }
-    .modal-btn {
-      padding: 8px 16px;
-      border-radius: 40px;
-      border: none;
-      font-weight: 500;
-      cursor: pointer;
-      font-size: 0.85rem;
-    }
-    .modal-btn-primary {
-      background: #2c7a4b;
-      color: white;
-    }
-    .modal-btn-secondary {
-      background: #e2e8f0;
-    }
+    .modal-buttons { display: flex; gap: 12px; justify-content: flex-end; margin-top: 16px; }
+    .modal-btn { padding: 12px 24px; border-radius: 60px; border: none; font-weight: 500; cursor: pointer; font-size: 1rem; }
+    .modal-btn-primary { background: #2c7a4b; color: white; }
+    .modal-btn-secondary { background: #e2e8f0; }
     .loading-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.7);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 3000;
-      flex-direction: column;
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 3000; flex-direction: column;
     }
-    .loading-spinner {
-      width: 40px;
-      height: 40px;
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #2c7a4b;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-bottom: 12px;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    .loading-text {
-      color: white;
-      font-size: 1rem;
-      font-weight: 500;
-      text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    .loading-spinner { width: 50px; height: 50px; border: 5px solid #e2e8f0; border-top: 5px solid #2c7a4b; border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .loading-text { color: white; margin-top: 12px; }
+    @media (max-width: 780px) {
+      .pos-dashboard { flex-direction: column; }
+      .product-grid { max-height: 40vh; }
+      .product-list .product-card { flex-direction: column; align-items: stretch; text-align: center; }
+      .product-list .product-name, .product-list .product-price, .product-list .product-stock { margin: 4px 0; text-align: center; }
+      .product-list .add-btn { width: 100%; }
+      .store-selector { flex-direction: column; align-items: stretch; }
     }
     .payment-buttons {
       display: flex;
-      gap: 8px;
-      margin: 16px 0;
+      gap: 12px;
+      margin: 20px 0;
     }
     .payment-btn {
       flex: 1;
-      padding: 10px;
+      padding: 12px;
       border-radius: 40px;
       font-weight: 600;
       border: none;
       cursor: pointer;
       background: #e2e8f0;
+      transition: 0.1s;
     }
     .payment-btn.selected {
       background: #2c7a4b;
@@ -656,52 +403,65 @@
     }
     .suggestions {
       display: flex;
-      gap: 8px;
+      gap: 12px;
       flex-wrap: wrap;
-      margin: 12px 0;
+      margin: 16px 0;
     }
     .suggestion-btn {
       background: #f1f5f9;
       border: none;
-      padding: 8px 16px;
+      padding: 10px 20px;
       border-radius: 40px;
       font-weight: 500;
       cursor: pointer;
-      font-size: 0.9rem;
+      font-size: 1rem;
+    }
+    .suggestion-btn:hover {
+      background: #e2e8f0;
     }
     .custom-cash-input {
       width: 100%;
-      padding: 10px 16px;
-      font-size: 1rem;
+      padding: 16px 20px;
+      font-size: 1.2rem;
       border: 2px solid #cbd5e1;
-      border-radius: 40px;
-      margin: 8px 0;
+      border-radius: 60px;
+      margin: 12px 0;
       text-align: right;
+      font-weight: 500;
+    }
+    .custom-cash-input:focus {
+      outline: none;
+      border-color: #2c7a4b;
     }
     .pin-input {
       width: 100%;
       text-align: center;
-      font-size: 1.5rem;
-      letter-spacing: 4px;
-      padding: 8px;
-      border-radius: 40px;
+      font-size: 2rem;
+      letter-spacing: 8px;
+      padding: 12px;
+      border-radius: 60px;
       border: 1px solid #cbd5e1;
       font-family: monospace;
     }
     .pin-keypad {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-top: 16px;
+      gap: 12px;
+      margin-top: 20px;
     }
     .keypad-btn {
       background: #f1f5f9;
       border: none;
-      padding: 12px;
-      border-radius: 40px;
-      font-size: 1.2rem;
+      padding: 16px;
+      border-radius: 60px;
+      font-size: 1.5rem;
       font-weight: 600;
       cursor: pointer;
+      transition: 0.1s;
+    }
+    .keypad-btn:active {
+      transform: scale(0.95);
+      background: #e2e8f0;
     }
     .keypad-btn.clear {
       background: #ef4444;
@@ -712,56 +472,78 @@
       color: white;
     }
     #storeSelectModal .modal-container {
-      max-width: 400px;
+      max-width: 500px;
       text-align: center;
       border-radius: 48px;
-      padding: 32px 24px;
+      padding: 40px 32px;
       background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
     }
     #storeSelectModal .modal-title {
-      font-size: 1.8rem;
+      font-size: 2rem;
       font-weight: 800;
-      margin-bottom: 24px;
+      margin-bottom: 32px;
+      color: #0f172a;
     }
     .store-select-modal {
       width: 100%;
-      padding: 12px 20px;
-      font-size: 1rem;
+      padding: 16px 28px;
+      font-size: 1.2rem;
       font-weight: 600;
-      border-radius: 40px;
+      border-radius: 60px;
       border: 1px solid #cbd5e1;
       background: white;
       cursor: pointer;
-      margin: 16px 0 24px;
+      appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234b5563' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+      background-repeat: no-repeat;
+      background-position: right 24px center;
+      background-size: 18px;
+      margin: 16px 0 32px;
+    }
+    #storeSelectModal .modal-btn-primary {
+      background: #2c7a4b;
+      padding: 14px 40px;
+      font-size: 1.1rem;
     }
     .product-details-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.8rem;
+      font-size: 0.9rem;
     }
     .product-details-table th,
     .product-details-table td {
-      padding: 6px 8px;
+      padding: 10px 8px;
       text-align: left;
       border-bottom: 1px solid #e2e8f0;
     }
     .product-details-table th {
       background: #f1f5f9;
+      position: sticky;
+      top: 0;
       font-weight: 600;
+    }
+    .product-details-table tr:hover {
+      background: #f8fafc;
     }
     .product-details-table td:last-child,
     .product-details-table th:last-child {
       text-align: right;
     }
+    .product-details-table td:nth-child(3) {
+      text-align: right;
+    }
     .settlement-stats {
       background: #f1f5f9;
-      padding: 8px;
-      border-radius: 16px;
-      margin: 12px 0;
+      padding: 12px;
+      border-radius: 20px;
+      margin: 16px 0;
     }
     .settlement-stats p {
-      margin: 4px 0;
-      font-size: 0.85rem;
+      margin: 8px 0;
+      font-size: 1rem;
+    }
+    .settlement-stats strong {
+      color: #0f172a;
     }
     .error-field {
       border-color: #ef4444 !important;
@@ -770,31 +552,37 @@
     .collection-table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 12px;
+      margin-top: 16px;
     }
     .collection-table th,
     .collection-table td {
-      padding: 8px 6px;
+      padding: 12px 8px;
       text-align: left;
       border-bottom: 1px solid #e2e8f0;
-      font-size: 0.8rem;
     }
     .collection-table th {
       background: #f1f5f9;
+      position: sticky;
+      top: 0;
+    }
+    .collection-table tr:hover {
+      background: #f8fafc;
     }
     .collection-table td:last-child,
     .collection-table th:last-child {
+      text-align: right;
+    }
+    .collection-table td:nth-child(4) {
       text-align: right;
     }
 
     /* Discount rows styling */
     .summary-row.discount-row {
       background: #f9fafb;
-      border-radius: 10px;
-      margin: 4px 0;
-      padding: 4px 8px;
+      border-radius: 12px;
+      margin: 6px 0;
+      padding: 8px 12px;
       transition: background 0.2s;
-      font-size: 0.8rem;
     }
     .summary-row.discount-row:hover {
       background: #f1f5f9;
@@ -802,7 +590,11 @@
     .summary-row.discount-row span:first-child {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
+    }
+    .summary-row.discount-row span:first-child i {
+      font-style: normal;
+      font-size: 1.1rem;
     }
     .summary-row.discount-row span:last-child {
       font-weight: 600;
@@ -815,9 +607,9 @@
     /* Special Promo Modal Enhancements */
     .promo-option-btn {
       width: 100%;
-      margin-bottom: 8px;
-      font-size: 0.85rem;
-      padding: 8px;
+      margin-bottom: 12px;
+      font-size: 1rem;
+      padding: 12px;
       background: #0a7b3c;
       transition: background 0.2s;
     }
@@ -825,15 +617,15 @@
       background: #0c8f47;
     }
     .custom-discount-section {
-      margin: 16px 0 12px;
+      margin: 20px 0 16px;
       padding-top: 8px;
       border-top: 1px solid #e2e8f0;
     }
     .custom-discount-section label {
       display: block;
       font-weight: 500;
-      margin-bottom: 6px;
-      font-size: 0.85rem;
+      margin-bottom: 8px;
+      color: #1e293b;
     }
     .currency-input {
       position: relative;
@@ -841,65 +633,59 @@
       align-items: center;
       background: white;
       border: 1px solid #cbd5e1;
-      border-radius: 40px;
+      border-radius: 60px;
       overflow: hidden;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
     }
     .currency-symbol {
-      padding: 8px 0 8px 12px;
+      padding: 12px 0 12px 16px;
       font-weight: 500;
       color: #2c7a4b;
       background: #f8fafc;
       border-right: 1px solid #e2e8f0;
-      font-size: 0.9rem;
     }
     .currency-field {
       flex: 1;
       border: none;
-      padding: 8px 8px 8px 4px;
-      font-size: 0.9rem;
+      padding: 12px 12px 12px 8px;
+      font-size: 1rem;
       outline: none;
       background: transparent;
       text-align: right;
     }
+    .currency-field:focus {
+      outline: none;
+    }
     .apply-btn {
       width: 100%;
-      margin-top: 6px;
+      margin-top: 8px;
       background: #8b5cf6;
     }
     .apply-btn:hover {
       background: #7c3aed;
     }
-    @media (max-width: 768px) {
-      .pos-dashboard {
-        flex-direction: column;
-      }
-      .product-grid {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      }
-    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
-<!-- Store Selection Modal -->
+<!-- Store Selection Modal (shown on page load) -->
 <div id="storeSelectModal" class="modal-overlay" style="display: flex;">
-  <div class="modal-container">
+  <div class="modal-container" style="max-width: 400px;">
     <div class="modal-title">🏬 Select Store</div>
     <select id="initialStoreSelect" class="store-select-modal">
       <option value="queens">Queens</option>
       <option value="sunshine">Sunshine</option>
       <option value="gurney_paragon">Gurney Paragon</option>
     </select>
-    <div class="modal-buttons">
+    <div class="modal-buttons" style="margin-top: 24px;">
       <button id="confirmStoreBtn" class="modal-btn modal-btn-primary">Next →</button>
     </div>
   </div>
 </div>
 
-<!-- PIN Login Modal -->
+<!-- PIN Login Modal (hidden initially) -->
 <div id="loginModal" class="modal-overlay" style="display: none;">
-  <div class="modal-container">
+  <div class="modal-container" style="max-width: 400px;">
     <span class="close-modal" id="closeLoginModal">×</span>
     <div class="modal-title">🔐 Enter PIN</div>
     <div class="login-form">
@@ -918,7 +704,7 @@
         <button class="keypad-btn" data-digit="0">0</button>
         <button class="keypad-btn enter" data-action="enter">↵</button>
       </div>
-      <div id="loginError" class="error-msg" style="color:#ef4444; font-size:0.8rem; text-align:center; margin-top:8px;"></div>
+      <div id="loginError" class="error-msg" style="color:#ef4444; font-size:0.9rem; text-align:center; margin-top:12px;"></div>
     </div>
   </div>
 </div>
@@ -945,7 +731,7 @@
   </div>
 
   <div class="store-selector">
-    <div style="display: flex; align-items: center; gap: 8px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
       <label>🏬 Store:</label>
       <select id="storeSelect">
         <option value="queens">Queens</option>
@@ -953,7 +739,7 @@
         <option value="gurney_paragon">Gurney Paragon</option>
       </select>
     </div>
-    <div style="display: flex; align-items: center; gap: 8px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
       <label>👤 Sold By:</label>
       <select id="soldBySelect">
         <option value="">Loading...</option>
@@ -990,11 +776,11 @@
           <span id="discountAmount">RM 0.00</span>
         </div>
         <div id="promoBuy2Free1Row" class="summary-row discount-row" style="display: none;">
-          <span><i>🎯</i> Buy 3 Free 1 (Perfume)</span>
+          <span><i>🎯</i> Buy 2 Free 1 (Perfume)</span>
           <span id="promoBuy2Free1Amount">RM 0.00</span>
         </div>
         <div id="promoBuy3Free1Row" class="summary-row discount-row" style="display: none;">
-          <span><i>🎯</i> Buy 4 Free 1 (Excluding Perfume)</span>
+          <span><i>🎯</i> Buy 3 Free 1 (Excluding Perfume)</span>
           <span id="promoBuy3Free1Amount">RM 0.00</span>
         </div>
         <div id="customDiscountRow" class="summary-row discount-row" style="display: none;">
@@ -1014,7 +800,7 @@
 
 <!-- Payment Modal -->
 <div id="paymentModal" class="modal-overlay">
-  <div class="modal-container">
+  <div class="modal-container" style="max-width: 400px;">
     <span class="close-modal" id="closePaymentModal">×</span>
     <div class="modal-title">💳 Select Payment Method</div>
     <div class="payment-buttons">
@@ -1041,7 +827,7 @@
 
 <!-- Lucky Draw Modal (after sale) -->
 <div id="luckyDrawModal" class="modal-overlay">
-  <div class="modal-container">
+  <div class="modal-container" style="max-width: 400px;">
     <span class="close-modal" id="closeLuckyDrawModal">×</span>
     <div class="modal-title">🎲 Lucky Draw</div>
     <p>Transaction ID: <strong id="luckyTxId"></strong></p>
@@ -1055,12 +841,12 @@
 
 <!-- Claim Prize Modal -->
 <div id="claimPrizeModal" class="modal-overlay">
-  <div class="modal-container">
+  <div class="modal-container" style="max-width: 400px;">
     <span class="close-modal" id="closeClaimPrizeModal">×</span>
     <div class="modal-title">🎁 Claim Prize</div>
     <div id="claimStep1">
       <p>Enter the receipt number from your Lucky Draw:</p>
-      <input type="text" id="claimReceiptInput" class="modal-input" placeholder="e.g., TXN-1234567890-123" style="width:100%; margin:8px 0; padding:10px; border-radius:40px; border:1px solid #cbd5e1;">
+      <input type="text" id="claimReceiptInput" class="modal-input" placeholder="e.g., TXN-1234567890-123" style="width: 100%; margin: 12px 0; padding: 12px;">
       <div class="modal-buttons">
         <button id="checkReceiptBtn" class="modal-btn modal-btn-primary">Check</button>
         <button id="cancelClaimBtn" class="modal-btn modal-btn-secondary">Cancel</button>
@@ -1069,7 +855,7 @@
     <div id="claimStep2" style="display: none;">
       <p>Receipt: <strong id="validReceiptId"></strong></p>
       <p>Select your prize:</p>
-      <select id="prizeSelect" class="modal-input" style="width:100%; margin:8px 0; padding:10px; border-radius:40px; border:1px solid #cbd5e1;">
+      <select id="prizeSelect" class="modal-input" style="width: 100%; margin: 12px 0; padding: 12px;">
         <option value="38">CAR AROMATIC - RM 38</option>
         <option value="75">15ML TRAVEL PERFUME - RM 75</option>
         <option value="109">300ML LOTION - RM 109</option>
@@ -1080,34 +866,34 @@
         <button id="cancelClaimStep2Btn" class="modal-btn modal-btn-secondary">Cancel</button>
       </div>
     </div>
-    <div id="claimError" style="color:#ef4444; margin-top:8px; display:none;"></div>
+    <div id="claimError" style="color:#ef4444; margin-top: 12px; display: none;"></div>
   </div>
 </div>
 
-<!-- Special Promo Modal -->
+<!-- Special Promo Modal (Enhanced) -->
 <div id="specialPromoModal" class="modal-overlay">
-  <div class="modal-container">
+  <div class="modal-container" style="max-width: 400px;">
     <span class="close-modal" id="closeSpecialPromoModal">×</span>
     <div class="modal-title">🎁 Special Promo</div>
     <div id="promoOptions">
       <button id="promoBuy2Free1Perfume" class="modal-btn modal-btn-primary promo-option-btn">
-        🎯 Buy 3 Free 1 (100ml Perfume EDP)
+        🎯 Buy 2 Free 1 (100ml Perfume EDP)
       </button>
       <button id="promoBuy3Free1ExcludePerfume" class="modal-btn modal-btn-primary promo-option-btn">
-        🎯 Buy 4 Free 1 (Excluding Perfume)
+        🎯 Buy 3 Free 1 (Excluding Perfume)
       </button>
       <div class="custom-discount-section">
         <label>Custom Discount (RM)</label>
         <div class="currency-input">
           <span class="currency-symbol">RM</span>
-          <input type="number" id="customPromoValue" class="currency-field" placeholder="0.00" step="0.01" min="0">
+          <input type="number" id="customPromoValue" class="modal-input currency-field" placeholder="0.00" step="0.01" min="0">
         </div>
         <button id="applyCustomPromoBtn" class="modal-btn modal-btn-primary apply-btn">
           💰 Apply Custom Discount
         </button>
       </div>
     </div>
-    <div id="promoMessage" style="color:#ef4444; margin-top:8px; display:none;"></div>
+    <div id="promoMessage" style="color:#ef4444; margin-top:12px; display:none;"></div>
     <div class="modal-buttons">
       <button id="closeSpecialPromoModalBtn" class="modal-btn modal-btn-secondary">Close</button>
     </div>
@@ -1154,13 +940,13 @@
       <canvas id="employeeChart" width="400" height="200"></canvas>
     </div>
     <div class="modal-section">
-      <button id="toggleProductDetailsBtn" class="modal-btn modal-btn-secondary" style="margin-bottom: 8px;">📦 Show Product Details</button>
+      <button id="toggleProductDetailsBtn" class="modal-btn modal-btn-secondary" style="margin-bottom: 12px;">📦 Show Product Details</button>
       <div id="productDetailsContainer" style="display: none;">
-        <h3 style="margin: 0 0 8px 0; font-size:1rem;">Product Sales Breakdown</h3>
-        <div id="productDetailsTable" style="max-height: 250px; overflow-y: auto;">
+        <h3 style="margin: 0 0 12px 0;">Product Sales Breakdown</h3>
+        <div id="productDetailsTable" style="max-height: 300px; overflow-y: auto;">
           <table class="product-details-table">
-            <thead><tr><th>Product</th><th>Category</th><th style="text-align:right;">Qty Sold</th><th style="text-align:right;">Total (RM)</th></tr></thead>
-            <tbody id="productDetailsBody"><tr><td colspan="4" style="text-align:center;">Loading...</td></tr></tbody>
+            <thead>   </thead>
+            <tbody id="productDetailsBody">   </tbody>
           </table>
         </div>
       </div>
@@ -1180,7 +966,7 @@
     <div class="filter-group"><label>Cash Count (Actual)</label><input type="number" id="actualCash" class="modal-input" placeholder="Enter actual cash count" step="0.01"></div>
     <div class="filter-group"><label>Card Settlement (Actual)</label><input type="number" id="actualCard" class="modal-input" placeholder="Enter actual card settlement" step="0.01"></div>
     <div class="filter-group"><label>QR Settlement (Actual)</label><input type="number" id="actualQR" class="modal-input" placeholder="Enter actual QR settlement" step="0.01"></div>
-    <div id="settlementError" style="color:#ef4444; margin:8px 0; display:none;"></div>
+    <div id="settlementError" style="color:#ef4444; margin: 12px 0; display: none;"></div>
     <div class="modal-buttons"><button id="checkSettlementBtn" class="modal-btn modal-btn-primary">Check</button><button id="recordSettlementBtn" class="modal-btn modal-btn-primary" style="display: none;">Record Settlement</button><button id="closeSettlementModalBtn" class="modal-btn modal-btn-secondary">Cancel</button></div>
   </div>
 </div>
@@ -1191,9 +977,9 @@
     <span class="close-modal" id="closeCollectionModal">×</span>
     <div class="modal-title">💵 Cash Collection</div>
     <div class="filter-group"><label>Store</label><select id="collectionStoreSelect"><option value="all">All Stores</option><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div>
-    <div id="collectionTotal" class="settlement-stats"><p>💰 Total Outstanding Cash: <strong id="totalOutstandingCash">RM 0.00</strong></p></div>
-    <div style="overflow-x: auto;"><table class="collection-table" id="collectionTable"><thead><tr><th><input type="checkbox" id="selectAllCheckbox"></th><th>Date</th><th>Employee</th><th style="text-align:right;">Cash Amount (RM)</th></tr></thead><tbody id="collectionTableBody"><tr><td colspan="4" style="text-align:center;">Loading...</td></tr></tbody></table></div>
-    <div class="modal-buttons"><button id="collectSelectedBtn" class="modal-btn modal-btn-primary" disabled>Collect Selected</button><button id="closeCollectionModalBtn" class="modal-btn modal-btn-secondary">Close</button></div>
+    <div id="collectionTotal" class="settlement-stats" style="margin-top: 12px;"><p>💰 Total Outstanding Cash: <strong id="totalOutstandingCash">RM 0.00</strong></p></div>
+    <div style="overflow-x: auto;"><table class="collection-table" id="collectionTable"><thead>   </thead><tbody id="collectionTableBody">   </tbody></table></div>
+    <div class="modal-buttons" style="margin-top: 16px;"><button id="collectSelectedBtn" class="modal-btn modal-btn-primary" disabled>Collect Selected</button><button id="closeCollectionModalBtn" class="modal-btn modal-btn-secondary">Close</button></div>
   </div>
 </div>
 
@@ -1207,7 +993,7 @@
       <div id="receiptsEmployeeFilter" class="filter-group" style="display: none;"><label>Employee</label><select id="receiptsEmployeeSelect"><option value="all">All Employees</option></select></div>
       <div class="filter-group"><label>Date Range</label><select id="receiptsDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div>
       <div id="receiptsCustomDateRange" style="display: none;" class="date-range"><input type="date" id="receiptsFromDate"><input type="date" id="receiptsToDate"></div>
-      <div class="filter-group" style="flex:2;"><label>Search (Receipt # or Product)</label><input type="text" id="receiptsSearch" placeholder="Type to filter..."></div>
+      <div class="filter-group" style="flex: 2;"><label>Search (Receipt # or Product)</label><input type="text" id="receiptsSearch" placeholder="Type to filter..."></div>
     </div>
     <div id="receiptsList" class="receipts-list">Loading receipts...</div>
     <div class="modal-buttons"><button id="closeReceiptsBtn" class="modal-btn modal-btn-secondary">Close</button></div>
@@ -1238,8 +1024,8 @@
   let searchTimeout = null;
   let initialDataPromise = null;
   let discountAmount = 0;          // Lucky Draw discount
-  let buy2Free1Discount = 0;      // discount from Buy 3 Free 1 (Perfume)
-  let buy3Free1Discount = 0;      // discount from Buy 4 Free 1 (Excluding Perfume)
+  let buy2Free1Discount = 0;      // discount from Buy 2 Free 1 (Perfume)
+  let buy3Free1Discount = 0;      // discount from Buy 3 Free 1 (Excluding Perfume)
   let customDiscount = 0;          // manually entered custom discount
   let claimedReceiptInfo = null;
   let pendingPrize = null;          // { receipt, value, name }
@@ -1600,7 +1386,7 @@
       discountRow.style.display = 'none';
     }
 
-    // Buy 3 Free 1 (Perfume)
+    // Buy 2 Free 1 (Perfume)
     if (buy2Free1Discount > 0) {
       promoBuy2Free1Row.style.display = 'flex';
       promoBuy2Free1Amount.innerText = `RM ${buy2Free1Discount.toFixed(2)}`;
@@ -1608,7 +1394,7 @@
       promoBuy2Free1Row.style.display = 'none';
     }
 
-    // Buy 4 Free 1 (Excluding Perfume)
+    // Buy 3 Free 1 (Excluding Perfume)
     if (buy3Free1Discount > 0) {
       promoBuy3Free1Row.style.display = 'flex';
       promoBuy3Free1Amount.innerText = `RM ${buy3Free1Discount.toFixed(2)}`;
@@ -1860,69 +1646,78 @@
   }
 
   function applyBuy2Free1Perfume() {
-    // Sum quantities of items that match the perfume category
-    let totalPerfumeUnits = 0;
-    let cheapestPrice = Infinity;
-    for (let item of cart) {
-      const cat = (item.product.category || "").trim().toLowerCase();
-      if (cat.includes("100ml perfume edp")) {
-        totalPerfumeUnits += item.quantity;
-        if (item.product.price < cheapestPrice) {
-          cheapestPrice = item.product.price;
-        }
+  // Debug: show all items in cart
+  console.log("Cart items:", cart.map(item => ({
+    name: item.product.name,
+    category: item.product.category,
+    quantity: item.quantity,
+    price: item.product.price
+  })));
+
+  // Sum quantities of items that match the perfume category
+  let totalPerfumeUnits = 0;
+  let cheapestPrice = Infinity;
+  for (let item of cart) {
+    const cat = (item.product.category || "").trim().toLowerCase();
+    if (cat.includes("100ml perfume edp")) {
+      totalPerfumeUnits += item.quantity;
+      if (item.product.price < cheapestPrice) {
+        cheapestPrice = item.product.price;
       }
     }
-
-    if (totalPerfumeUnits < 3) {
-      const msgDiv = document.getElementById('promoMessage');
-      msgDiv.innerText = `Need at least 3 items in '100ML PERFUME EDP' category. Found ${totalPerfumeUnits}.`;
-      msgDiv.style.display = 'block';
-      return;
-    }
-
-    buy2Free1Discount = cheapestPrice;
-    updateCartUI();
-    document.getElementById('specialPromoModal').style.display = 'none';
   }
 
-  function applyBuy3Free1ExcludePerfume() {
-    let totalNonPerfumeUnits = 0;
-    let cheapestPrice = Infinity;
-    for (let item of cart) {
-      const cat = (item.product.category || "").trim().toLowerCase();
-      if (!cat.includes("100ml perfume edp")) {
-        totalNonPerfumeUnits += item.quantity;
-        if (item.product.price < cheapestPrice) {
-          cheapestPrice = item.product.price;
-        }
+  console.log("Total perfume units:", totalPerfumeUnits, "Cheapest price:", cheapestPrice);
+
+  // Now require at least 3 items
+  if (totalPerfumeUnits < 3) {
+    const msgDiv = document.getElementById('promoMessage');
+    msgDiv.innerText = `Need at least 3 items in '100ML PERFUME EDP' category. Found ${totalPerfumeUnits}.`;
+    msgDiv.style.display = 'block';
+    return;
+  }
+
+  buy2Free1Discount = cheapestPrice;
+  updateCartUI();
+  document.getElementById('specialPromoModal').style.display = 'none';
+}
+
+function applyBuy3Free1ExcludePerfume() {
+  // Debug: show all items in cart
+  console.log("Cart items:", cart.map(item => ({
+    name: item.product.name,
+    category: item.product.category,
+    quantity: item.quantity,
+    price: item.product.price
+  })));
+
+  // Sum quantities of items that are NOT in the perfume category
+  let totalNonPerfumeUnits = 0;
+  let cheapestPrice = Infinity;
+  for (let item of cart) {
+    const cat = (item.product.category || "").trim().toLowerCase();
+    if (!cat.includes("100ml perfume edp")) {
+      totalNonPerfumeUnits += item.quantity;
+      if (item.product.price < cheapestPrice) {
+        cheapestPrice = item.product.price;
       }
     }
-
-    if (totalNonPerfumeUnits < 4) {
-      const msgDiv = document.getElementById('promoMessage');
-      msgDiv.innerText = `Need at least 4 items excluding Perfume category. Found ${totalNonPerfumeUnits}.`;
-      msgDiv.style.display = 'block';
-      return;
-    }
-
-    buy3Free1Discount = cheapestPrice;
-    updateCartUI();
-    document.getElementById('specialPromoModal').style.display = 'none';
   }
 
-  function applyCustomDiscount() {
-    const val = parseFloat(document.getElementById('customPromoValue').value);
-    if (isNaN(val) || val <= 0) {
-      const msgDiv = document.getElementById('promoMessage');
-      msgDiv.innerText = "Please enter a valid positive discount amount.";
-      msgDiv.style.display = 'block';
-      return;
-    }
+  console.log("Total non‑perfume units:", totalNonPerfumeUnits, "Cheapest price:", cheapestPrice);
 
-    customDiscount = val;
-    updateCartUI();
-    document.getElementById('specialPromoModal').style.display = 'none';
+  // Now require at least 4 items
+  if (totalNonPerfumeUnits < 4) {
+    const msgDiv = document.getElementById('promoMessage');
+    msgDiv.innerText = `Need at least 4 items excluding Perfume category. Found ${totalNonPerfumeUnits}.`;
+    msgDiv.style.display = 'block';
+    return;
   }
+
+  buy3Free1Discount = cheapestPrice;
+  updateCartUI();
+  document.getElementById('specialPromoModal').style.display = 'none';
+}
 
   // ==================== CHECKOUT ====================
   async function startCheckout() {
@@ -2108,7 +1903,7 @@
     }
   }
 
-  // ==================== RECEIPTS ====================
+  // ==================== RECEIPTS (unchanged) ====================
   async function fetchReceipts(store, employeeId, from, to, search) {
     showLoading('Loading receipts...');
     try {
@@ -2131,7 +1926,7 @@
   function renderReceiptsList(receipts) {
     const container = document.getElementById('receiptsList');
     if (!receipts.length) {
-      container.innerHTML = '<div style="text-align:center; padding:20px;">No receipts found.</div>';
+      container.innerHTML = '<div style="text-align:center; padding:30px;">No receipts found.</div>';
       return;
     }
     let html = '';
@@ -2207,7 +2002,7 @@
 
   function openLuckyDraw(transactionId) { window.open(`https://teohmarcus584.github.io/salesanalysis/?receipt=${encodeURIComponent(transactionId)}`, '_blank'); }
 
-  async function processRefund(transactionId, store) {
+async function processRefund(transactionId, store) {
     showLoading('Processing refund...');
     try {
       const formData = new URLSearchParams();
@@ -2236,14 +2031,492 @@
   }
 
   // ==================== REPORTS ====================
-  // (Full report functions are the same as in your original code; for brevity they are omitted here.
-  //  They must be included in the final HTML. Since the user's original code had them, I'm assuming they exist.
-  //  To keep this answer concise, I'm not repeating them, but they are crucial. You must include your existing report functions.)
+  async function fetchSalesReport(store, employeeId, from, to, unsettledOnly) {
+    showLoading('Loading report...');
+    try {
+      let url = `${APPS_SCRIPT_URL}?action=getSalesReport&store=${store}&employeeId=${employeeId}`;
+      if (from) url += `&from=${encodeURIComponent(from)}`;
+      if (to) url += `&to=${encodeURIComponent(to)}`;
+      if (unsettledOnly) url += `&unsettledOnly=true`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        document.getElementById('adminReportTotalSales').innerText = `RM ${result.totalSales.toFixed(2)}`;
+        document.getElementById('adminReportCashTotal').innerText = `RM ${result.cashTotal.toFixed(2)}`;
+        document.getElementById('adminReportCardTotal').innerText = `RM ${result.cardTotal.toFixed(2)}`;
+        document.getElementById('adminReportOtherTotal').innerText = `RM ${result.otherTotal.toFixed(2)}`;
+        document.getElementById('adminReportRefundTotal').innerText = `RM ${Math.abs(result.refundTotal).toFixed(2)}`;
+        document.getElementById('adminReportRefundedBills').innerText = result.refundedTransactionCount;
+        document.getElementById('adminReportTransactionCount').innerText = result.transactionCount;
+        document.getElementById('adminReportTotalItems').innerText = result.totalItems;
+        return result;
+      } else throw new Error('Report data error');
+    } catch (err) {
+      console.error(err);
+      await showAlertModal('Error', 'Failed to load report.');
+      return null;
+    } finally {
+      hideLoading();
+    }
+  }
+
+  async function fetchSalesChartData(store, employeeId, from, to) {
+    try {
+      let url = `${APPS_SCRIPT_URL}?action=getSalesChartData&store=${store}&employeeId=${employeeId}`;
+      if (from) url += `&from=${encodeURIComponent(from)}`;
+      if (to) url += `&to=${encodeURIComponent(to)}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        if (currentEmployee.isAdmin && result.salesByStore) {
+          const storeCanvas = document.getElementById('storeChart');
+          if (storeCanvas) {
+            if (window.storeChart && typeof window.storeChart.destroy === 'function') window.storeChart.destroy();
+            const storeLabels = result.salesByStore.labels || [];
+            const storeData = result.salesByStore.data || [];
+            if (storeLabels.length > 0) {
+              storeCanvas.style.display = 'block';
+              const ctx = storeCanvas.getContext('2d');
+              window.storeChart = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: storeLabels, datasets: [{ label: 'Sales (RM)', data: storeData, backgroundColor: 'rgba(54,162,235,0.6)', borderColor: 'rgba(54,162,235,1)', borderWidth: 1 }] },
+                options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } }
+              });
+            } else {
+              storeCanvas.style.display = 'none';
+            }
+          }
+        }
+        const dayCanvas = document.getElementById('dayChart');
+        if (dayCanvas) {
+          if (window.dayChart && typeof window.dayChart.destroy === 'function') window.dayChart.destroy();
+          let labels, data, chartTitle;
+          if (result.type === 'hourly') {
+            labels = result.hourly.labels;
+            data = result.hourly.data;
+            chartTitle = 'Hourly Sales (RM)';
+          } else {
+            labels = result.salesByDay?.labels || [];
+            data = result.salesByDay?.data || [];
+            chartTitle = 'Sales by Day (RM)';
+          }
+          if (labels.length > 0) {
+            dayCanvas.style.display = 'block';
+            const ctx = dayCanvas.getContext('2d');
+            window.dayChart = new Chart(ctx, {
+              type: 'bar',
+              data: { labels: labels, datasets: [{ label: chartTitle, data: data, backgroundColor: 'rgba(75,192,192,0.6)', borderColor: 'rgba(75,192,192,1)', borderWidth: 1 }] },
+              options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } }
+            });
+          } else {
+            dayCanvas.style.display = 'none';
+          }
+        }
+      } else {
+        console.error('Chart data error:', result);
+      }
+    } catch (err) {
+      console.error('fetchSalesChartData error:', err);
+    }
+  }
+
+  async function fetchEmployeeSalesData(store, from, to) {
+    try {
+      let url = `${APPS_SCRIPT_URL}?action=getEmployeeSalesData&store=${store}`;
+      if (from) url += `&from=${encodeURIComponent(from)}`;
+      if (to) url += `&to=${encodeURIComponent(to)}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        const employeeCanvas = document.getElementById('employeeChart');
+        if (!employeeCanvas) return;
+        if (window.employeeChart && typeof window.employeeChart.destroy === 'function') window.employeeChart.destroy();
+        const labels = result.labels || [];
+        const data = result.data || [];
+        if (labels.length > 0) {
+          employeeCanvas.style.display = 'block';
+          const ctx = employeeCanvas.getContext('2d');
+          window.employeeChart = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: labels, datasets: [{ label: 'Sales by Employee (RM)', data: data, backgroundColor: 'rgba(255,99,132,0.6)', borderColor: 'rgba(255,99,132,1)', borderWidth: 1 }] },
+            options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'RM' } } } }
+          });
+        } else {
+          employeeCanvas.style.display = 'none';
+        }
+      } else {
+        console.error('Employee sales data error:', result);
+      }
+    } catch (err) {
+      console.error('fetchEmployeeSalesData error:', err);
+    }
+  }
+
+  async function fetchProductSalesReport(store, employeeId, from, to) {
+    try {
+      let url = `${APPS_SCRIPT_URL}?action=getProductSalesReport&store=${store}&employeeId=${employeeId}`;
+      if (from) url += `&from=${encodeURIComponent(from)}`;
+      if (to) url += `&to=${encodeURIComponent(to)}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        return result.products;
+      } else {
+        console.error('Product sales error:', result);
+        return [];
+      }
+    } catch (err) {
+      console.error('fetchProductSalesReport error:', err);
+      return [];
+    }
+  }
+
+  function renderProductDetails(productsData) {
+    const tbody = document.getElementById('productDetailsBody');
+    if (!productsData || productsData.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No products sold in this period.</td></tr>';
+      return;
+    }
+    let html = '';
+    productsData.forEach(p => {
+      html += `<tr><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.category)}</td><td style="text-align: right;">${p.quantity}</td><td style="text-align: right;">RM ${p.total.toFixed(2)}</td></tr>`;
+    });
+    tbody.innerHTML = html;
+  }
+
+  async function updateAdminReport() {
+    let store, employeeId;
+    if (currentEmployee.isAdmin) {
+      store = document.getElementById('adminReportStoreSelect').value;
+      employeeId = document.getElementById('adminReportEmployeeSelect').value;
+    } else {
+      store = 'all';
+      employeeId = currentEmployee.id;
+    }
+    const range = document.getElementById('adminReportDateRangeSelect').value;
+    let from = null, to = null;
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    if (range === 'today') {
+      from = getLocalDateString(today);
+      to = from;
+    } else if (range === 'week') {
+      const start = new Date(today);
+      const dayOfWeek = today.getDay();
+      const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+      start.setDate(today.getDate() - diffToMonday);
+      from = getLocalDateString(start);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      to = getLocalDateString(end);
+    } else if (range === 'month') {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      from = getLocalDateString(start);
+      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      to = getLocalDateString(end);
+    } else if (range === 'custom') {
+      from = document.getElementById('adminReportFromDate').value;
+      to = document.getElementById('adminReportToDate').value;
+      if (!from || !to) return;
+    }
+    await fetchSalesReport(store, employeeId, from, to);
+    await fetchSalesChartData(store, employeeId, from, to);
+    if (currentEmployee.isAdmin) {
+      await fetchEmployeeSalesData(store, from, to);
+    }
+    lastProductData = await fetchProductSalesReport(store, employeeId, from, to);
+    if (productDetailsVisible) {
+      renderProductDetails(lastProductData);
+    }
+  }
+
+  // ==================== SETTLEMENT ====================
+  let currentSettlementTotals = null;
+
+  async function checkSettlementStatus(store, date) {
+    try {
+      const url = `${APPS_SCRIPT_URL}?action=getSettlementStatus&store=${store}&date=${date}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      return result.success && result.settled;
+    } catch (err) {
+      console.error(err);
+      return false;
+    }
+  }
+
+  async function refreshSettlementTotals(store) {
+    const todayStr = getLocalDateString(new Date());
+    const report = await fetchSalesReport(store, 'all', todayStr, todayStr, true);
+    if (report) {
+      currentSettlementTotals = {
+        cash: report.cashTotal,
+        card: report.cardTotal,
+        qr: report.otherTotal,
+        refund: report.refundTotal
+      };
+      document.getElementById('sysCash').innerText = `RM ${currentSettlementTotals.cash.toFixed(2)}`;
+      document.getElementById('sysCard').innerText = `RM ${currentSettlementTotals.card.toFixed(2)}`;
+      document.getElementById('sysQR').innerText = `RM ${currentSettlementTotals.qr.toFixed(2)}`;
+      document.getElementById('sysRefund').innerText = `RM ${Math.abs(currentSettlementTotals.refund).toFixed(2)}`;
+      const alreadySettled = await checkSettlementStatus(store, todayStr);
+      if (alreadySettled) {
+        document.getElementById('settlementError').innerHTML = '⚠️ Settlement has already been recorded for today. No further settlement allowed.';
+        document.getElementById('settlementError').style.display = 'block';
+        document.getElementById('checkSettlementBtn').disabled = true;
+        document.getElementById('recordSettlementBtn').style.display = 'none';
+        setSettlementFieldsEnabled(false);
+      } else {
+        setSettlementFieldsEnabled(true);
+        document.getElementById('actualCash').value = '';
+        document.getElementById('actualCard').value = '';
+        document.getElementById('actualQR').value = '';
+        document.getElementById('pettyCashFloat').value = '0.00';
+        document.getElementById('settlementError').style.display = 'none';
+        document.getElementById('recordSettlementBtn').style.display = 'none';
+        document.getElementById('checkSettlementBtn').style.display = 'block';
+        document.getElementById('checkSettlementBtn').disabled = false;
+        document.getElementById('actualCash').classList.remove('error-field');
+        document.getElementById('actualCard').classList.remove('error-field');
+        document.getElementById('actualQR').classList.remove('error-field');
+      }
+    }
+  }
+
+  function setSettlementFieldsEnabled(enabled) {
+    const fields = ['settlementStoreSelect', 'pettyCashFloat', 'actualCash', 'actualCard', 'actualQR'];
+    const isNonAdmin = !currentEmployee?.isAdmin;
+    fields.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        if (id === 'settlementStoreSelect' && isNonAdmin) {
+          el.disabled = true;
+        } else {
+          el.disabled = !enabled;
+        }
+      }
+    });
+  }
+
+  async function openSettlementModal() {
+    let store;
+    if (!currentEmployee.isAdmin) {
+      store = initialStore;
+      document.getElementById('settlementStoreSelect').value = store;
+      document.getElementById('settlementStoreSelect').disabled = true;
+    } else {
+      store = document.getElementById('settlementStoreSelect').value;
+      document.getElementById('settlementStoreSelect').disabled = false;
+    }
+    const todayStr = getLocalDateString(new Date());
+    const alreadySettled = await checkSettlementStatus(store, todayStr);
+    if (alreadySettled) {
+      await showAlertModal('Settlement Already Done', 'Settlement has already been recorded for today. No further settlement allowed.');
+      return;
+    }
+    await refreshSettlementTotals(store);
+    document.getElementById('settlementModal').style.display = 'flex';
+  }
+
+  // ==================== CASH COLLECTION ====================
+  let currentUnsettledCash = [];
+
+  async function openCollectionModal() {
+    await loadUnsettledCash();
+    document.getElementById('collectionModal').style.display = 'flex';
+  }
+
+  async function loadUnsettledCash() {
+    const store = document.getElementById('collectionStoreSelect').value;
+    showLoading('Loading unsettled cash...');
+    try {
+      let url = `${APPS_SCRIPT_URL}?action=getUnsettledCash&store=${store}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        currentUnsettledCash = result.records;
+        renderCollectionTable();
+        updateTotalOutstanding();
+        document.getElementById('collectSelectedBtn').disabled = true;
+        document.getElementById('selectAllCheckbox').checked = false;
+      } else {
+        await showAlertModal('Error', 'Failed to load unsettled cash: ' + (result.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error(err);
+      await showAlertModal('Error', 'Connection error while loading unsettled cash.');
+    } finally {
+      hideLoading();
+    }
+  }
+
+  function renderCollectionTable() {
+    const tbody = document.getElementById('collectionTableBody');
+    if (!currentUnsettledCash.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No unsettled cash records found.</td></tr>';
+      return;
+    }
+    let html = '';
+    currentUnsettledCash.forEach(rec => {
+      const date = new Date(rec.timestamp).toLocaleDateString();
+      html += `<tr data-id="${rec.id}">
+        <td><input type="checkbox" class="collection-checkbox" value="${rec.id}"></td>
+        <td>${date}</td>
+        <td>${getEmployeeName(rec.employee_id)}</td>
+        <td style="text-align: right;">RM ${rec.cash_actual.toFixed(2)}</td>
+      </tr>`;
+    });
+    tbody.innerHTML = html;
+    document.querySelectorAll('.collection-checkbox').forEach(cb => {
+      cb.addEventListener('change', updateCollectionButtonState);
+    });
+  }
+
+  function updateTotalOutstanding() {
+    const total = currentUnsettledCash.reduce((sum, rec) => sum + rec.cash_actual, 0);
+    document.getElementById('totalOutstandingCash').innerText = `RM ${total.toFixed(2)}`;
+  }
+
+  function updateCollectionButtonState() {
+    const anyChecked = document.querySelectorAll('.collection-checkbox:checked').length > 0;
+    document.getElementById('collectSelectedBtn').disabled = !anyChecked;
+  }
+
+  // ==================== PRINTER SETUP ====================
+  (function setupPrinter() {
+    let gattServer = null, printerCharacteristic = null, isConnected = false;
+    const connectBtn = document.getElementById('connectPrinterButton');
+    const printerStatusDiv = document.getElementById('printerStatus');
+    const openDrawerBtn = document.getElementById('openDrawerBtn');
+
+    function formatDateForReceipt(date) {
+      const d = date.getDate().toString().padStart(2, '0');
+      const m = (date.getMonth() + 1).toString().padStart(2, '0');
+      const y = date.getFullYear();
+      const h = date.getHours().toString().padStart(2, '0');
+      const min = date.getMinutes().toString().padStart(2, '0');
+      return `${d}/${m}/${y} ${h}:${min}`;
+    }
+
+    function generateReceiptData(transaction, openDrawer = false) {
+      const encoder = new TextEncoder();
+      const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
+      const lines = ['', '    ★ POS INVOICE ★', '-----------------------------', `Txn: ${transaction.transaction_id}`, `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`, `Employee: ${employeeName}`, '-----------------------------'];
+      let total = 0;
+      for (let item of transaction.items) {
+        const displayName = item.category ? `${item.category}: ${item.name}` : item.name;
+        lines.push(`${displayName} x${item.quantity}`, `  ${item.price.toFixed(2)} x ${item.quantity} = RM ${(item.price * item.quantity).toFixed(2)}`);
+        total += item.price * item.quantity;
+      }
+      lines.push('-----------------------------', `TOTAL: RM ${total.toFixed(2)}`, `Payment: ${transaction.payment_method}`);
+      if (transaction.cash_received) lines.push(`Cash: RM ${transaction.cash_received} | Change: RM ${(transaction.cash_received - total).toFixed(2)}`);
+      if (transaction.discount && transaction.discount > 0) lines.push(`Lucky Draw: -RM ${transaction.discount.toFixed(2)}`);
+      if (transaction.promo_discount && transaction.promo_discount > 0) lines.push(`Promo: -RM ${transaction.promo_discount.toFixed(2)}`);
+      lines.push('-----------------------------', 'Thank you & come again!', '');
+      const text = lines.join('\n');
+      let commands = [];
+      commands.push(0x1B, 0x40);
+      commands.push(0x1B, 0x61, 0x01);
+      commands.push(...encoder.encode(text));
+      commands.push(0x1B, 0x64, 0x03);
+      commands.push(0x1D, 0x56, 0x41, 0x00);
+      if (openDrawer) {
+        const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
+        commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
+      }
+      return new Uint8Array(commands);
+    }
+
+    async function openCashDrawer() {
+      if (!isConnected || !printerCharacteristic) {
+        printerStatusDiv.innerText = '❌ Printer not connected';
+        return false;
+      }
+      try {
+        const drawerCommand = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]);
+        await printerCharacteristic.writeValue(drawerCommand);
+        printerStatusDiv.innerText = '💰 Drawer opened';
+        setTimeout(() => { if (isConnected) printerStatusDiv.innerText = '✅ Printer ready'; }, 2000);
+        return true;
+      } catch (err) {
+        console.error(err);
+        printerStatusDiv.innerText = `❌ Drawer error`;
+        return false;
+      }
+    }
+
+    async function printReceipt(transaction) {
+      if (!isConnected || !printerCharacteristic) {
+        printerStatusDiv.innerText = '❌ Printer not connected';
+        return false;
+      }
+      try {
+        const openDrawer = (transaction.payment_method === 'Cash');
+        const data = generateReceiptData(transaction, openDrawer);
+        await printerCharacteristic.writeValue(data);
+        printerStatusDiv.innerText = '✅ Receipt printed';
+        return true;
+      } catch (err) {
+        console.error(err);
+        printerStatusDiv.innerText = `❌ Print error`;
+        return false;
+      }
+    }
+
+    async function connectPrinter() {
+      try {
+        printerStatusDiv.innerText = '🔍 Scanning...';
+        connectBtn.disabled = true;
+        const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] });
+        gattServer = await device.gatt.connect();
+        const services = await gattServer.getPrimaryServices();
+        let foundChar = null;
+        for (const service of services) {
+          const chars = await service.getCharacteristics();
+          for (const char of chars) {
+            if (char.properties.write || char.properties.writeWithoutResponse) {
+              foundChar = char;
+              break;
+            }
+          }
+          if (foundChar) break;
+        }
+        if (!foundChar) throw new Error('No writable characteristic');
+        printerCharacteristic = foundChar;
+        isConnected = true;
+        window.printerAPI.isConnected = true;
+        printerStatusDiv.innerText = '✅ Printer ready';
+        connectBtn.innerText = '🔌 Disconnect';
+        openDrawerBtn.disabled = false;
+      } catch (err) {
+        printerStatusDiv.innerText = `❌ ${err.message}`;
+        gattServer = null;
+        printerCharacteristic = null;
+      } finally {
+        connectBtn.disabled = false;
+      }
+    }
+
+    async function disconnectPrinter() {
+      if (gattServer) { gattServer.disconnect(); gattServer = null; printerCharacteristic = null; }
+      isConnected = false;
+      window.printerAPI.isConnected = false;
+      printerStatusDiv.innerText = '⚪ Not connected';
+      connectBtn.innerText = '🖨️ Connect Printer';
+      openDrawerBtn.disabled = true;
+    }
+
+    connectBtn.addEventListener('click', () => { if (!isConnected) connectPrinter(); else disconnectPrinter(); });
+    openDrawerBtn.addEventListener('click', async () => {
+      if (!isConnected) { await showAlertModal('Printer not connected', 'Please connect a printer first.'); return; }
+      await openCashDrawer();
+    });
+    window.printerAPI = { isConnected: false, printReceipt: printReceipt };
+  })();
 
   // ==================== EVENT LISTENERS ====================
-  // (Event listeners must be present. I'll include a minimal set, but you should keep your original full listener set.
-  //  Since the user's HTML is large, I'll only show the ones that are new or critical.)
-
   document.getElementById('confirmStoreBtn').addEventListener('click', () => {
     initialStore = document.getElementById('initialStoreSelect').value;
     currentStore = initialStore;
@@ -2271,37 +2544,33 @@
 
         soldBySelect.value = currentEmployee.id;
 
-        if (!currentEmployee.isAdmin) storeSelect.disabled = true;
-        else storeSelect.disabled = false;
+        if (!currentEmployee.isAdmin) { storeSelect.disabled = true; } else { storeSelect.disabled = false; }
 
-        // Update UI for admin features
         const reportStoreFilter = document.getElementById('reportStoreFilterGroup');
         const employeeFilterGroup = document.getElementById('employeeFilterGroup');
         const storeChartContainer = document.getElementById('storeChartContainer');
         const employeeChartContainer = document.getElementById('employeeChartContainer');
         const collectionBtn = document.getElementById('collectionBtn');
         if (currentEmployee.isAdmin) {
-          if (reportStoreFilter) reportStoreFilter.style.display = 'flex';
-          if (employeeFilterGroup) employeeFilterGroup.style.display = 'flex';
-          if (storeChartContainer) storeChartContainer.style.display = 'block';
-          if (employeeChartContainer) employeeChartContainer.style.display = 'block';
-          if (collectionBtn) collectionBtn.style.display = 'flex';
+          reportStoreFilter.style.display = 'flex';
+          employeeFilterGroup.style.display = 'flex';
+          storeChartContainer.style.display = 'block';
+          employeeChartContainer.style.display = 'block';
+          collectionBtn.style.display = 'flex';
         } else {
-          if (reportStoreFilter) reportStoreFilter.style.display = 'none';
-          if (employeeFilterGroup) employeeFilterGroup.style.display = 'none';
-          if (storeChartContainer) storeChartContainer.style.display = 'none';
-          if (employeeChartContainer) employeeChartContainer.style.display = 'none';
-          if (collectionBtn) collectionBtn.style.display = 'none';
+          reportStoreFilter.style.display = 'none';
+          employeeFilterGroup.style.display = 'none';
+          storeChartContainer.style.display = 'none';
+          employeeChartContainer.style.display = 'none';
+          collectionBtn.style.display = 'none';
         }
 
         const settlementStoreSelect = document.getElementById('settlementStoreSelect');
-        if (settlementStoreSelect) {
-          if (!currentEmployee.isAdmin) {
-            settlementStoreSelect.value = initialStore;
-            settlementStoreSelect.disabled = true;
-          } else {
-            settlementStoreSelect.disabled = false;
-          }
+        if (!currentEmployee.isAdmin) {
+          settlementStoreSelect.value = initialStore;
+          settlementStoreSelect.disabled = true;
+        } else {
+          settlementStoreSelect.disabled = false;
         }
 
         updateCartUI();
@@ -2319,107 +2588,8 @@
     }
   }
 
-  // Add event listeners for buttons
-  document.getElementById('checkoutBtn')?.addEventListener('click', startCheckout);
-  document.getElementById('claimPrizeBtn')?.addEventListener('click', showClaimPrizeModal);
-  document.getElementById('specialPromoBtn')?.addEventListener('click', showSpecialPromoModal);
-  document.getElementById('clearCartBtn')?.addEventListener('click', clearCart);
-  document.getElementById('refreshProductsBtn')?.addEventListener('click', () => {
-    localStorage.removeItem(`products_${currentStore}`);
-    fetchProductsFromSheet(true);
-  });
-  document.getElementById('gridViewBtn')?.addEventListener('click', () => setViewMode('grid'));
-  document.getElementById('listViewBtn')?.addEventListener('click', () => setViewMode('list'));
-  document.getElementById('logoutButton')?.addEventListener('click', () => {
-    currentEmployee = null;
-    document.getElementById('mainContent').style.display = 'none';
-    document.getElementById('loginModal').style.display = 'flex';
-    document.getElementById('pinInput').value = '';
-    document.getElementById('loginError').innerText = '';
-    cart = [];
-    products = [];
-  });
-  document.getElementById('closeLoginModal')?.addEventListener('click', () => {});
-
-  // PIN keypad
-  const pinInputElem = document.getElementById('pinInput');
-  if (pinInputElem) {
-    document.querySelectorAll('.keypad-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (btn.dataset.digit && pinInputElem.value.length < 4) pinInputElem.value += btn.dataset.digit;
-        else if (btn.dataset.action === 'clear') pinInputElem.value = pinInputElem.value.slice(0, -1);
-        else if (btn.dataset.action === 'enter' && pinInputElem.value.length === 4) verifyEmployeeByPin(pinInputElem.value);
-        else if (btn.dataset.action === 'enter') document.getElementById('loginError').innerText = 'Please enter 4-digit PIN';
-      });
-    });
-    pinInputElem.addEventListener('input', () => {
-      if (pinInputElem.value.length === 4) verifyEmployeeByPin(pinInputElem.value);
-    });
-  }
-
-  // Claim modal listeners
-  document.getElementById('closeClaimPrizeModal')?.addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
-  document.getElementById('cancelClaimBtn')?.addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
-  document.getElementById('cancelClaimStep2Btn')?.addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
-  document.getElementById('checkReceiptBtn')?.addEventListener('click', checkReceiptForClaim);
-  document.getElementById('applyPrizeBtn')?.addEventListener('click', applyPrizeToCart);
-
-  // Special Promo modal listeners
-  document.getElementById('closeSpecialPromoModal')?.addEventListener('click', () => document.getElementById('specialPromoModal').style.display = 'none');
-  document.getElementById('closeSpecialPromoModalBtn')?.addEventListener('click', () => document.getElementById('specialPromoModal').style.display = 'none');
-  document.getElementById('promoBuy2Free1Perfume')?.addEventListener('click', applyBuy2Free1Perfume);
-  document.getElementById('promoBuy3Free1ExcludePerfume')?.addEventListener('click', applyBuy3Free1ExcludePerfume);
-  document.getElementById('applyCustomPromoBtn')?.addEventListener('click', applyCustomDiscount);
-
-  // Search input
-  if (searchInput) {
-    searchInput.addEventListener('input', () => {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(() => renderProductGrid(), 300);
-    });
-  }
-  if (categorySelect) {
-    categorySelect.addEventListener('change', renderProductGrid);
-  }
-  if (storeSelect) {
-    storeSelect.addEventListener('change', async () => {
-      if (!storeSelect.disabled) {
-        currentStore = storeSelect.value;
-        await fetchProductsFromSheet();
-        clearCart();
-      }
-    });
-  }
-
-  // Helper to fetch employees (used in reports)
-  async function fetchEmployees() {
-    try {
-      const response = await fetch(`${APPS_SCRIPT_URL}?action=getEmployees`);
-      const result = await response.json();
-      return result.success ? result.employees : [];
-    } catch (err) {
-      console.error(err);
-      return [];
-    }
-  }
-
-  // Populate store selects (used in reports)
-  function populateStoreSelects() {
-    const stores = Array.from(storeSelect.options).map(opt => ({ value: opt.value, text: opt.text }));
-    const receiptsStore = document.getElementById('receiptsStoreSelect');
-    if (receiptsStore) {
-      receiptsStore.innerHTML = '<option value="all">All Stores</option>';
-      stores.forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.value;
-        opt.textContent = s.text;
-        receiptsStore.appendChild(opt);
-      });
-    }
-  }
-
-  // Reports button (simplified; you should keep your full report logic)
-  document.getElementById('reportsButton')?.addEventListener('click', async () => {
+  if (document.getElementById('reportsButton')) {
+  document.getElementById('reportsButton').addEventListener('click', async () => {
     if (currentEmployee?.isAdmin) {
       const employees = await fetchEmployees();
       const adminReportEmpSelect = document.getElementById('adminReportEmployeeSelect');
@@ -2453,9 +2623,36 @@
       setTimeout(() => updateAdminReport(), 200);
     }
   });
+}
 
-  // Receipts button (simplified; keep your full logic)
-  document.getElementById('receiptsButton')?.addEventListener('click', async () => {
+if (document.getElementById('closeAdminReportBtn')) {
+  document.getElementById('closeAdminReportBtn').addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
+}
+if (document.getElementById('closeAdminReportModal')) {
+  document.getElementById('closeAdminReportModal').addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
+}
+if (document.getElementById('adminReportStoreSelect')) {
+  document.getElementById('adminReportStoreSelect').addEventListener('change', updateAdminReport);
+}
+if (document.getElementById('adminReportEmployeeSelect')) {
+  document.getElementById('adminReportEmployeeSelect').addEventListener('change', updateAdminReport);
+}
+if (document.getElementById('adminReportDateRangeSelect')) {
+  document.getElementById('adminReportDateRangeSelect').addEventListener('change', (e) => {
+    const customRange = document.getElementById('adminReportCustomDateRange');
+    if (customRange) customRange.style.display = e.target.value === 'custom' ? 'flex' : 'none';
+    updateAdminReport();
+  });
+}
+if (document.getElementById('adminReportFromDate')) {
+  document.getElementById('adminReportFromDate').addEventListener('change', updateAdminReport);
+}
+if (document.getElementById('adminReportToDate')) {
+  document.getElementById('adminReportToDate').addEventListener('change', updateAdminReport);
+}
+
+if (document.getElementById('receiptsButton')) {
+  document.getElementById('receiptsButton').addEventListener('click', async () => {
     if (currentEmployee?.isAdmin) {
       const employees = await fetchEmployees();
       const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
@@ -2483,15 +2680,396 @@
     if (modal) modal.style.display = 'flex';
     updateReceipts();
   });
+}
 
-  // Settlement button
-  document.getElementById('settlementBtn')?.addEventListener('click', openSettlementModal);
+if (document.getElementById('closeReceiptsBtn')) {
+  document.getElementById('closeReceiptsBtn').addEventListener('click', () => document.getElementById('receiptsModal').style.display = 'none');
+}
+if (document.getElementById('closeReceiptsModal')) {
+  document.getElementById('closeReceiptsModal').addEventListener('click', () => document.getElementById('receiptsModal').style.display = 'none');
+}
+if (document.getElementById('receiptsStoreSelect')) {
+  document.getElementById('receiptsStoreSelect').addEventListener('change', updateReceipts);
+}
+if (document.getElementById('receiptsEmployeeSelect')) {
+  document.getElementById('receiptsEmployeeSelect').addEventListener('change', updateReceipts);
+}
+if (document.getElementById('receiptsDateRangeSelect')) {
+  document.getElementById('receiptsDateRangeSelect').addEventListener('change', (e) => {
+    const customRange = document.getElementById('receiptsCustomDateRange');
+    if (customRange) customRange.style.display = e.target.value === 'custom' ? 'flex' : 'none';
+    updateReceipts();
+  });
+}
+if (document.getElementById('receiptsFromDate')) {
+  document.getElementById('receiptsFromDate').addEventListener('change', updateReceipts);
+}
+if (document.getElementById('receiptsToDate')) {
+  document.getElementById('receiptsToDate').addEventListener('change', updateReceipts);
+}
+if (document.getElementById('receiptsSearch')) {
+  document.getElementById('receiptsSearch').addEventListener('input', updateReceipts);
+}
 
-  // The following functions (updateReceipts, updateAdminReport, openSettlementModal, etc.) must be implemented.
-  // In the user's original code they are present, so I'll assume they exist. To keep this answer manageable,
-  // I'm not copying them again. The final HTML should contain the full set of functions from the original code.
+if (document.getElementById('settlementBtn')) {
+  document.getElementById('settlementBtn').addEventListener('click', openSettlementModal);
+}
+if (document.getElementById('closeSettlementModal')) {
+  document.getElementById('closeSettlementModal').addEventListener('click', () => document.getElementById('settlementModal').style.display = 'none');
+}
+if (document.getElementById('closeSettlementModalBtn')) {
+  document.getElementById('closeSettlementModalBtn').addEventListener('click', () => document.getElementById('settlementModal').style.display = 'none');
+}
+if (document.getElementById('settlementStoreSelect')) {
+  document.getElementById('settlementStoreSelect').addEventListener('change', async () => {
+    if (currentEmployee?.isAdmin) {
+      const newStore = document.getElementById('settlementStoreSelect').value;
+      await refreshSettlementTotals(newStore);
+    }
+  });
+}
 
-  // ==================== END OF SCRIPT ====================
+if (document.getElementById('checkSettlementBtn')) {
+  document.getElementById('checkSettlementBtn').addEventListener('click', async () => {
+    const actualCash = parseFloat(document.getElementById('actualCash').value);
+    const actualCard = parseFloat(document.getElementById('actualCard').value);
+    const actualQR = parseFloat(document.getElementById('actualQR').value);
+    const errors = [];
+    if (isNaN(actualCash)) errors.push('Cash Count');
+    if (isNaN(actualCard)) errors.push('Card Settlement');
+    if (isNaN(actualQR)) errors.push('QR Settlement');
+    if (errors.length > 0) {
+      const settlementError = document.getElementById('settlementError');
+      if (settlementError) {
+        settlementError.innerText = `Please enter valid numbers for: ${errors.join(', ')}`;
+        settlementError.style.display = 'block';
+      }
+      return;
+    }
+    const cashOk = Math.abs(actualCash - currentSettlementTotals.cash) < 0.01;
+    const cardOk = Math.abs(actualCard - currentSettlementTotals.card) < 0.01;
+    const qrOk = Math.abs(actualQR - currentSettlementTotals.qr) < 0.01;
+    const actualCashEl = document.getElementById('actualCash');
+    const actualCardEl = document.getElementById('actualCard');
+    const actualQREl = document.getElementById('actualQR');
+    if (actualCashEl) actualCashEl.classList.toggle('error-field', !cashOk);
+    if (actualCardEl) actualCardEl.classList.toggle('error-field', !cardOk);
+    if (actualQREl) actualQREl.classList.toggle('error-field', !qrOk);
+    if (cashOk && cardOk && qrOk) {
+      const settlementError = document.getElementById('settlementError');
+      if (settlementError) settlementError.style.display = 'none';
+      setSettlementFieldsEnabled(false);
+      const checkBtn = document.getElementById('checkSettlementBtn');
+      const recordBtn = document.getElementById('recordSettlementBtn');
+      if (checkBtn) checkBtn.style.display = 'none';
+      if (recordBtn) {
+        recordBtn.style.display = 'block';
+        recordBtn.disabled = false;
+      }
+    } else {
+      const errorMessages = [];
+      if (!cashOk) errorMessages.push(`Cash (System: RM ${currentSettlementTotals.cash.toFixed(2)}, Entered: RM ${actualCash.toFixed(2)})`);
+      if (!cardOk) errorMessages.push(`Card (System: RM ${currentSettlementTotals.card.toFixed(2)}, Entered: RM ${actualCard.toFixed(2)})`);
+      if (!qrOk) errorMessages.push(`QR (System: RM ${currentSettlementTotals.qr.toFixed(2)}, Entered: RM ${actualQR.toFixed(2)})`);
+      const settlementError = document.getElementById('settlementError');
+      if (settlementError) {
+        settlementError.innerHTML = `❌ Mismatch in:<br>${errorMessages.join('<br>')}<br>Please correct and try again.`;
+        settlementError.style.display = 'block';
+      }
+    }
+  });
+}
+
+if (document.getElementById('recordSettlementBtn')) {
+  document.getElementById('recordSettlementBtn').addEventListener('click', async () => {
+    const store = document.getElementById('settlementStoreSelect').value;
+    const pettyCash = parseFloat(document.getElementById('pettyCashFloat').value) || 0;
+    const actualCash = parseFloat(document.getElementById('actualCash').value);
+    const actualCard = parseFloat(document.getElementById('actualCard').value);
+    const actualQR = parseFloat(document.getElementById('actualQR').value);
+    const recordBtn = document.getElementById('recordSettlementBtn');
+    if (recordBtn) recordBtn.disabled = true;
+    showLoading('Recording settlement...');
+    try {
+      const formData = new URLSearchParams();
+      formData.append("action", "recordSettlement");
+      formData.append("employee_id", currentEmployee.id);
+      formData.append("employee_name", currentEmployee.name);
+      formData.append("store", store);
+      formData.append("petty_cash_float", pettyCash);
+      formData.append("date", getLocalDateString(new Date()));
+      formData.append("cash_system", currentSettlementTotals.cash);
+      formData.append("card_system", currentSettlementTotals.card);
+      formData.append("qr_system", currentSettlementTotals.qr);
+      formData.append("cash_actual", actualCash);
+      formData.append("card_actual", actualCard);
+      formData.append("qr_actual", actualQR);
+      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+      const result = await response.json();
+      if (result.success) {
+        await showAlertModal('Settlement Recorded', 'Settlement has been successfully recorded.');
+        await refreshSettlementTotals(store);
+        document.getElementById('settlementModal').style.display = 'none';
+      } else {
+        await showAlertModal('Error', 'Failed to record settlement: ' + (result.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error(err);
+      await showAlertModal('Error', 'Connection error while recording settlement.');
+    } finally {
+      hideLoading();
+      if (recordBtn) recordBtn.disabled = false;
+    }
+  });
+}
+
+if (document.getElementById('collectionBtn')) {
+  document.getElementById('collectionBtn').addEventListener('click', openCollectionModal);
+}
+if (document.getElementById('closeCollectionModal')) {
+  document.getElementById('closeCollectionModal').addEventListener('click', () => document.getElementById('collectionModal').style.display = 'none');
+}
+if (document.getElementById('closeCollectionModalBtn')) {
+  document.getElementById('closeCollectionModalBtn').addEventListener('click', () => document.getElementById('collectionModal').style.display = 'none');
+}
+if (document.getElementById('collectionStoreSelect')) {
+  document.getElementById('collectionStoreSelect').addEventListener('change', loadUnsettledCash);
+}
+if (document.getElementById('selectAllCheckbox')) {
+  document.getElementById('selectAllCheckbox').addEventListener('change', (e) => {
+    const checkboxes = document.querySelectorAll('.collection-checkbox');
+    checkboxes.forEach(cb => cb.checked = e.target.checked);
+    updateCollectionButtonState();
+  });
+}
+if (document.getElementById('collectSelectedBtn')) {
+  document.getElementById('collectSelectedBtn').addEventListener('click', async () => {
+    const selectedIds = Array.from(document.querySelectorAll('.collection-checkbox:checked')).map(cb => cb.value);
+    if (selectedIds.length === 0) return;
+    showLoading('Marking as collected...');
+    try {
+      const formData = new URLSearchParams();
+      formData.append("action", "markCashCollected");
+      formData.append("ids", JSON.stringify(selectedIds));
+      formData.append("employee_id", currentEmployee.id);
+      formData.append("employee_name", currentEmployee.name);
+      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+      const result = await response.json();
+      if (result.success) {
+        await showAlertModal('Success', `${selectedIds.length} cash record(s) marked as collected.`);
+        await loadUnsettledCash();
+      } else {
+        await showAlertModal('Error', 'Failed to mark as collected: ' + (result.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error(err);
+      await showAlertModal('Error', 'Connection error while marking collected.');
+    } finally {
+      hideLoading();
+    }
+  });
+}
+
+if (storeSelect) {
+  storeSelect.addEventListener('change', async () => {
+    if (!storeSelect.disabled) {
+      currentStore = storeSelect.value;
+      await fetchProductsFromSheet();
+      clearCart();
+    }
+  });
+}
+if (document.getElementById('checkoutBtn')) {
+  document.getElementById('checkoutBtn').addEventListener('click', startCheckout);
+}
+if (document.getElementById('claimPrizeBtn')) {
+  document.getElementById('claimPrizeBtn').addEventListener('click', showClaimPrizeModal);
+}
+if (document.getElementById('specialPromoBtn')) {
+  document.getElementById('specialPromoBtn').addEventListener('click', showSpecialPromoModal);
+}
+if (document.getElementById('clearCartBtn')) {
+  document.getElementById('clearCartBtn').addEventListener('click', clearCart);
+}
+if (document.getElementById('refreshProductsBtn')) {
+  document.getElementById('refreshProductsBtn').addEventListener('click', () => {
+    localStorage.removeItem(`products_${currentStore}`);
+    fetchProductsFromSheet(true);
+  });
+}
+if (searchInput) {
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => renderProductGrid(), 300);
+  });
+}
+if (categorySelect) {
+  categorySelect.addEventListener('change', renderProductGrid);
+}
+if (document.getElementById('logoutButton')) {
+  document.getElementById('logoutButton').addEventListener('click', () => {
+    currentEmployee = null;
+    document.getElementById('mainContent').style.display = 'none';
+    document.getElementById('loginModal').style.display = 'flex';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('loginError').innerText = '';
+    cart = [];
+    products = [];
+  });
+}
+if (document.getElementById('closeLoginModal')) {
+  document.getElementById('closeLoginModal').addEventListener('click', () => {});
+}
+if (document.getElementById('gridViewBtn')) {
+  document.getElementById('gridViewBtn').addEventListener('click', () => setViewMode('grid'));
+}
+if (document.getElementById('listViewBtn')) {
+  document.getElementById('listViewBtn').addEventListener('click', () => setViewMode('list'));
+}
+
+const pinInput = document.getElementById('pinInput');
+if (pinInput) {
+  document.querySelectorAll('.keypad-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.digit && pinInput.value.length < 4) pinInput.value += btn.dataset.digit;
+      else if (btn.dataset.action === 'clear') pinInput.value = pinInput.value.slice(0, -1);
+      else if (btn.dataset.action === 'enter' && pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value);
+      else if (btn.dataset.action === 'enter') document.getElementById('loginError').innerText = 'Please enter 4-digit PIN';
+    });
+  });
+  pinInput.addEventListener('input', () => {
+    if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value);
+  });
+}
+
+async function fetchEmployees() {
+  try {
+    const response = await fetch(`${APPS_SCRIPT_URL}?action=getEmployees`);
+    const result = await response.json();
+    return result.success ? result.employees : [];
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}
+
+function populateStoreSelects() {
+  const stores = Array.from(storeSelect.options).map(opt => ({ value: opt.value, text: opt.text }));
+  const receiptsStore = document.getElementById('receiptsStoreSelect');
+  if (receiptsStore) {
+    receiptsStore.innerHTML = '<option value="all">All Stores</option>';
+    stores.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.value;
+      opt.textContent = s.text;
+      receiptsStore.appendChild(opt);
+    });
+  }
+}
+
+function updateReceipts() {
+  let store;
+  if (currentEmployee?.isAdmin) {
+    const receiptsStore = document.getElementById('receiptsStoreSelect');
+    store = receiptsStore ? receiptsStore.value : 'all';
+  } else {
+    store = currentStore;
+  }
+  let employeeId = 'all';
+  if (currentEmployee?.isAdmin) {
+    const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
+    employeeId = receiptsEmpSelect ? receiptsEmpSelect.value : 'all';
+  }
+  const rangeSelect = document.getElementById('receiptsDateRangeSelect');
+  const range = rangeSelect ? rangeSelect.value : 'today';
+  const search = document.getElementById('receiptsSearch').value;
+  let from = null, to = null;
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  if (range === 'today') {
+    from = getLocalDateString(today);
+    to = from;
+  } else if (range === 'week') {
+    const start = new Date(today);
+    const dayOfWeek = today.getDay();
+    const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+    start.setDate(today.getDate() - diffToMonday);
+    from = getLocalDateString(start);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    to = getLocalDateString(end);
+  } else if (range === 'month') {
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    from = getLocalDateString(start);
+    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    to = getLocalDateString(end);
+  } else if (range === 'custom') {
+    from = document.getElementById('receiptsFromDate').value;
+    to = document.getElementById('receiptsToDate').value;
+    if (!from || !to) return;
+  }
+  fetchReceipts(store, employeeId, from, to, search);
+}
+
+const toggleBtn = document.getElementById('toggleProductDetailsBtn');
+const productDetailsContainer = document.getElementById('productDetailsContainer');
+if (toggleBtn && productDetailsContainer) {
+  toggleBtn.addEventListener('click', () => {
+    productDetailsVisible = !productDetailsVisible;
+    if (productDetailsVisible) {
+      productDetailsContainer.style.display = 'block';
+      toggleBtn.innerText = '📦 Hide Product Details';
+      if (lastProductData) renderProductDetails(lastProductData);
+    } else {
+      productDetailsContainer.style.display = 'none';
+      toggleBtn.innerText = '📦 Show Product Details';
+    }
+  });
+}
+
+// Claim modal close handlers
+const closeClaimPrizeModal = document.getElementById('closeClaimPrizeModal');
+if (closeClaimPrizeModal) {
+  closeClaimPrizeModal.addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
+}
+const cancelClaimBtn = document.getElementById('cancelClaimBtn');
+if (cancelClaimBtn) {
+  cancelClaimBtn.addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
+}
+const cancelClaimStep2Btn = document.getElementById('cancelClaimStep2Btn');
+if (cancelClaimStep2Btn) {
+  cancelClaimStep2Btn.addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
+}
+const checkReceiptBtn = document.getElementById('checkReceiptBtn');
+if (checkReceiptBtn) {
+  checkReceiptBtn.addEventListener('click', checkReceiptForClaim);
+}
+const applyPrizeBtn = document.getElementById('applyPrizeBtn');
+if (applyPrizeBtn) {
+  applyPrizeBtn.addEventListener('click', applyPrizeToCart);
+}
+
+// Special Promo modal close handlers
+const closeSpecialPromoModal = document.getElementById('closeSpecialPromoModal');
+if (closeSpecialPromoModal) {
+  closeSpecialPromoModal.addEventListener('click', () => document.getElementById('specialPromoModal').style.display = 'none');
+}
+const closeSpecialPromoModalBtn = document.getElementById('closeSpecialPromoModalBtn');
+if (closeSpecialPromoModalBtn) {
+  closeSpecialPromoModalBtn.addEventListener('click', () => document.getElementById('specialPromoModal').style.display = 'none');
+}
+const promoBuy2Free1Perfume = document.getElementById('promoBuy2Free1Perfume');
+if (promoBuy2Free1Perfume) {
+  promoBuy2Free1Perfume.addEventListener('click', applyBuy2Free1Perfume);
+}
+const promoBuy3Free1ExcludePerfume = document.getElementById('promoBuy3Free1ExcludePerfume');
+if (promoBuy3Free1ExcludePerfume) {
+  promoBuy3Free1ExcludePerfume.addEventListener('click', applyBuy3Free1ExcludePerfume);
+}
+const applyCustomPromoBtn = document.getElementById('applyCustomPromoBtn');
+if (applyCustomPromoBtn) {
+  applyCustomPromoBtn.addEventListener('click', applyCustomDiscount);
+}
 </script>
 </body>
 </html>
