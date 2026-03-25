@@ -830,7 +830,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwqdPfPDYDIB3pzvhy_yjmsnorjrtQoe1ZtlfsQjXhveKnlvfJ-y0LpPyjJiE4h37J4/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzhC_T4jFDpw6uMGeE3Xdi1GxeIkj0M081K6mRvj3V33VDbS_htRzBEzkWQrK4oyE6o3Q/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1290,10 +1290,18 @@ async function checkReceiptForClaim() {
         return;
       }
 
-      // Check 30-day grace period
-      const creationDate = new Date(data.timestamp);
+      // Check 30-day grace period using the date-only timestamp (YYYY-MM-DD)
+      const creationDateStr = data.timestamp; // format: "2025-03-25"
+      if (!creationDateStr) {
+        showClaimError('Invalid creation date. Cannot validate expiry.');
+        return;
+      }
+      const creationDate = new Date(creationDateStr);
       const now = new Date();
-      const daysDiff = (now - creationDate) / (1000 * 60 * 60 * 24);
+      // Reset time to midnight for accurate day difference
+      const creationMidnight = new Date(creationDate.getFullYear(), creationDate.getMonth(), creationDate.getDate());
+      const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const daysDiff = (nowMidnight - creationMidnight) / (1000 * 60 * 60 * 24);
       if (daysDiff > 30) {
         const expiryDate = new Date(creationDate);
         expiryDate.setDate(creationDate.getDate() + 30);
@@ -1302,7 +1310,7 @@ async function checkReceiptForClaim() {
         return;
       }
 
-      // Extract discount value from prize name (e.g., "CAR AROMATIC RM 38" → 38)
+      // Extract discount value from prize name
       const prizeName = data.prize;
       const match = prizeName.match(/\b(\d+(?:\.\d+)?)\b/);
       const discountValue = match ? parseFloat(match[1]) : 0;
