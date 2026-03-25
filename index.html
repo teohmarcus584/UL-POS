@@ -1678,84 +1678,73 @@ function getExpiryInfo(timestamp) {
     }
   }
 
- function renderReceiptsList(receipts) {
-  const container = document.getElementById('receiptsList');
-  if (!receipts.length) {
-    container.innerHTML = '<div style="text-align:center; padding:30px;">No receipts found.</div>';
-    return;
-  }
-  let html = '';
-  receipts.forEach(rec => {
-    const date = new Date(rec.timestamp).toLocaleString();
-    const itemsSummary = rec.items.map(i => {
-      const displayName = i.category ? `${i.category}: ${i.name}` : i.name;
-      return `${displayName} x${i.quantity}`;
-    }).join(', ');
-    const employeeName = getEmployeeName(rec.employee_id);
-    const isRefundEntry = rec.total < 0;                          // the refund record (negative total)
-    const isRefundedOriginal = rec.refunded === true && !isRefundEntry; // original that was refunded
-    let receiptClass = '';
-    if (isRefundEntry) receiptClass = 'refund-entry';
-    if (isRefundedOriginal) receiptClass = 'refunded-original';
-
-    // Build receipt ID: add "- VOID" in red only for refunded original
-    let receiptIdHtml;
-    if (isRefundedOriginal) {
-      receiptIdHtml = `<span class="receipt-id">${rec.transaction_id} <span style="color: red;">- VOID</span></span>`;
-    } else {
-      receiptIdHtml = `<span class="receipt-id">${rec.transaction_id}</span>`;
+  function renderReceiptsList(receipts) {
+    const container = document.getElementById('receiptsList');
+    if (!receipts.length) {
+      container.innerHTML = '<div style="text-align:center; padding:30px;">No receipts found.</div>';
+      return;
     }
-
-    html += `<div class="receipt-item ${receiptClass}" data-receipt='${JSON.stringify(rec)}'>
-      <div class="receipt-header">
-        ${receiptIdHtml}
-        <span class="receipt-date">${date}</span>
-        <span class="receipt-total">RM ${rec.total.toFixed(2)}</span>
-      </div>
-      <div class="receipt-details">
-        <div>Store: ${rec.store} | Payment: ${rec.payment_method} | Employee: ${employeeName}</div>
-        <div>Items: ${itemsSummary}</div>
-      </div>
-      <div class="receipt-actions">
-        <button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>🖨️ Reprint</button>`;
-    if (!isRefundEntry && !isRefundedOriginal) {
-      // Normal (unrefunded) receipt → show both buttons
-      html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>
-               <button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">💰 Refund</button>`;
-    } else if (!isRefundEntry && isRefundedOriginal) {
-      // Original that was refunded → show only Lucky Draw (no refund button)
-      html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>`;
-    }
-    // For refund entries (isRefundEntry true), no extra buttons are added
-    html += `</div></div>`;
-  });
-  container.innerHTML = html;
-
-  // Event listeners (unchanged)
-  document.querySelectorAll('.reprint-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      reprintReceipt(JSON.parse(btn.dataset.receipt));
-      e.stopPropagation();
-    });
-  });
-  document.querySelectorAll('.lucky-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      openLuckyDraw(btn.dataset.txid);
-      e.stopPropagation();
-    });
-  });
-  document.querySelectorAll('.refund-btn').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const transactionId = btn.dataset.txid;
-      const store = btn.dataset.store;
-      e.stopPropagation();
-      const confirm = await showConfirmModal('Refund Transaction', `Are you sure you want to refund transaction ${transactionId}? This will reverse the sale and restore stock.`);
-      if (confirm) {
-        await processRefund(transactionId, store);
+    let html = '';
+    receipts.forEach(rec => {
+      const date = new Date(rec.timestamp).toLocaleString();
+      const itemsSummary = rec.items.map(i => {
+        const displayName = i.category ? `${i.category}: ${i.name}` : i.name;
+        return `${displayName} x${i.quantity}`;
+      }).join(', ');
+      const employeeName = getEmployeeName(rec.employee_id);
+      const isRefund = rec.total < 0;
+      const isRefundedOriginal = rec.refunded === true && !isRefund;
+      const refundClass = isRefund ? 'refund-receipt' : '';
+      const receiptIdHtml = isRefund
+        ? `<span class="receipt-id">[REFUND] ${rec.transaction_id}</span>`
+        : `<span class="receipt-id">${rec.transaction_id}</span>`;
+      html += `<div class="receipt-item ${refundClass}" data-receipt='${JSON.stringify(rec)}'>
+        <div class="receipt-header">
+          ${receiptIdHtml}
+          <span class="receipt-date">${date}</span>
+          <span class="receipt-total">RM ${rec.total.toFixed(2)}</span>
+        </div>
+        <div class="receipt-details">
+          <div>Store: ${rec.store} | Payment: ${rec.payment_method} | Employee: ${employeeName}</div>
+          <div>Items: ${itemsSummary}</div>
+        </div>
+        <div class="receipt-actions">
+          <button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>🖨️ Reprint</button>`;
+      if (!isRefund && !isRefundedOriginal) {
+        html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>
+                 <button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">💰 Refund</button>`;
+      } else if (!isRefund && isRefundedOriginal) {
+        html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>`;
       }
+      html += `</div></div>`;
     });
-  });
-}
+    container.innerHTML = html;
+
+    document.querySelectorAll('.reprint-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        reprintReceipt(JSON.parse(btn.dataset.receipt));
+        e.stopPropagation();
+      });
+    });
+    document.querySelectorAll('.lucky-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        openLuckyDraw(btn.dataset.txid);
+        e.stopPropagation();
+      });
+    });
+    document.querySelectorAll('.refund-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const transactionId = btn.dataset.txid;
+        const store = btn.dataset.store;
+        e.stopPropagation();
+        const confirm = await showConfirmModal('Refund Transaction', `Are you sure you want to refund transaction ${transactionId}? This will reverse the sale and restore stock.`);
+        if (confirm) {
+          await processRefund(transactionId, store);
+        }
+      });
+    });
+  }
+
   async function reprintReceipt(receipt) {
     if (!window.printerAPI || !window.printerAPI.isConnected) {
       await showAlertModal('Printer required', 'Connect Bluetooth printer first.');
