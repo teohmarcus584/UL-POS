@@ -675,24 +675,22 @@
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px;
   background: white;
   border-radius: 28px;
-  padding: 12px 20px;
+  padding: 10px 20px;
   margin-bottom: 20px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
 .employee-info-group {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 140px;
+  align-items: center;
+  gap: 16px;
 }
 
 .employee-info {
   font-weight: 500;
-  font-size: 0.95rem;
   color: #0f172a;
 }
 
@@ -704,10 +702,8 @@
   color: white;
   font-size: 0.8rem;
   cursor: pointer;
-  width: fit-content;
   transition: background 0.2s;
 }
-
 .logout-btn:hover {
   background: #dc2626;
 }
@@ -716,52 +712,48 @@
   display: flex;
   gap: 12px;
   align-items: center;
-  flex-wrap: wrap;
 }
 
 .employee-selectors {
   display: flex;
-  gap: 16px;
+  gap: 20px;
   align-items: center;
-  flex-wrap: wrap;
 }
 
 .selector-group {
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: #f8fafc;
-  padding: 4px 12px;
-  border-radius: 40px;
-  border: 1px solid #e2e8f0;
+  gap: 8px;
 }
 
 .selector-group label {
   font-weight: 500;
-  font-size: 0.75rem;
-  color: #334155;
+  font-size: 0.9rem;
   white-space: nowrap;
 }
 
 .selector-group select {
-  padding: 4px 8px;
-  border: none;
-  background: transparent;
-  font-size: 0.8rem;
+  padding: 8px 12px;
+  border-radius: 40px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  outline: none;
-  min-width: 100px;
-  color: #1e293b;
+  transition: all 0.2s;
+  min-width: 140px;
 }
 
 .selector-group select:focus {
   outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
 }
 
 .selector-group select:disabled {
-  opacity: 0.6;
+  background: #f1f5f9;
   cursor: not-allowed;
+  opacity: 0.7;
 }
 
 @media (max-width: 780px) {
@@ -769,19 +761,18 @@
     flex-direction: column;
     align-items: stretch;
   }
-  .employee-info-group {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .employee-actions {
-    justify-content: center;
-  }
+  .employee-info-group,
+  .employee-actions,
   .employee-selectors {
     justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  .employee-selectors {
+    flex-direction: column;
+    align-items: stretch;
   }
   .selector-group {
-    flex: 1;
+    justify-content: space-between;
   }
 }
   </style>
