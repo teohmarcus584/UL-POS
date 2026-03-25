@@ -1257,7 +1257,7 @@
     document.getElementById('claimPrizeModal').style.display = 'flex';
   }
 
- async function checkReceiptForClaim() {
+async function checkReceiptForClaim() {
   const receipt = document.getElementById('claimReceiptInput').value.trim();
   if (!receipt) {
     showClaimError('Please enter a receipt number.');
@@ -1268,28 +1268,33 @@
     const url = `${APPS_SCRIPT_URL}?action=get&receipt=${encodeURIComponent(receipt)}`;
     const response = await fetch(url);
     const result = await response.json();
+
     if (result.success) {
       const data = result.data;
-   if (data.claimed) {
-  let claimMessage = 'This prize has already been claimed.';
-  if (data.claimed_at) {
-    const claimedDate = new Date(data.claimed_at);
-    const formattedDate = claimedDate.toLocaleString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-    claimMessage += `\nClaimed on: ${formattedDate}`;
-  }
-  showClaimError(claimMessage);
-  return;
-}
-      // Extract discount value from prize name
+
+      // Already claimed
+      if (data.claimed) {
+        let claimMessage = 'This prize has already been claimed.';
+        if (data.claimed_at) {
+          const claimedDate = new Date(data.claimed_at);
+          const formattedDate = claimedDate.toLocaleString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+          claimMessage += `\nClaimed on: ${formattedDate}`;
+        }
+        showClaimError(claimMessage);
+        return;
+      }
+
+      // Extract discount value from prize name (e.g., "CAR AROMATIC RM 38" → 38)
       const prizeName = data.prize;
       const match = prizeName.match(/\b(\d+(?:\.\d+)?)\b/);
       const discountValue = match ? parseFloat(match[1]) : 0;
+
       if (discountValue === 0) {
         showClaimError('Could not determine discount amount from prize name.');
         return;
@@ -1310,6 +1315,7 @@
       // Show confirmation and close modal
       showAlertModal('Prize Applied', `Discount of RM ${discountValue.toFixed(2)} has been applied to this sale.\nThe prize will be marked as claimed only after successful payment.`);
       document.getElementById('claimPrizeModal').style.display = 'none';
+
     } else {
       showClaimError(result.error || 'Receipt not found.');
     }
@@ -1320,7 +1326,6 @@
     hideLoading();
   }
 }
-
   function showClaimError(msg) {
     const errorDiv = document.getElementById('claimError');
     errorDiv.innerText = msg;
