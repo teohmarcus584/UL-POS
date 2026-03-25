@@ -669,6 +669,13 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
+// Promo discount row elements
+const promoBuy2Free1Row = document.getElementById('promoBuy2Free1Row');
+const promoBuy2Free1Amount = document.getElementById('promoBuy2Free1Amount');
+const promoBuy3Free1Row = document.getElementById('promoBuy3Free1Row');
+const promoBuy3Free1Amount = document.getElementById('promoBuy3Free1Amount');
+const customDiscountRow = document.getElementById('customDiscountRow');
+const customDiscountAmount = document.getElementById('customDiscountAmount');
 <!-- Store Selection Modal (shown on page load) -->
 <div id="storeSelectModal" class="modal-overlay" style="display: flex;">
   <div class="modal-container" style="max-width: 400px;">
@@ -770,34 +777,31 @@
   </div>
   <div id="cartItemsContainer" class="cart-items">Cart is empty</div>
   <div class="cart-summary">
-  <div class="summary-row"><span>Subtotal</span><span id="subtotal">RM 0.00</span></div>
-  <div id="discountRow" class="summary-row discount-row" style="display: none;">
-    <span><i>🎲</i> Lucky Draw</span>
-    <span id="discountAmount">RM 0.00</span>
+    <div class="summary-row"><span>Subtotal</span><span id="subtotal">RM 0.00</span></div>
+    <div id="discountRow" class="summary-row discount-row" style="display: none;">
+      <span><i>🎲</i> Lucky Draw</span>
+      <span id="discountAmount">RM 0.00</span>
+    </div>
+    <div id="promoBuy2Free1Row" class="summary-row discount-row" style="display: none;">
+      <span><i>🎯</i> Buy 2 Free 1 (Perfume)</span>
+      <span id="promoBuy2Free1Amount">RM 0.00</span>
+    </div>
+    <div id="promoBuy3Free1Row" class="summary-row discount-row" style="display: none;">
+      <span><i>🎯</i> Buy 3 Free 1 (Excluding Perfume)</span>
+      <span id="promoBuy3Free1Amount">RM 0.00</span>
+    </div>
+    <div id="customDiscountRow" class="summary-row discount-row" style="display: none;">
+      <span><i>💰</i> Custom Discount</span>
+      <span id="customDiscountAmount">RM 0.00</span>
+    </div>
+    <div class="summary-row total-row"><span>TOTAL</span><span id="totalAmount">RM 0.00</span></div>
   </div>
-  <div id="promoBuy2Free1Row" class="summary-row discount-row" style="display: none;">
-    <span><i>🎯</i> Buy 2 Free 1 (Perfume)</span>
-    <span id="promoBuy2Free1Amount">RM 0.00</span>
-  </div>
-  <div id="promoBuy3Free1Row" class="summary-row discount-row" style="display: none;">
-    <span><i>🎯</i> Buy 3 Free 1 (Excluding Perfume)</span>
-    <span id="promoBuy3Free1Amount">RM 0.00</span>
-  </div>
-  <div id="customDiscountRow" class="summary-row discount-row" style="display: none;">
-    <span><i>💰</i> Custom Discount</span>
-    <span id="customDiscountAmount">RM 0.00</span>
-  </div>
-  <div class="summary-row total-row"><span>TOTAL</span><span id="totalAmount">RM 0.00</span></div>
-</div>
   <div class="cart-actions">
     <button id="checkoutBtn">💳 CHECKOUT</button>
     <button id="claimPrizeBtn">🎁 Claim Prize</button>
     <button id="specialPromoBtn">🎁 Special Promo</button>
   </div>
 </div>
-  </div>
-</div>
-
 <!-- Payment Modal -->
 <div id="paymentModal" class="modal-overlay">
   <div class="modal-container" style="max-width: 400px;">
