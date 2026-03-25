@@ -947,7 +947,7 @@
           <table class="product-details-table">
             <thead>   </thead>
             <tbody id="productDetailsBody">   </tbody>
-          </table>
+           </table>
         </div>
       </div>
     </div>
@@ -978,7 +978,19 @@
     <div class="modal-title">💵 Cash Collection</div>
     <div class="filter-group"><label>Store</label><select id="collectionStoreSelect"><option value="all">All Stores</option><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div>
     <div id="collectionTotal" class="settlement-stats" style="margin-top: 12px;"><p>💰 Total Outstanding Cash: <strong id="totalOutstandingCash">RM 0.00</strong></p></div>
-    <div style="overflow-x: auto;"><table class="collection-table" id="collectionTable"><thead>   </thead><tbody id="collectionTableBody">   </tbody></table></div>
+    <div style="overflow-x: auto;">
+      <table class="collection-table" id="collectionTable">
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="selectAllCheckbox"></th>
+            <th>Date</th>
+            <th>Employee</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody id="collectionTableBody">   </tbody>
+      </table>
+    </div>
     <div class="modal-buttons" style="margin-top: 16px;"><button id="collectSelectedBtn" class="modal-btn modal-btn-primary" disabled>Collect Selected</button><button id="closeCollectionModalBtn" class="modal-btn modal-btn-secondary">Close</button></div>
   </div>
 </div>
@@ -1646,78 +1658,83 @@
   }
 
   function applyBuy2Free1Perfume() {
-  // Debug: show all items in cart
-  console.log("Cart items:", cart.map(item => ({
-    name: item.product.name,
-    category: item.product.category,
-    quantity: item.quantity,
-    price: item.product.price
-  })));
+    console.log("Cart items:", cart.map(item => ({
+      name: item.product.name,
+      category: item.product.category,
+      quantity: item.quantity,
+      price: item.product.price
+    })));
 
-  // Sum quantities of items that match the perfume category
-  let totalPerfumeUnits = 0;
-  let cheapestPrice = Infinity;
-  for (let item of cart) {
-    const cat = (item.product.category || "").trim().toLowerCase();
-    if (cat.includes("100ml perfume edp")) {
-      totalPerfumeUnits += item.quantity;
-      if (item.product.price < cheapestPrice) {
-        cheapestPrice = item.product.price;
+    let totalPerfumeUnits = 0;
+    let cheapestPrice = Infinity;
+    for (let item of cart) {
+      const cat = (item.product.category || "").trim().toLowerCase();
+      if (cat.includes("100ml perfume edp")) {
+        totalPerfumeUnits += item.quantity;
+        if (item.product.price < cheapestPrice) {
+          cheapestPrice = item.product.price;
+        }
       }
     }
+
+    console.log("Total perfume units:", totalPerfumeUnits, "Cheapest price:", cheapestPrice);
+
+    if (totalPerfumeUnits < 3) {
+      const msgDiv = document.getElementById('promoMessage');
+      msgDiv.innerText = `Need at least 3 items in '100ML PERFUME EDP' category. Found ${totalPerfumeUnits}.`;
+      msgDiv.style.display = 'block';
+      return;
+    }
+
+    buy2Free1Discount = cheapestPrice;
+    updateCartUI();
+    document.getElementById('specialPromoModal').style.display = 'none';
   }
 
-  console.log("Total perfume units:", totalPerfumeUnits, "Cheapest price:", cheapestPrice);
+  function applyBuy3Free1ExcludePerfume() {
+    console.log("Cart items:", cart.map(item => ({
+      name: item.product.name,
+      category: item.product.category,
+      quantity: item.quantity,
+      price: item.product.price
+    })));
 
-  // Now require at least 3 items
-  if (totalPerfumeUnits < 3) {
-    const msgDiv = document.getElementById('promoMessage');
-    msgDiv.innerText = `Need at least 3 items in '100ML PERFUME EDP' category. Found ${totalPerfumeUnits}.`;
-    msgDiv.style.display = 'block';
-    return;
-  }
-
-  buy2Free1Discount = cheapestPrice;
-  updateCartUI();
-  document.getElementById('specialPromoModal').style.display = 'none';
-}
-
-function applyBuy3Free1ExcludePerfume() {
-  // Debug: show all items in cart
-  console.log("Cart items:", cart.map(item => ({
-    name: item.product.name,
-    category: item.product.category,
-    quantity: item.quantity,
-    price: item.product.price
-  })));
-
-  // Sum quantities of items that are NOT in the perfume category
-  let totalNonPerfumeUnits = 0;
-  let cheapestPrice = Infinity;
-  for (let item of cart) {
-    const cat = (item.product.category || "").trim().toLowerCase();
-    if (!cat.includes("100ml perfume edp")) {
-      totalNonPerfumeUnits += item.quantity;
-      if (item.product.price < cheapestPrice) {
-        cheapestPrice = item.product.price;
+    let totalNonPerfumeUnits = 0;
+    let cheapestPrice = Infinity;
+    for (let item of cart) {
+      const cat = (item.product.category || "").trim().toLowerCase();
+      if (!cat.includes("100ml perfume edp")) {
+        totalNonPerfumeUnits += item.quantity;
+        if (item.product.price < cheapestPrice) {
+          cheapestPrice = item.product.price;
+        }
       }
     }
+
+    console.log("Total non‑perfume units:", totalNonPerfumeUnits, "Cheapest price:", cheapestPrice);
+
+    if (totalNonPerfumeUnits < 4) {
+      const msgDiv = document.getElementById('promoMessage');
+      msgDiv.innerText = `Need at least 4 items excluding Perfume category. Found ${totalNonPerfumeUnits}.`;
+      msgDiv.style.display = 'block';
+      return;
+    }
+
+    buy3Free1Discount = cheapestPrice;
+    updateCartUI();
+    document.getElementById('specialPromoModal').style.display = 'none';
   }
 
-  console.log("Total non‑perfume units:", totalNonPerfumeUnits, "Cheapest price:", cheapestPrice);
-
-  // Now require at least 4 items
-  if (totalNonPerfumeUnits < 4) {
-    const msgDiv = document.getElementById('promoMessage');
-    msgDiv.innerText = `Need at least 4 items excluding Perfume category. Found ${totalNonPerfumeUnits}.`;
-    msgDiv.style.display = 'block';
-    return;
+  function applyCustomDiscount() {
+    const value = parseFloat(document.getElementById('customPromoValue').value);
+    if (isNaN(value) || value < 0) {
+      showAlertModal('Invalid Discount', 'Please enter a valid discount amount.');
+      return;
+    }
+    customDiscount = value;
+    updateCartUI();
+    document.getElementById('specialPromoModal').style.display = 'none';
   }
-
-  buy3Free1Discount = cheapestPrice;
-  updateCartUI();
-  document.getElementById('specialPromoModal').style.display = 'none';
-}
 
   // ==================== CHECKOUT ====================
   async function startCheckout() {
@@ -1903,7 +1920,7 @@ function applyBuy3Free1ExcludePerfume() {
     }
   }
 
-  // ==================== RECEIPTS (unchanged) ====================
+  // ==================== RECEIPTS ====================
   async function fetchReceipts(store, employeeId, from, to, search) {
     showLoading('Loading receipts...');
     try {
@@ -2002,7 +2019,7 @@ function applyBuy3Free1ExcludePerfume() {
 
   function openLuckyDraw(transactionId) { window.open(`https://teohmarcus584.github.io/salesanalysis/?receipt=${encodeURIComponent(transactionId)}`, '_blank'); }
 
-async function processRefund(transactionId, store) {
+  async function processRefund(transactionId, store) {
     showLoading('Processing refund...');
     try {
       const formData = new URLSearchParams();
@@ -2340,7 +2357,8 @@ async function processRefund(transactionId, store) {
         renderCollectionTable();
         updateTotalOutstanding();
         document.getElementById('collectSelectedBtn').disabled = true;
-        document.getElementById('selectAllCheckbox').checked = false;
+        const selectAll = document.getElementById('selectAllCheckbox');
+        if (selectAll) selectAll.checked = false;
       } else {
         await showAlertModal('Error', 'Failed to load unsettled cash: ' + (result.error || 'Unknown error'));
       }
@@ -2589,487 +2607,487 @@ async function processRefund(transactionId, store) {
   }
 
   if (document.getElementById('reportsButton')) {
-  document.getElementById('reportsButton').addEventListener('click', async () => {
-    if (currentEmployee?.isAdmin) {
-      const employees = await fetchEmployees();
-      const adminReportEmpSelect = document.getElementById('adminReportEmployeeSelect');
-      const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
-      if (adminReportEmpSelect && receiptsEmpSelect) {
-        adminReportEmpSelect.innerHTML = '<option value="all">All Employees</option>';
-        receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
-        employees.forEach(emp => {
-          const opt1 = document.createElement('option'); opt1.value = emp.id; opt1.textContent = `${emp.name} (ID: ${emp.id})`;
-          const opt2 = document.createElement('option'); opt2.value = emp.id; opt2.textContent = `${emp.name} (ID: ${emp.id})`;
-          adminReportEmpSelect.appendChild(opt1);
-          receiptsEmpSelect.appendChild(opt2);
-        });
+    document.getElementById('reportsButton').addEventListener('click', async () => {
+      if (currentEmployee?.isAdmin) {
+        const employees = await fetchEmployees();
+        const adminReportEmpSelect = document.getElementById('adminReportEmployeeSelect');
+        const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
+        if (adminReportEmpSelect && receiptsEmpSelect) {
+          adminReportEmpSelect.innerHTML = '<option value="all">All Employees</option>';
+          receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
+          employees.forEach(emp => {
+            const opt1 = document.createElement('option'); opt1.value = emp.id; opt1.textContent = `${emp.name} (ID: ${emp.id})`;
+            const opt2 = document.createElement('option'); opt2.value = emp.id; opt2.textContent = `${emp.name} (ID: ${emp.id})`;
+            adminReportEmpSelect.appendChild(opt1);
+            receiptsEmpSelect.appendChild(opt2);
+          });
+        }
+        const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
+        const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
+        if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'flex';
+        if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'flex';
+      } else {
+        const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
+        const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
+        if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'none';
+        if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'none';
+        const receiptsStore = document.getElementById('receiptsStoreSelect');
+        if (receiptsStore) receiptsStore.value = currentStore;
       }
-      const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
-      const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
-      if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'flex';
-      if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'flex';
-    } else {
-      const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
-      const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
-      if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'none';
-      if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'none';
-      const receiptsStore = document.getElementById('receiptsStoreSelect');
-      if (receiptsStore) receiptsStore.value = currentStore;
-    }
-    populateStoreSelects();
-    const modal = document.getElementById('adminReportModal');
-    if (modal) {
-      modal.style.display = 'flex';
-      setTimeout(() => updateAdminReport(), 200);
-    }
-  });
-}
-
-if (document.getElementById('closeAdminReportBtn')) {
-  document.getElementById('closeAdminReportBtn').addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
-}
-if (document.getElementById('closeAdminReportModal')) {
-  document.getElementById('closeAdminReportModal').addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
-}
-if (document.getElementById('adminReportStoreSelect')) {
-  document.getElementById('adminReportStoreSelect').addEventListener('change', updateAdminReport);
-}
-if (document.getElementById('adminReportEmployeeSelect')) {
-  document.getElementById('adminReportEmployeeSelect').addEventListener('change', updateAdminReport);
-}
-if (document.getElementById('adminReportDateRangeSelect')) {
-  document.getElementById('adminReportDateRangeSelect').addEventListener('change', (e) => {
-    const customRange = document.getElementById('adminReportCustomDateRange');
-    if (customRange) customRange.style.display = e.target.value === 'custom' ? 'flex' : 'none';
-    updateAdminReport();
-  });
-}
-if (document.getElementById('adminReportFromDate')) {
-  document.getElementById('adminReportFromDate').addEventListener('change', updateAdminReport);
-}
-if (document.getElementById('adminReportToDate')) {
-  document.getElementById('adminReportToDate').addEventListener('change', updateAdminReport);
-}
-
-if (document.getElementById('receiptsButton')) {
-  document.getElementById('receiptsButton').addEventListener('click', async () => {
-    if (currentEmployee?.isAdmin) {
-      const employees = await fetchEmployees();
-      const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
-      if (receiptsEmpSelect) {
-        receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
-        employees.forEach(emp => {
-          const opt = document.createElement('option'); opt.value = emp.id; opt.textContent = `${emp.name} (ID: ${emp.id})`;
-          receiptsEmpSelect.appendChild(opt);
-        });
+      populateStoreSelects();
+      const modal = document.getElementById('adminReportModal');
+      if (modal) {
+        modal.style.display = 'flex';
+        setTimeout(() => updateAdminReport(), 200);
       }
-      const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
-      const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
-      if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'flex';
-      if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'flex';
-    } else {
-      const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
-      const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
-      if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'none';
-      if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'none';
-      const receiptsStore = document.getElementById('receiptsStoreSelect');
-      if (receiptsStore) receiptsStore.value = currentStore;
-    }
-    populateStoreSelects();
-    const modal = document.getElementById('receiptsModal');
-    if (modal) modal.style.display = 'flex';
-    updateReceipts();
-  });
-}
+    });
+  }
 
-if (document.getElementById('closeReceiptsBtn')) {
-  document.getElementById('closeReceiptsBtn').addEventListener('click', () => document.getElementById('receiptsModal').style.display = 'none');
-}
-if (document.getElementById('closeReceiptsModal')) {
-  document.getElementById('closeReceiptsModal').addEventListener('click', () => document.getElementById('receiptsModal').style.display = 'none');
-}
-if (document.getElementById('receiptsStoreSelect')) {
-  document.getElementById('receiptsStoreSelect').addEventListener('change', updateReceipts);
-}
-if (document.getElementById('receiptsEmployeeSelect')) {
-  document.getElementById('receiptsEmployeeSelect').addEventListener('change', updateReceipts);
-}
-if (document.getElementById('receiptsDateRangeSelect')) {
-  document.getElementById('receiptsDateRangeSelect').addEventListener('change', (e) => {
-    const customRange = document.getElementById('receiptsCustomDateRange');
-    if (customRange) customRange.style.display = e.target.value === 'custom' ? 'flex' : 'none';
-    updateReceipts();
-  });
-}
-if (document.getElementById('receiptsFromDate')) {
-  document.getElementById('receiptsFromDate').addEventListener('change', updateReceipts);
-}
-if (document.getElementById('receiptsToDate')) {
-  document.getElementById('receiptsToDate').addEventListener('change', updateReceipts);
-}
-if (document.getElementById('receiptsSearch')) {
-  document.getElementById('receiptsSearch').addEventListener('input', updateReceipts);
-}
+  if (document.getElementById('closeAdminReportBtn')) {
+    document.getElementById('closeAdminReportBtn').addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
+  }
+  if (document.getElementById('closeAdminReportModal')) {
+    document.getElementById('closeAdminReportModal').addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
+  }
+  if (document.getElementById('adminReportStoreSelect')) {
+    document.getElementById('adminReportStoreSelect').addEventListener('change', updateAdminReport);
+  }
+  if (document.getElementById('adminReportEmployeeSelect')) {
+    document.getElementById('adminReportEmployeeSelect').addEventListener('change', updateAdminReport);
+  }
+  if (document.getElementById('adminReportDateRangeSelect')) {
+    document.getElementById('adminReportDateRangeSelect').addEventListener('change', (e) => {
+      const customRange = document.getElementById('adminReportCustomDateRange');
+      if (customRange) customRange.style.display = e.target.value === 'custom' ? 'flex' : 'none';
+      updateAdminReport();
+    });
+  }
+  if (document.getElementById('adminReportFromDate')) {
+    document.getElementById('adminReportFromDate').addEventListener('change', updateAdminReport);
+  }
+  if (document.getElementById('adminReportToDate')) {
+    document.getElementById('adminReportToDate').addEventListener('change', updateAdminReport);
+  }
 
-if (document.getElementById('settlementBtn')) {
-  document.getElementById('settlementBtn').addEventListener('click', openSettlementModal);
-}
-if (document.getElementById('closeSettlementModal')) {
-  document.getElementById('closeSettlementModal').addEventListener('click', () => document.getElementById('settlementModal').style.display = 'none');
-}
-if (document.getElementById('closeSettlementModalBtn')) {
-  document.getElementById('closeSettlementModalBtn').addEventListener('click', () => document.getElementById('settlementModal').style.display = 'none');
-}
-if (document.getElementById('settlementStoreSelect')) {
-  document.getElementById('settlementStoreSelect').addEventListener('change', async () => {
-    if (currentEmployee?.isAdmin) {
-      const newStore = document.getElementById('settlementStoreSelect').value;
-      await refreshSettlementTotals(newStore);
-    }
-  });
-}
-
-if (document.getElementById('checkSettlementBtn')) {
-  document.getElementById('checkSettlementBtn').addEventListener('click', async () => {
-    const actualCash = parseFloat(document.getElementById('actualCash').value);
-    const actualCard = parseFloat(document.getElementById('actualCard').value);
-    const actualQR = parseFloat(document.getElementById('actualQR').value);
-    const errors = [];
-    if (isNaN(actualCash)) errors.push('Cash Count');
-    if (isNaN(actualCard)) errors.push('Card Settlement');
-    if (isNaN(actualQR)) errors.push('QR Settlement');
-    if (errors.length > 0) {
-      const settlementError = document.getElementById('settlementError');
-      if (settlementError) {
-        settlementError.innerText = `Please enter valid numbers for: ${errors.join(', ')}`;
-        settlementError.style.display = 'block';
+  if (document.getElementById('receiptsButton')) {
+    document.getElementById('receiptsButton').addEventListener('click', async () => {
+      if (currentEmployee?.isAdmin) {
+        const employees = await fetchEmployees();
+        const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
+        if (receiptsEmpSelect) {
+          receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
+          employees.forEach(emp => {
+            const opt = document.createElement('option'); opt.value = emp.id; opt.textContent = `${emp.name} (ID: ${emp.id})`;
+            receiptsEmpSelect.appendChild(opt);
+          });
+        }
+        const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
+        const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
+        if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'flex';
+        if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'flex';
+      } else {
+        const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
+        const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
+        if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'none';
+        if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'none';
+        const receiptsStore = document.getElementById('receiptsStoreSelect');
+        if (receiptsStore) receiptsStore.value = currentStore;
       }
-      return;
-    }
-    const cashOk = Math.abs(actualCash - currentSettlementTotals.cash) < 0.01;
-    const cardOk = Math.abs(actualCard - currentSettlementTotals.card) < 0.01;
-    const qrOk = Math.abs(actualQR - currentSettlementTotals.qr) < 0.01;
-    const actualCashEl = document.getElementById('actualCash');
-    const actualCardEl = document.getElementById('actualCard');
-    const actualQREl = document.getElementById('actualQR');
-    if (actualCashEl) actualCashEl.classList.toggle('error-field', !cashOk);
-    if (actualCardEl) actualCardEl.classList.toggle('error-field', !cardOk);
-    if (actualQREl) actualQREl.classList.toggle('error-field', !qrOk);
-    if (cashOk && cardOk && qrOk) {
-      const settlementError = document.getElementById('settlementError');
-      if (settlementError) settlementError.style.display = 'none';
-      setSettlementFieldsEnabled(false);
-      const checkBtn = document.getElementById('checkSettlementBtn');
+      populateStoreSelects();
+      const modal = document.getElementById('receiptsModal');
+      if (modal) modal.style.display = 'flex';
+      updateReceipts();
+    });
+  }
+
+  if (document.getElementById('closeReceiptsBtn')) {
+    document.getElementById('closeReceiptsBtn').addEventListener('click', () => document.getElementById('receiptsModal').style.display = 'none');
+  }
+  if (document.getElementById('closeReceiptsModal')) {
+    document.getElementById('closeReceiptsModal').addEventListener('click', () => document.getElementById('receiptsModal').style.display = 'none');
+  }
+  if (document.getElementById('receiptsStoreSelect')) {
+    document.getElementById('receiptsStoreSelect').addEventListener('change', updateReceipts);
+  }
+  if (document.getElementById('receiptsEmployeeSelect')) {
+    document.getElementById('receiptsEmployeeSelect').addEventListener('change', updateReceipts);
+  }
+  if (document.getElementById('receiptsDateRangeSelect')) {
+    document.getElementById('receiptsDateRangeSelect').addEventListener('change', (e) => {
+      const customRange = document.getElementById('receiptsCustomDateRange');
+      if (customRange) customRange.style.display = e.target.value === 'custom' ? 'flex' : 'none';
+      updateReceipts();
+    });
+  }
+  if (document.getElementById('receiptsFromDate')) {
+    document.getElementById('receiptsFromDate').addEventListener('change', updateReceipts);
+  }
+  if (document.getElementById('receiptsToDate')) {
+    document.getElementById('receiptsToDate').addEventListener('change', updateReceipts);
+  }
+  if (document.getElementById('receiptsSearch')) {
+    document.getElementById('receiptsSearch').addEventListener('input', updateReceipts);
+  }
+
+  if (document.getElementById('settlementBtn')) {
+    document.getElementById('settlementBtn').addEventListener('click', openSettlementModal);
+  }
+  if (document.getElementById('closeSettlementModal')) {
+    document.getElementById('closeSettlementModal').addEventListener('click', () => document.getElementById('settlementModal').style.display = 'none');
+  }
+  if (document.getElementById('closeSettlementModalBtn')) {
+    document.getElementById('closeSettlementModalBtn').addEventListener('click', () => document.getElementById('settlementModal').style.display = 'none');
+  }
+  if (document.getElementById('settlementStoreSelect')) {
+    document.getElementById('settlementStoreSelect').addEventListener('change', async () => {
+      if (currentEmployee?.isAdmin) {
+        const newStore = document.getElementById('settlementStoreSelect').value;
+        await refreshSettlementTotals(newStore);
+      }
+    });
+  }
+
+  if (document.getElementById('checkSettlementBtn')) {
+    document.getElementById('checkSettlementBtn').addEventListener('click', async () => {
+      const actualCash = parseFloat(document.getElementById('actualCash').value);
+      const actualCard = parseFloat(document.getElementById('actualCard').value);
+      const actualQR = parseFloat(document.getElementById('actualQR').value);
+      const errors = [];
+      if (isNaN(actualCash)) errors.push('Cash Count');
+      if (isNaN(actualCard)) errors.push('Card Settlement');
+      if (isNaN(actualQR)) errors.push('QR Settlement');
+      if (errors.length > 0) {
+        const settlementError = document.getElementById('settlementError');
+        if (settlementError) {
+          settlementError.innerText = `Please enter valid numbers for: ${errors.join(', ')}`;
+          settlementError.style.display = 'block';
+        }
+        return;
+      }
+      const cashOk = Math.abs(actualCash - currentSettlementTotals.cash) < 0.01;
+      const cardOk = Math.abs(actualCard - currentSettlementTotals.card) < 0.01;
+      const qrOk = Math.abs(actualQR - currentSettlementTotals.qr) < 0.01;
+      const actualCashEl = document.getElementById('actualCash');
+      const actualCardEl = document.getElementById('actualCard');
+      const actualQREl = document.getElementById('actualQR');
+      if (actualCashEl) actualCashEl.classList.toggle('error-field', !cashOk);
+      if (actualCardEl) actualCardEl.classList.toggle('error-field', !cardOk);
+      if (actualQREl) actualQREl.classList.toggle('error-field', !qrOk);
+      if (cashOk && cardOk && qrOk) {
+        const settlementError = document.getElementById('settlementError');
+        if (settlementError) settlementError.style.display = 'none';
+        setSettlementFieldsEnabled(false);
+        const checkBtn = document.getElementById('checkSettlementBtn');
+        const recordBtn = document.getElementById('recordSettlementBtn');
+        if (checkBtn) checkBtn.style.display = 'none';
+        if (recordBtn) {
+          recordBtn.style.display = 'block';
+          recordBtn.disabled = false;
+        }
+      } else {
+        const errorMessages = [];
+        if (!cashOk) errorMessages.push(`Cash (System: RM ${currentSettlementTotals.cash.toFixed(2)}, Entered: RM ${actualCash.toFixed(2)})`);
+        if (!cardOk) errorMessages.push(`Card (System: RM ${currentSettlementTotals.card.toFixed(2)}, Entered: RM ${actualCard.toFixed(2)})`);
+        if (!qrOk) errorMessages.push(`QR (System: RM ${currentSettlementTotals.qr.toFixed(2)}, Entered: RM ${actualQR.toFixed(2)})`);
+        const settlementError = document.getElementById('settlementError');
+        if (settlementError) {
+          settlementError.innerHTML = `❌ Mismatch in:<br>${errorMessages.join('<br>')}<br>Please correct and try again.`;
+          settlementError.style.display = 'block';
+        }
+      }
+    });
+  }
+
+  if (document.getElementById('recordSettlementBtn')) {
+    document.getElementById('recordSettlementBtn').addEventListener('click', async () => {
+      const store = document.getElementById('settlementStoreSelect').value;
+      const pettyCash = parseFloat(document.getElementById('pettyCashFloat').value) || 0;
+      const actualCash = parseFloat(document.getElementById('actualCash').value);
+      const actualCard = parseFloat(document.getElementById('actualCard').value);
+      const actualQR = parseFloat(document.getElementById('actualQR').value);
       const recordBtn = document.getElementById('recordSettlementBtn');
-      if (checkBtn) checkBtn.style.display = 'none';
-      if (recordBtn) {
-        recordBtn.style.display = 'block';
-        recordBtn.disabled = false;
+      if (recordBtn) recordBtn.disabled = true;
+      showLoading('Recording settlement...');
+      try {
+        const formData = new URLSearchParams();
+        formData.append("action", "recordSettlement");
+        formData.append("employee_id", currentEmployee.id);
+        formData.append("employee_name", currentEmployee.name);
+        formData.append("store", store);
+        formData.append("petty_cash_float", pettyCash);
+        formData.append("date", getLocalDateString(new Date()));
+        formData.append("cash_system", currentSettlementTotals.cash);
+        formData.append("card_system", currentSettlementTotals.card);
+        formData.append("qr_system", currentSettlementTotals.qr);
+        formData.append("cash_actual", actualCash);
+        formData.append("card_actual", actualCard);
+        formData.append("qr_actual", actualQR);
+        const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+        const result = await response.json();
+        if (result.success) {
+          await showAlertModal('Settlement Recorded', 'Settlement has been successfully recorded.');
+          await refreshSettlementTotals(store);
+          document.getElementById('settlementModal').style.display = 'none';
+        } else {
+          await showAlertModal('Error', 'Failed to record settlement: ' + (result.error || 'Unknown error'));
+        }
+      } catch (err) {
+        console.error(err);
+        await showAlertModal('Error', 'Connection error while recording settlement.');
+      } finally {
+        hideLoading();
+        if (recordBtn) recordBtn.disabled = false;
       }
-    } else {
-      const errorMessages = [];
-      if (!cashOk) errorMessages.push(`Cash (System: RM ${currentSettlementTotals.cash.toFixed(2)}, Entered: RM ${actualCash.toFixed(2)})`);
-      if (!cardOk) errorMessages.push(`Card (System: RM ${currentSettlementTotals.card.toFixed(2)}, Entered: RM ${actualCard.toFixed(2)})`);
-      if (!qrOk) errorMessages.push(`QR (System: RM ${currentSettlementTotals.qr.toFixed(2)}, Entered: RM ${actualQR.toFixed(2)})`);
-      const settlementError = document.getElementById('settlementError');
-      if (settlementError) {
-        settlementError.innerHTML = `❌ Mismatch in:<br>${errorMessages.join('<br>')}<br>Please correct and try again.`;
-        settlementError.style.display = 'block';
-      }
-    }
-  });
-}
-
-if (document.getElementById('recordSettlementBtn')) {
-  document.getElementById('recordSettlementBtn').addEventListener('click', async () => {
-    const store = document.getElementById('settlementStoreSelect').value;
-    const pettyCash = parseFloat(document.getElementById('pettyCashFloat').value) || 0;
-    const actualCash = parseFloat(document.getElementById('actualCash').value);
-    const actualCard = parseFloat(document.getElementById('actualCard').value);
-    const actualQR = parseFloat(document.getElementById('actualQR').value);
-    const recordBtn = document.getElementById('recordSettlementBtn');
-    if (recordBtn) recordBtn.disabled = true;
-    showLoading('Recording settlement...');
-    try {
-      const formData = new URLSearchParams();
-      formData.append("action", "recordSettlement");
-      formData.append("employee_id", currentEmployee.id);
-      formData.append("employee_name", currentEmployee.name);
-      formData.append("store", store);
-      formData.append("petty_cash_float", pettyCash);
-      formData.append("date", getLocalDateString(new Date()));
-      formData.append("cash_system", currentSettlementTotals.cash);
-      formData.append("card_system", currentSettlementTotals.card);
-      formData.append("qr_system", currentSettlementTotals.qr);
-      formData.append("cash_actual", actualCash);
-      formData.append("card_actual", actualCard);
-      formData.append("qr_actual", actualQR);
-      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
-      const result = await response.json();
-      if (result.success) {
-        await showAlertModal('Settlement Recorded', 'Settlement has been successfully recorded.');
-        await refreshSettlementTotals(store);
-        document.getElementById('settlementModal').style.display = 'none';
-      } else {
-        await showAlertModal('Error', 'Failed to record settlement: ' + (result.error || 'Unknown error'));
-      }
-    } catch (err) {
-      console.error(err);
-      await showAlertModal('Error', 'Connection error while recording settlement.');
-    } finally {
-      hideLoading();
-      if (recordBtn) recordBtn.disabled = false;
-    }
-  });
-}
-
-if (document.getElementById('collectionBtn')) {
-  document.getElementById('collectionBtn').addEventListener('click', openCollectionModal);
-}
-if (document.getElementById('closeCollectionModal')) {
-  document.getElementById('closeCollectionModal').addEventListener('click', () => document.getElementById('collectionModal').style.display = 'none');
-}
-if (document.getElementById('closeCollectionModalBtn')) {
-  document.getElementById('closeCollectionModalBtn').addEventListener('click', () => document.getElementById('collectionModal').style.display = 'none');
-}
-if (document.getElementById('collectionStoreSelect')) {
-  document.getElementById('collectionStoreSelect').addEventListener('change', loadUnsettledCash);
-}
-if (document.getElementById('selectAllCheckbox')) {
-  document.getElementById('selectAllCheckbox').addEventListener('change', (e) => {
-    const checkboxes = document.querySelectorAll('.collection-checkbox');
-    checkboxes.forEach(cb => cb.checked = e.target.checked);
-    updateCollectionButtonState();
-  });
-}
-if (document.getElementById('collectSelectedBtn')) {
-  document.getElementById('collectSelectedBtn').addEventListener('click', async () => {
-    const selectedIds = Array.from(document.querySelectorAll('.collection-checkbox:checked')).map(cb => cb.value);
-    if (selectedIds.length === 0) return;
-    showLoading('Marking as collected...');
-    try {
-      const formData = new URLSearchParams();
-      formData.append("action", "markCashCollected");
-      formData.append("ids", JSON.stringify(selectedIds));
-      formData.append("employee_id", currentEmployee.id);
-      formData.append("employee_name", currentEmployee.name);
-      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
-      const result = await response.json();
-      if (result.success) {
-        await showAlertModal('Success', `${selectedIds.length} cash record(s) marked as collected.`);
-        await loadUnsettledCash();
-      } else {
-        await showAlertModal('Error', 'Failed to mark as collected: ' + (result.error || 'Unknown error'));
-      }
-    } catch (err) {
-      console.error(err);
-      await showAlertModal('Error', 'Connection error while marking collected.');
-    } finally {
-      hideLoading();
-    }
-  });
-}
-
-if (storeSelect) {
-  storeSelect.addEventListener('change', async () => {
-    if (!storeSelect.disabled) {
-      currentStore = storeSelect.value;
-      await fetchProductsFromSheet();
-      clearCart();
-    }
-  });
-}
-if (document.getElementById('checkoutBtn')) {
-  document.getElementById('checkoutBtn').addEventListener('click', startCheckout);
-}
-if (document.getElementById('claimPrizeBtn')) {
-  document.getElementById('claimPrizeBtn').addEventListener('click', showClaimPrizeModal);
-}
-if (document.getElementById('specialPromoBtn')) {
-  document.getElementById('specialPromoBtn').addEventListener('click', showSpecialPromoModal);
-}
-if (document.getElementById('clearCartBtn')) {
-  document.getElementById('clearCartBtn').addEventListener('click', clearCart);
-}
-if (document.getElementById('refreshProductsBtn')) {
-  document.getElementById('refreshProductsBtn').addEventListener('click', () => {
-    localStorage.removeItem(`products_${currentStore}`);
-    fetchProductsFromSheet(true);
-  });
-}
-if (searchInput) {
-  searchInput.addEventListener('input', () => {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => renderProductGrid(), 300);
-  });
-}
-if (categorySelect) {
-  categorySelect.addEventListener('change', renderProductGrid);
-}
-if (document.getElementById('logoutButton')) {
-  document.getElementById('logoutButton').addEventListener('click', () => {
-    currentEmployee = null;
-    document.getElementById('mainContent').style.display = 'none';
-    document.getElementById('loginModal').style.display = 'flex';
-    document.getElementById('pinInput').value = '';
-    document.getElementById('loginError').innerText = '';
-    cart = [];
-    products = [];
-  });
-}
-if (document.getElementById('closeLoginModal')) {
-  document.getElementById('closeLoginModal').addEventListener('click', () => {});
-}
-if (document.getElementById('gridViewBtn')) {
-  document.getElementById('gridViewBtn').addEventListener('click', () => setViewMode('grid'));
-}
-if (document.getElementById('listViewBtn')) {
-  document.getElementById('listViewBtn').addEventListener('click', () => setViewMode('list'));
-}
-
-const pinInput = document.getElementById('pinInput');
-if (pinInput) {
-  document.querySelectorAll('.keypad-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (btn.dataset.digit && pinInput.value.length < 4) pinInput.value += btn.dataset.digit;
-      else if (btn.dataset.action === 'clear') pinInput.value = pinInput.value.slice(0, -1);
-      else if (btn.dataset.action === 'enter' && pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value);
-      else if (btn.dataset.action === 'enter') document.getElementById('loginError').innerText = 'Please enter 4-digit PIN';
-    });
-  });
-  pinInput.addEventListener('input', () => {
-    if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value);
-  });
-}
-
-async function fetchEmployees() {
-  try {
-    const response = await fetch(`${APPS_SCRIPT_URL}?action=getEmployees`);
-    const result = await response.json();
-    return result.success ? result.employees : [];
-  } catch (err) {
-    console.error(err);
-    return [];
-  }
-}
-
-function populateStoreSelects() {
-  const stores = Array.from(storeSelect.options).map(opt => ({ value: opt.value, text: opt.text }));
-  const receiptsStore = document.getElementById('receiptsStoreSelect');
-  if (receiptsStore) {
-    receiptsStore.innerHTML = '<option value="all">All Stores</option>';
-    stores.forEach(s => {
-      const opt = document.createElement('option');
-      opt.value = s.value;
-      opt.textContent = s.text;
-      receiptsStore.appendChild(opt);
     });
   }
-}
 
-function updateReceipts() {
-  let store;
-  if (currentEmployee?.isAdmin) {
+  if (document.getElementById('collectionBtn')) {
+    document.getElementById('collectionBtn').addEventListener('click', openCollectionModal);
+  }
+  if (document.getElementById('closeCollectionModal')) {
+    document.getElementById('closeCollectionModal').addEventListener('click', () => document.getElementById('collectionModal').style.display = 'none');
+  }
+  if (document.getElementById('closeCollectionModalBtn')) {
+    document.getElementById('closeCollectionModalBtn').addEventListener('click', () => document.getElementById('collectionModal').style.display = 'none');
+  }
+  if (document.getElementById('collectionStoreSelect')) {
+    document.getElementById('collectionStoreSelect').addEventListener('change', loadUnsettledCash);
+  }
+  if (document.getElementById('selectAllCheckbox')) {
+    document.getElementById('selectAllCheckbox').addEventListener('change', (e) => {
+      const checkboxes = document.querySelectorAll('.collection-checkbox');
+      checkboxes.forEach(cb => cb.checked = e.target.checked);
+      updateCollectionButtonState();
+    });
+  }
+  if (document.getElementById('collectSelectedBtn')) {
+    document.getElementById('collectSelectedBtn').addEventListener('click', async () => {
+      const selectedIds = Array.from(document.querySelectorAll('.collection-checkbox:checked')).map(cb => cb.value);
+      if (selectedIds.length === 0) return;
+      showLoading('Marking as collected...');
+      try {
+        const formData = new URLSearchParams();
+        formData.append("action", "markCashCollected");
+        formData.append("ids", JSON.stringify(selectedIds));
+        formData.append("employee_id", currentEmployee.id);
+        formData.append("employee_name", currentEmployee.name);
+        const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+        const result = await response.json();
+        if (result.success) {
+          await showAlertModal('Success', `${selectedIds.length} cash record(s) marked as collected.`);
+          await loadUnsettledCash();
+        } else {
+          await showAlertModal('Error', 'Failed to mark as collected: ' + (result.error || 'Unknown error'));
+        }
+      } catch (err) {
+        console.error(err);
+        await showAlertModal('Error', 'Connection error while marking collected.');
+      } finally {
+        hideLoading();
+      }
+    });
+  }
+
+  if (storeSelect) {
+    storeSelect.addEventListener('change', async () => {
+      if (!storeSelect.disabled) {
+        currentStore = storeSelect.value;
+        await fetchProductsFromSheet();
+        clearCart();
+      }
+    });
+  }
+  if (document.getElementById('checkoutBtn')) {
+    document.getElementById('checkoutBtn').addEventListener('click', startCheckout);
+  }
+  if (document.getElementById('claimPrizeBtn')) {
+    document.getElementById('claimPrizeBtn').addEventListener('click', showClaimPrizeModal);
+  }
+  if (document.getElementById('specialPromoBtn')) {
+    document.getElementById('specialPromoBtn').addEventListener('click', showSpecialPromoModal);
+  }
+  if (document.getElementById('clearCartBtn')) {
+    document.getElementById('clearCartBtn').addEventListener('click', clearCart);
+  }
+  if (document.getElementById('refreshProductsBtn')) {
+    document.getElementById('refreshProductsBtn').addEventListener('click', () => {
+      localStorage.removeItem(`products_${currentStore}`);
+      fetchProductsFromSheet(true);
+    });
+  }
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => renderProductGrid(), 300);
+    });
+  }
+  if (categorySelect) {
+    categorySelect.addEventListener('change', renderProductGrid);
+  }
+  if (document.getElementById('logoutButton')) {
+    document.getElementById('logoutButton').addEventListener('click', () => {
+      currentEmployee = null;
+      document.getElementById('mainContent').style.display = 'none';
+      document.getElementById('loginModal').style.display = 'flex';
+      document.getElementById('pinInput').value = '';
+      document.getElementById('loginError').innerText = '';
+      cart = [];
+      products = [];
+    });
+  }
+  if (document.getElementById('closeLoginModal')) {
+    document.getElementById('closeLoginModal').addEventListener('click', () => {});
+  }
+  if (document.getElementById('gridViewBtn')) {
+    document.getElementById('gridViewBtn').addEventListener('click', () => setViewMode('grid'));
+  }
+  if (document.getElementById('listViewBtn')) {
+    document.getElementById('listViewBtn').addEventListener('click', () => setViewMode('list'));
+  }
+
+  const pinInput = document.getElementById('pinInput');
+  if (pinInput) {
+    document.querySelectorAll('.keypad-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.digit && pinInput.value.length < 4) pinInput.value += btn.dataset.digit;
+        else if (btn.dataset.action === 'clear') pinInput.value = pinInput.value.slice(0, -1);
+        else if (btn.dataset.action === 'enter' && pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value);
+        else if (btn.dataset.action === 'enter') document.getElementById('loginError').innerText = 'Please enter 4-digit PIN';
+      });
+    });
+    pinInput.addEventListener('input', () => {
+      if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value);
+    });
+  }
+
+  async function fetchEmployees() {
+    try {
+      const response = await fetch(`${APPS_SCRIPT_URL}?action=getEmployees`);
+      const result = await response.json();
+      return result.success ? result.employees : [];
+    } catch (err) {
+      console.error(err);
+      return [];
+    }
+  }
+
+  function populateStoreSelects() {
+    const stores = Array.from(storeSelect.options).map(opt => ({ value: opt.value, text: opt.text }));
     const receiptsStore = document.getElementById('receiptsStoreSelect');
-    store = receiptsStore ? receiptsStore.value : 'all';
-  } else {
-    store = currentStore;
-  }
-  let employeeId = 'all';
-  if (currentEmployee?.isAdmin) {
-    const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
-    employeeId = receiptsEmpSelect ? receiptsEmpSelect.value : 'all';
-  }
-  const rangeSelect = document.getElementById('receiptsDateRangeSelect');
-  const range = rangeSelect ? rangeSelect.value : 'today';
-  const search = document.getElementById('receiptsSearch').value;
-  let from = null, to = null;
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  if (range === 'today') {
-    from = getLocalDateString(today);
-    to = from;
-  } else if (range === 'week') {
-    const start = new Date(today);
-    const dayOfWeek = today.getDay();
-    const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
-    start.setDate(today.getDate() - diffToMonday);
-    from = getLocalDateString(start);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    to = getLocalDateString(end);
-  } else if (range === 'month') {
-    const start = new Date(today.getFullYear(), today.getMonth(), 1);
-    from = getLocalDateString(start);
-    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    to = getLocalDateString(end);
-  } else if (range === 'custom') {
-    from = document.getElementById('receiptsFromDate').value;
-    to = document.getElementById('receiptsToDate').value;
-    if (!from || !to) return;
-  }
-  fetchReceipts(store, employeeId, from, to, search);
-}
-
-const toggleBtn = document.getElementById('toggleProductDetailsBtn');
-const productDetailsContainer = document.getElementById('productDetailsContainer');
-if (toggleBtn && productDetailsContainer) {
-  toggleBtn.addEventListener('click', () => {
-    productDetailsVisible = !productDetailsVisible;
-    if (productDetailsVisible) {
-      productDetailsContainer.style.display = 'block';
-      toggleBtn.innerText = '📦 Hide Product Details';
-      if (lastProductData) renderProductDetails(lastProductData);
-    } else {
-      productDetailsContainer.style.display = 'none';
-      toggleBtn.innerText = '📦 Show Product Details';
+    if (receiptsStore) {
+      receiptsStore.innerHTML = '<option value="all">All Stores</option>';
+      stores.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.value;
+        opt.textContent = s.text;
+        receiptsStore.appendChild(opt);
+      });
     }
-  });
-}
+  }
 
-// Claim modal close handlers
-const closeClaimPrizeModal = document.getElementById('closeClaimPrizeModal');
-if (closeClaimPrizeModal) {
-  closeClaimPrizeModal.addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
-}
-const cancelClaimBtn = document.getElementById('cancelClaimBtn');
-if (cancelClaimBtn) {
-  cancelClaimBtn.addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
-}
-const cancelClaimStep2Btn = document.getElementById('cancelClaimStep2Btn');
-if (cancelClaimStep2Btn) {
-  cancelClaimStep2Btn.addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
-}
-const checkReceiptBtn = document.getElementById('checkReceiptBtn');
-if (checkReceiptBtn) {
-  checkReceiptBtn.addEventListener('click', checkReceiptForClaim);
-}
-const applyPrizeBtn = document.getElementById('applyPrizeBtn');
-if (applyPrizeBtn) {
-  applyPrizeBtn.addEventListener('click', applyPrizeToCart);
-}
+  function updateReceipts() {
+    let store;
+    if (currentEmployee?.isAdmin) {
+      const receiptsStore = document.getElementById('receiptsStoreSelect');
+      store = receiptsStore ? receiptsStore.value : 'all';
+    } else {
+      store = currentStore;
+    }
+    let employeeId = 'all';
+    if (currentEmployee?.isAdmin) {
+      const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
+      employeeId = receiptsEmpSelect ? receiptsEmpSelect.value : 'all';
+    }
+    const rangeSelect = document.getElementById('receiptsDateRangeSelect');
+    const range = rangeSelect ? rangeSelect.value : 'today';
+    const search = document.getElementById('receiptsSearch').value;
+    let from = null, to = null;
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    if (range === 'today') {
+      from = getLocalDateString(today);
+      to = from;
+    } else if (range === 'week') {
+      const start = new Date(today);
+      const dayOfWeek = today.getDay();
+      const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+      start.setDate(today.getDate() - diffToMonday);
+      from = getLocalDateString(start);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      to = getLocalDateString(end);
+    } else if (range === 'month') {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      from = getLocalDateString(start);
+      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      to = getLocalDateString(end);
+    } else if (range === 'custom') {
+      from = document.getElementById('receiptsFromDate').value;
+      to = document.getElementById('receiptsToDate').value;
+      if (!from || !to) return;
+    }
+    fetchReceipts(store, employeeId, from, to, search);
+  }
 
-// Special Promo modal close handlers
-const closeSpecialPromoModal = document.getElementById('closeSpecialPromoModal');
-if (closeSpecialPromoModal) {
-  closeSpecialPromoModal.addEventListener('click', () => document.getElementById('specialPromoModal').style.display = 'none');
-}
-const closeSpecialPromoModalBtn = document.getElementById('closeSpecialPromoModalBtn');
-if (closeSpecialPromoModalBtn) {
-  closeSpecialPromoModalBtn.addEventListener('click', () => document.getElementById('specialPromoModal').style.display = 'none');
-}
-const promoBuy2Free1Perfume = document.getElementById('promoBuy2Free1Perfume');
-if (promoBuy2Free1Perfume) {
-  promoBuy2Free1Perfume.addEventListener('click', applyBuy2Free1Perfume);
-}
-const promoBuy3Free1ExcludePerfume = document.getElementById('promoBuy3Free1ExcludePerfume');
-if (promoBuy3Free1ExcludePerfume) {
-  promoBuy3Free1ExcludePerfume.addEventListener('click', applyBuy3Free1ExcludePerfume);
-}
-const applyCustomPromoBtn = document.getElementById('applyCustomPromoBtn');
-if (applyCustomPromoBtn) {
-  applyCustomPromoBtn.addEventListener('click', applyCustomDiscount);
-}
+  const toggleBtn = document.getElementById('toggleProductDetailsBtn');
+  const productDetailsContainer = document.getElementById('productDetailsContainer');
+  if (toggleBtn && productDetailsContainer) {
+    toggleBtn.addEventListener('click', () => {
+      productDetailsVisible = !productDetailsVisible;
+      if (productDetailsVisible) {
+        productDetailsContainer.style.display = 'block';
+        toggleBtn.innerText = '📦 Hide Product Details';
+        if (lastProductData) renderProductDetails(lastProductData);
+      } else {
+        productDetailsContainer.style.display = 'none';
+        toggleBtn.innerText = '📦 Show Product Details';
+      }
+    });
+  }
+
+  // Claim modal close handlers
+  const closeClaimPrizeModal = document.getElementById('closeClaimPrizeModal');
+  if (closeClaimPrizeModal) {
+    closeClaimPrizeModal.addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
+  }
+  const cancelClaimBtn = document.getElementById('cancelClaimBtn');
+  if (cancelClaimBtn) {
+    cancelClaimBtn.addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
+  }
+  const cancelClaimStep2Btn = document.getElementById('cancelClaimStep2Btn');
+  if (cancelClaimStep2Btn) {
+    cancelClaimStep2Btn.addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
+  }
+  const checkReceiptBtn = document.getElementById('checkReceiptBtn');
+  if (checkReceiptBtn) {
+    checkReceiptBtn.addEventListener('click', checkReceiptForClaim);
+  }
+  const applyPrizeBtn = document.getElementById('applyPrizeBtn');
+  if (applyPrizeBtn) {
+    applyPrizeBtn.addEventListener('click', applyPrizeToCart);
+  }
+
+  // Special Promo modal close handlers
+  const closeSpecialPromoModal = document.getElementById('closeSpecialPromoModal');
+  if (closeSpecialPromoModal) {
+    closeSpecialPromoModal.addEventListener('click', () => document.getElementById('specialPromoModal').style.display = 'none');
+  }
+  const closeSpecialPromoModalBtn = document.getElementById('closeSpecialPromoModalBtn');
+  if (closeSpecialPromoModalBtn) {
+    closeSpecialPromoModalBtn.addEventListener('click', () => document.getElementById('specialPromoModal').style.display = 'none');
+  }
+  const promoBuy2Free1Perfume = document.getElementById('promoBuy2Free1Perfume');
+  if (promoBuy2Free1Perfume) {
+    promoBuy2Free1Perfume.addEventListener('click', applyBuy2Free1Perfume);
+  }
+  const promoBuy3Free1ExcludePerfume = document.getElementById('promoBuy3Free1ExcludePerfume');
+  if (promoBuy3Free1ExcludePerfume) {
+    promoBuy3Free1ExcludePerfume.addEventListener('click', applyBuy3Free1ExcludePerfume);
+  }
+  const applyCustomPromoBtn = document.getElementById('applyCustomPromoBtn');
+  if (applyCustomPromoBtn) {
+    applyCustomPromoBtn.addEventListener('click', applyCustomDiscount);
+  }
 </script>
 </body>
 </html>
