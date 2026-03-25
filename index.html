@@ -830,7 +830,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx3_nJfEUFf_hjYqjq6ht6Ulr7AVta37xPoVZO3iP1VfPUsztp9lrne5CW4FKqG2Yu6Bg/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwqdPfPDYDIB3pzvhy_yjmsnorjrtQoe1ZtlfsQjXhveKnlvfJ-y0LpPyjJiE4h37J4/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1270,11 +1270,17 @@
     const result = await response.json();
     if (result.success) {
       const data = result.data;
-     if (data.claimed) {
+   if (data.claimed) {
   let claimMessage = 'This prize has already been claimed.';
   if (data.claimed_at) {
     const claimedDate = new Date(data.claimed_at);
-    const formattedDate = claimedDate.toLocaleString(); // adapt format as needed
+    const formattedDate = claimedDate.toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
     claimMessage += `\nClaimed on: ${formattedDate}`;
   }
   showClaimError(claimMessage);
