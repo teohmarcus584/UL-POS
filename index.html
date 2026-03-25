@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes, viewport-fit=cover">
   <title>POS System | PIN Login</title>
   <style>
-    /* ========== ALL EXISTING STYLES ========== */
+    /* ========== ALL EXISTING STYLES (unchanged) ========== */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -374,82 +374,206 @@
     .loading-spinner { width: 50px; height: 50px; border: 5px solid #e2e8f0; border-top: 5px solid #2c7a4b; border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .loading-text { color: white; margin-top: 12px; }
-
-    /* ========== RESPONSIVE FOR SMALL TABLETS ========== */
     @media (max-width: 780px) {
-      /* Layout already stacks columns; we shrink everything further */
       .pos-dashboard { flex-direction: column; }
       .product-grid { max-height: 40vh; }
       .product-list .product-card { flex-direction: column; align-items: stretch; text-align: center; }
       .product-list .product-name, .product-list .product-price, .product-list .product-stock { margin: 4px 0; text-align: center; }
       .product-list .add-btn { width: 100%; }
       .store-selector { flex-direction: column; align-items: stretch; }
-
-      /* NEW: Shrink fonts, paddings, and buttons */
-      body { padding: 12px; }
-      .pos-header { padding: 8px 12px; gap: 8px; }
-      h1 { font-size: 1.3rem; }
-      .header-buttons button, #connectPrinterButton {
-        padding: 6px 12px;
-        font-size: 0.75rem;
-      }
-      #printerStatus { font-size: 0.7rem; padding: 4px 8px; }
-      .employee-bar { padding: 8px 12px; gap: 8px; }
-      .employee-info { font-size: 0.85rem; }
-      .employee-actions button {
-        padding: 4px 10px;
-        font-size: 0.7rem;
-      }
-      .store-selector { padding: 8px 12px; gap: 8px; }
-      .store-selector select, #soldBySelect {
-        padding: 6px 12px;
-        font-size: 0.85rem;
-        min-width: 140px;
-      }
-      .products-panel { padding: 12px; }
-      .filter-bar { gap: 6px; }
-      #categorySelect, .search-bar {
-        padding: 6px 12px;
-        font-size: 0.85rem;
-      }
-      .view-toggle button { padding: 4px 10px; font-size: 0.7rem; }
-      .product-grid {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        gap: 10px;
-      }
-      .product-card { padding: 10px 6px; }
-      .product-name { font-size: 0.85rem; }
-      .product-price { font-size: 1rem; }
-      .product-stock { font-size: 0.6rem; }
-      .add-btn { padding: 5px 8px; font-size: 0.7rem; }
-      .cart-panel { padding: 12px; }
-      .cart-header { margin-bottom: 10px; gap: 8px; }
-      .cart-title { font-size: 1.1rem; }
-      .cart-header-btn { padding: 5px 10px; font-size: 0.7rem; }
-      .cart-items { max-height: 35vh; }
-      .cart-item { padding: 8px 0; }
-      .cart-item-name { font-size: 0.8rem; }
-      .cart-item-category { font-size: 0.6rem; }
-      .cart-item-price { font-size: 0.7rem; }
-      .qty-btn { width: 24px; height: 24px; font-size: 0.9rem; }
-      .cart-item-total { font-size: 0.8rem; min-width: 55px; }
-      .remove-item { font-size: 1rem; width: 24px; }
-      .summary-row { font-size: 0.9rem; margin: 6px 0; }
-      .total-row { font-size: 1.2rem; padding-top: 8px; }
-      .summary-row.discount-row { padding: 4px 8px; margin: 4px 0; }
-      .cart-actions button { padding: 8px; font-size: 0.8rem; }
-      .modal-container { padding: 16px; }
-      .modal-title { font-size: 1.2rem; margin-bottom: 12px; }
-      .modal-input, .modal-select { padding: 8px 12px; font-size: 0.85rem; }
-      .modal-btn { padding: 8px 16px; font-size: 0.85rem; }
-      .suggestion-btn { padding: 6px 12px; font-size: 0.8rem; }
-      .custom-cash-input { padding: 10px 12px; font-size: 1rem; }
-      .pin-input { font-size: 1.5rem; letter-spacing: 4px; }
-      .keypad-btn { padding: 10px; font-size: 1.2rem; }
-      .promo-option-btn { padding: 8px; font-size: 0.85rem; }
-      .currency-symbol { padding: 8px 0 8px 10px; }
-      .currency-field { padding: 8px 6px; }
-      .apply-btn { margin-top: 6px; }
+    }
+    .payment-buttons {
+      display: flex;
+      gap: 12px;
+      margin: 20px 0;
+    }
+    .payment-btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: 40px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      background: #e2e8f0;
+      transition: 0.1s;
+    }
+    .payment-btn.selected {
+      background: #2c7a4b;
+      color: white;
+    }
+    .suggestions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 16px 0;
+    }
+    .suggestion-btn {
+      background: #f1f5f9;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 40px;
+      font-weight: 500;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    .suggestion-btn:hover {
+      background: #e2e8f0;
+    }
+    .custom-cash-input {
+      width: 100%;
+      padding: 16px 20px;
+      font-size: 1.2rem;
+      border: 2px solid #cbd5e1;
+      border-radius: 60px;
+      margin: 12px 0;
+      text-align: right;
+      font-weight: 500;
+    }
+    .custom-cash-input:focus {
+      outline: none;
+      border-color: #2c7a4b;
+    }
+    .pin-input {
+      width: 100%;
+      text-align: center;
+      font-size: 2rem;
+      letter-spacing: 8px;
+      padding: 12px;
+      border-radius: 60px;
+      border: 1px solid #cbd5e1;
+      font-family: monospace;
+    }
+    .pin-keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .keypad-btn {
+      background: #f1f5f9;
+      border: none;
+      padding: 16px;
+      border-radius: 60px;
+      font-size: 1.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.1s;
+    }
+    .keypad-btn:active {
+      transform: scale(0.95);
+      background: #e2e8f0;
+    }
+    .keypad-btn.clear {
+      background: #ef4444;
+      color: white;
+    }
+    .keypad-btn.enter {
+      background: #2c7a4b;
+      color: white;
+    }
+    #storeSelectModal .modal-container {
+      max-width: 500px;
+      text-align: center;
+      border-radius: 48px;
+      padding: 40px 32px;
+      background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+    }
+    #storeSelectModal .modal-title {
+      font-size: 2rem;
+      font-weight: 800;
+      margin-bottom: 32px;
+      color: #0f172a;
+    }
+    .store-select-modal {
+      width: 100%;
+      padding: 16px 28px;
+      font-size: 1.2rem;
+      font-weight: 600;
+      border-radius: 60px;
+      border: 1px solid #cbd5e1;
+      background: white;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234b5563' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+      background-repeat: no-repeat;
+      background-position: right 24px center;
+      background-size: 18px;
+      margin: 16px 0 32px;
+    }
+    #storeSelectModal .modal-btn-primary {
+      background: #2c7a4b;
+      padding: 14px 40px;
+      font-size: 1.1rem;
+    }
+    .product-details-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    .product-details-table th,
+    .product-details-table td {
+      padding: 10px 8px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .product-details-table th {
+      background: #f1f5f9;
+      position: sticky;
+      top: 0;
+      font-weight: 600;
+    }
+    .product-details-table tr:hover {
+      background: #f8fafc;
+    }
+    .product-details-table td:last-child,
+    .product-details-table th:last-child {
+      text-align: right;
+    }
+    .product-details-table td:nth-child(3) {
+      text-align: right;
+    }
+    .settlement-stats {
+      background: #f1f5f9;
+      padding: 12px;
+      border-radius: 20px;
+      margin: 16px 0;
+    }
+    .settlement-stats p {
+      margin: 8px 0;
+      font-size: 1rem;
+    }
+    .settlement-stats strong {
+      color: #0f172a;
+    }
+    .error-field {
+      border-color: #ef4444 !important;
+      background-color: #fee2e2;
+    }
+    .collection-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+    .collection-table th,
+    .collection-table td {
+      padding: 12px 8px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .collection-table th {
+      background: #f1f5f9;
+      position: sticky;
+      top: 0;
+    }
+    .collection-table tr:hover {
+      background: #f8fafc;
+    }
+    .collection-table td:last-child,
+    .collection-table th:last-child {
+      text-align: right;
+    }
+    .collection-table td:nth-child(4) {
+      text-align: right;
     }
 
     /* Discount rows styling */
@@ -854,7 +978,7 @@
     <div class="modal-title">💵 Cash Collection</div>
     <div class="filter-group"><label>Store</label><select id="collectionStoreSelect"><option value="all">All Stores</option><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div>
     <div id="collectionTotal" class="settlement-stats" style="margin-top: 12px;"><p>💰 Total Outstanding Cash: <strong id="totalOutstandingCash">RM 0.00</strong></p></div>
-    <div style="overflow-x: auto;"><table class="collection-table" id="collectionTable"><thead>   </thead><tbody id="collectionTableBody">   </tbody></table></div>
+    <div style="overflow-x: auto;"><table class="collection-table" id="collectionTable"><thead>   </thead><tbody id="collectionTableBody">   </tbody> </table></div>
     <div class="modal-buttons" style="margin-top: 16px;"><button id="collectSelectedBtn" class="modal-btn modal-btn-primary" disabled>Collect Selected</button><button id="closeCollectionModalBtn" class="modal-btn modal-btn-secondary">Close</button></div>
   </div>
 </div>
@@ -900,8 +1024,8 @@
   let searchTimeout = null;
   let initialDataPromise = null;
   let discountAmount = 0;          // Lucky Draw discount
-  let buy2Free1Discount = 0;      // discount from Buy 3 Free 1 (Perfume)
-  let buy3Free1Discount = 0;      // discount from Buy 4 Free 1 (Excluding Perfume)
+  let buy2Free1Discount = 0;      // discount from Buy 2 Free 1 (Perfume)
+  let buy3Free1Discount = 0;      // discount from Buy 3 Free 1 (Excluding Perfume)
   let customDiscount = 0;          // manually entered custom discount
   let claimedReceiptInfo = null;
   let pendingPrize = null;          // { receipt, value, name }
@@ -1065,7 +1189,7 @@
         })).sort((a, b) => a.name.localeCompare(b.name));
 
         const categories = [...new Set(products.map(p => p.category))].sort();
-        categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
+        categorySelect.innerHTML = '<option value="all">?? All Categories</option>';
         categories.forEach(cat => {
           const option = document.createElement('option');
           option.value = cat;
@@ -1111,7 +1235,7 @@
           if (now - timestamp < 5 * 60 * 1000) {
             products = cachedProducts;
             const categories = [...new Set(products.map(p => p.category))].sort();
-            categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
+            categorySelect.innerHTML = '<option value="all">?? All Categories</option>';
             categories.forEach(cat => {
               const option = document.createElement('option');
               option.value = cat;
@@ -1141,7 +1265,7 @@
         })).sort((a, b) => a.name.localeCompare(b.name));
 
         const categories = [...new Set(products.map(p => p.category))].sort();
-        categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
+        categorySelect.innerHTML = '<option value="all">?? All Categories</option>';
         categories.forEach(cat => {
           const option = document.createElement('option');
           option.value = cat;
@@ -1176,7 +1300,7 @@
     }
     let html = '';
     filtered.forEach(prod => {
-      const stockStatus = prod.stock > 0 ? `📦 Stock: ${prod.stock}` : '❌ Out of stock';
+      const stockStatus = prod.stock > 0 ? `?? Stock: ${prod.stock}` : '? Out of stock';
       html += `<div class="product-card">
         <div class="product-name">${escapeHtml(prod.name)}</div>
         <div class="product-price">RM ${prod.price.toFixed(2)}</div>
@@ -1238,12 +1362,12 @@
             <div class="cart-item-price">RM ${item.product.price.toFixed(2)}</div>
           </div>
           <div class="cart-item-qty">
-            <button class="qty-btn" data-index="${idx}" data-delta="-1">−</button>
+            <button class="qty-btn" data-index="${idx}" data-delta="-1">?</button>
             <span>${item.quantity}</span>
             <button class="qty-btn" data-index="${idx}" data-delta="1">+</button>
           </div>
           <div class="cart-item-total">RM ${itemTotal.toFixed(2)}</div>
-          <button class="remove-item" data-index="${idx}">✕</button>
+          <button class="remove-item" data-index="${idx}">?</button>
         </div>
       `;
     });
@@ -1262,7 +1386,7 @@
       discountRow.style.display = 'none';
     }
 
-    // Buy 3 Free 1 (Perfume)
+    // Buy 2 Free 1 (Perfume)
     if (buy2Free1Discount > 0) {
       promoBuy2Free1Row.style.display = 'flex';
       promoBuy2Free1Amount.innerText = `RM ${buy2Free1Discount.toFixed(2)}`;
@@ -1270,7 +1394,7 @@
       promoBuy2Free1Row.style.display = 'none';
     }
 
-    // Buy 4 Free 1 (Excluding Perfume)
+    // Buy 3 Free 1 (Excluding Perfume)
     if (buy3Free1Discount > 0) {
       promoBuy3Free1Row.style.display = 'flex';
       promoBuy3Free1Amount.innerText = `RM ${buy3Free1Discount.toFixed(2)}`;
@@ -1575,7 +1699,7 @@
       }
     }
 
-    console.log("Total non‑perfume units:", totalNonPerfumeUnits, "Cheapest price:", cheapestPrice);
+    console.log("Total non?perfume units:", totalNonPerfumeUnits, "Cheapest price:", cheapestPrice);
 
     if (totalNonPerfumeUnits < 4) {
       const msgDiv = document.getElementById('promoMessage');
@@ -1737,7 +1861,7 @@
       } else {
         await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
       }
-      await showAlertModal('✅ Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
+      await showAlertModal('? Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
       document.getElementById('luckyTxId').innerText = transactionId;
       const luckyModal = document.getElementById('luckyDrawModal');
       luckyModal.style.display = 'flex';
@@ -1835,12 +1959,12 @@
           <div>Items: ${itemsSummary}</div>
         </div>
         <div class="receipt-actions">
-          <button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>🖨️ Reprint</button>`;
+          <button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>??? Reprint</button>`;
       if (!isRefund && !isRefundedOriginal) {
-        html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>
-                 <button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">💰 Refund</button>`;
+        html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">?? Lucky Draw</button>
+                 <button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">?? Refund</button>`;
       } else if (!isRefund && isRefundedOriginal) {
-        html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>`;
+        html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">?? Lucky Draw</button>`;
       }
       html += `</div></div>`;
     });
@@ -2057,17 +2181,12 @@
   function renderProductDetails(productsData) {
     const tbody = document.getElementById('productDetailsBody');
     if (!productsData || productsData.length === 0) {
-      tbody.innerHTML = ' <tr><td colspan="4" style="text-align: center;">No products sold in this period.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No products sold in this period.</td></tr>';
       return;
     }
     let html = '';
     productsData.forEach(p => {
-      html += `<tr>
-        <td>${escapeHtml(p.name)}</td>
-        <td>${escapeHtml(p.category)}</td>
-        <td style="text-align: right;">${p.quantity}</td>
-        <td style="text-align: right;">RM ${p.total.toFixed(2)}</td>
-      </tr>`;
+      html += `<tr><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.category)}</td><td style="text-align: right;">${p.quantity}</td><td style="text-align: right;">RM ${p.total.toFixed(2)}</td></tr>`;
     });
     tbody.innerHTML = html;
   }
@@ -2149,7 +2268,7 @@
       document.getElementById('sysRefund').innerText = `RM ${Math.abs(currentSettlementTotals.refund).toFixed(2)}`;
       const alreadySettled = await checkSettlementStatus(store, todayStr);
       if (alreadySettled) {
-        document.getElementById('settlementError').innerHTML = '⚠️ Settlement has already been recorded for today. No further settlement allowed.';
+        document.getElementById('settlementError').innerHTML = '?? Settlement has already been recorded for today. No further settlement allowed.';
         document.getElementById('settlementError').style.display = 'block';
         document.getElementById('checkSettlementBtn').disabled = true;
         document.getElementById('recordSettlementBtn').style.display = 'none';
@@ -2290,7 +2409,7 @@
     function generateReceiptData(transaction, openDrawer = false) {
       const encoder = new TextEncoder();
       const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
-      const lines = ['', '    ★ POS INVOICE ★', '-----------------------------', `Txn: ${transaction.transaction_id}`, `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`, `Employee: ${employeeName}`, '-----------------------------'];
+      const lines = ['', '    ? POS INVOICE ?', '-----------------------------', `Txn: ${transaction.transaction_id}`, `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`, `Employee: ${employeeName}`, '-----------------------------'];
       let total = 0;
       for (let item of transaction.items) {
         const displayName = item.category ? `${item.category}: ${item.name}` : item.name;
@@ -2318,43 +2437,43 @@
 
     async function openCashDrawer() {
       if (!isConnected || !printerCharacteristic) {
-        printerStatusDiv.innerText = '❌ Printer not connected';
+        printerStatusDiv.innerText = '? Printer not connected';
         return false;
       }
       try {
         const drawerCommand = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]);
         await printerCharacteristic.writeValue(drawerCommand);
-        printerStatusDiv.innerText = '💰 Drawer opened';
-        setTimeout(() => { if (isConnected) printerStatusDiv.innerText = '✅ Printer ready'; }, 2000);
+        printerStatusDiv.innerText = '?? Drawer opened';
+        setTimeout(() => { if (isConnected) printerStatusDiv.innerText = '? Printer ready'; }, 2000);
         return true;
       } catch (err) {
         console.error(err);
-        printerStatusDiv.innerText = `❌ Drawer error`;
+        printerStatusDiv.innerText = `? Drawer error`;
         return false;
       }
     }
 
     async function printReceipt(transaction) {
       if (!isConnected || !printerCharacteristic) {
-        printerStatusDiv.innerText = '❌ Printer not connected';
+        printerStatusDiv.innerText = '? Printer not connected';
         return false;
       }
       try {
         const openDrawer = (transaction.payment_method === 'Cash');
         const data = generateReceiptData(transaction, openDrawer);
         await printerCharacteristic.writeValue(data);
-        printerStatusDiv.innerText = '✅ Receipt printed';
+        printerStatusDiv.innerText = '? Receipt printed';
         return true;
       } catch (err) {
         console.error(err);
-        printerStatusDiv.innerText = `❌ Print error`;
+        printerStatusDiv.innerText = `? Print error`;
         return false;
       }
     }
 
     async function connectPrinter() {
       try {
-        printerStatusDiv.innerText = '🔍 Scanning...';
+        printerStatusDiv.innerText = '?? Scanning...';
         connectBtn.disabled = true;
         const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] });
         gattServer = await device.gatt.connect();
@@ -2374,11 +2493,11 @@
         printerCharacteristic = foundChar;
         isConnected = true;
         window.printerAPI.isConnected = true;
-        printerStatusDiv.innerText = '✅ Printer ready';
-        connectBtn.innerText = '🔌 Disconnect';
+        printerStatusDiv.innerText = '? Printer ready';
+        connectBtn.innerText = '?? Disconnect';
         openDrawerBtn.disabled = false;
       } catch (err) {
-        printerStatusDiv.innerText = `❌ ${err.message}`;
+        printerStatusDiv.innerText = `? ${err.message}`;
         gattServer = null;
         printerCharacteristic = null;
       } finally {
@@ -2390,8 +2509,8 @@
       if (gattServer) { gattServer.disconnect(); gattServer = null; printerCharacteristic = null; }
       isConnected = false;
       window.printerAPI.isConnected = false;
-      printerStatusDiv.innerText = '⚪ Not connected';
-      connectBtn.innerText = '🖨️ Connect Printer';
+      printerStatusDiv.innerText = '? Not connected';
+      connectBtn.innerText = '??? Connect Printer';
       openDrawerBtn.disabled = true;
     }
 
@@ -2660,7 +2779,7 @@
         if (!qrOk) errorMessages.push(`QR (System: RM ${currentSettlementTotals.qr.toFixed(2)}, Entered: RM ${actualQR.toFixed(2)})`);
         const settlementError = document.getElementById('settlementError');
         if (settlementError) {
-          settlementError.innerHTML = `❌ Mismatch in:<br>${errorMessages.join('<br>')}<br>Please correct and try again.`;
+          settlementError.innerHTML = `? Mismatch in:<br>${errorMessages.join('<br>')}<br>Please correct and try again.`;
           settlementError.style.display = 'block';
         }
       }
@@ -2905,11 +3024,11 @@
       productDetailsVisible = !productDetailsVisible;
       if (productDetailsVisible) {
         productDetailsContainer.style.display = 'block';
-        toggleBtn.innerText = '📦 Hide Product Details';
+        toggleBtn.innerText = '?? Hide Product Details';
         if (lastProductData) renderProductDetails(lastProductData);
       } else {
         productDetailsContainer.style.display = 'none';
-        toggleBtn.innerText = '📦 Show Product Details';
+        toggleBtn.innerText = '?? Show Product Details';
       }
     });
   }
