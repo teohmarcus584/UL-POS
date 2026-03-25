@@ -1248,7 +1248,7 @@
     updateCartUI();
   }
 
-  // ==================== CLAIM PRIZE ====================
+  // ==================== CLAIM PRIZE FUNCTIONS ====================
   function showClaimPrizeModal() {
     document.getElementById('claimStep1').style.display = 'block';
     document.getElementById('claimStep2').style.display = 'none';
@@ -1257,50 +1257,169 @@
     document.getElementById('claimPrizeModal').style.display = 'flex';
   }
 
-async function checkReceiptForClaim() {
   function showClaimError(msg) {
     const errorDiv = document.getElementById('claimError');
     errorDiv.innerText = msg;
     errorDiv.style.display = 'block';
   }
 
-function applyPrizeToCart() {
-  const receiptData = window.pendingClaimReceipt;
-  if (!receiptData) return;
-  const prizeValue = parseFloat(document.getElementById('prizeSelect').value);
-  const prizeText = document.getElementById('prizeSelect').selectedOptions[0].text;
-
-  pendingPrize = {
-    receipt: receiptData.receipt,
-    value: prizeValue,
-    name: prizeText
-  };
-
-  discountAmount = prizeValue;
-  claimedReceiptInfo = pendingPrize;
-  updateCartUI();
-
-  showAlertModal('Prize Applied', `Discount of RM ${prizeValue.toFixed(2)} has been applied to this sale.\nThe prize will be marked as claimed only after successful payment.`);
-
-  document.getElementById('claimPrizeModal').style.display = 'none';
-}
-
- async function claimPrizeAfterSale(receipt, prizeValue, finalTotal) {
-  try {
-    const formData = new URLSearchParams();
-    formData.append("action", "claim");
-    formData.append("receipt", receipt);
-    formData.append("value", prizeValue);
-    formData.append("finalTotal", finalTotal); // send the final total
-    const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
-    const result = await response.json();
-    if (!result.success) {
-      console.warn('Prize claim failed after sale:', result.error);
+  // Robust date parser from UL LUCKY SPIN
+  function parseSpinDate(timestamp) {
+    if (!timestamp) return null;
+    let spinDate = new Date(timestamp);
+    if (isNaN(spinDate.getTime())) {
+      const parts = timestamp.split(/[-/]/);
+      if (parts.length === 3) {
+        let year, month, day;
+        if (parts[0].length === 4) {
+          year = parseInt(parts[0]);
+          month = parseInt(parts[1]) - 1;
+          day = parseInt(parts[2]);
+        } else {
+          day = parseInt(parts[0]);
+          month = parseInt(parts[1]) - 1;
+          year = parseInt(parts[2]);
+        }
+        spinDate = new Date(year, month, day);
+      } else {
+        return null;
+      }
     }
-  } catch (err) {
-    console.error('Error claiming prize after sale:', err);
+    if (isNaN(spinDate.getTime())) return null;
+    return new Date(spinDate.getFullYear(), spinDate.getMonth(), spinDate.getDate());
   }
-}
+
+  function getExpiryInfo(timestamp) {
+    const spinDate = parseSpinDate(timestamp);
+    if (!spinDate) return { valid: false, message: 'Invalid date format' };
+    const today = new Date();
+    const currentDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const diffDays = Math.floor((currentDay - spinDate) / (1000 * 60 * 60 * 24));
+    const expiryDate = new Date(spinDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+    return {
+      valid: true,
+      spinDate: spinDate,
+      diffDays,
+      expired: diffDays > 30,
+      expiryDate
+    };
+  }
+
+  async function checkReceiptForClaim() {
+    const receipt = document.getElementById('claimReceiptInput').value.trim();
+    if (!receipt) {
+      showClaimError('Please enter a receipt number.');
+      return;
+    }
+    showLoading('Checking receipt...');
+    try {
+      const url = `${APPS_SCRIPT_URL}?action=get&receipt=${encodeURIComponent(receipt)}`;
+      const response = await fetch(url);
+      const result = await response.json();
+
+      if (result.success) {
+        const data = result.data;
+
+        // Already claimed
+        if (data.claimed) {
+          let claimMessage = 'This prize has already been claimed.';
+          if (data.claimed_at) {
+            const claimedDate = new Date(data.claimed_at);
+            const formattedDate = claimedDate.toLocaleString(undefined, {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+            claimMessage += `\nClaimed on: ${formattedDate}`;
+          }
+          showClaimError(claimMessage);
+          return;
+        }
+
+        // 30‑day expiry check
+        const expiry = getExpiryInfo(data.timestamp);
+        if (!expiry.valid || expiry.expired) {
+          const expiryDateStr = expiry.expiryDate ? expiry.expiryDate.toLocaleDateString() : 'unknown date';
+          showClaimError(`This prize expired on ${expiryDateStr} (30 days after creation). Claims are not allowed after 30 days.`);
+          return;
+        }
+
+        // Extract discount value from prize name (e.g., "CAR AROMATIC RM 38" → 38)
+        const prizeName = data.prize;
+        const match = prizeName.match(/\b(\d+(?:\.\d+)?)\b/);
+        const discountValue = match ? parseFloat(match[1]) : 0;
+
+        if (discountValue === 0) {
+          showClaimError('Could not determine discount amount from prize name.');
+          return;
+        }
+
+        // Store prize info for later claiming after sale
+        pendingPrize = {
+          receipt: data.receipt,
+          value: discountValue,
+          name: prizeName
+        };
+
+        // Apply discount immediately
+        discountAmount = discountValue;
+        claimedReceiptInfo = pendingPrize;
+        updateCartUI();
+
+        // Show confirmation and close modal
+        showAlertModal('Prize Applied', `Discount of RM ${discountValue.toFixed(2)} has been applied to this sale.\nThe prize will be marked as claimed only after successful payment.`);
+        document.getElementById('claimPrizeModal').style.display = 'none';
+
+      } else {
+        showClaimError(result.error || 'Receipt not found.');
+      }
+    } catch (err) {
+      console.error(err);
+      showClaimError('Connection error. Please try again.');
+    } finally {
+      hideLoading();
+    }
+  }
+
+  function applyPrizeToCart() {
+    const receiptData = window.pendingClaimReceipt;
+    if (!receiptData) return;
+    const prizeValue = parseFloat(document.getElementById('prizeSelect').value);
+    const prizeText = document.getElementById('prizeSelect').selectedOptions[0].text;
+
+    pendingPrize = {
+      receipt: receiptData.receipt,
+      value: prizeValue,
+      name: prizeText
+    };
+
+    discountAmount = prizeValue;
+    claimedReceiptInfo = pendingPrize;
+    updateCartUI();
+
+    showAlertModal('Prize Applied', `Discount of RM ${prizeValue.toFixed(2)} has been applied to this sale.\nThe prize will be marked as claimed only after successful payment.`);
+
+    document.getElementById('claimPrizeModal').style.display = 'none';
+  }
+
+  async function claimPrizeAfterSale(receipt, prizeValue, finalTotal) {
+    try {
+      const formData = new URLSearchParams();
+      formData.append("action", "claim");
+      formData.append("receipt", receipt);
+      formData.append("value", prizeValue);
+      formData.append("finalTotal", finalTotal);
+      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+      const result = await response.json();
+      if (!result.success) {
+        console.warn('Prize claim failed after sale:', result.error);
+      }
+    } catch (err) {
+      console.error('Error claiming prize after sale:', err);
+    }
+  }
 
   // ==================== CHECKOUT ====================
   async function startCheckout() {
@@ -1423,11 +1542,10 @@ function applyPrizeToCart() {
     };
     const success = await saveTransactionToSheet(transaction);
     if (success) {
-     if (pendingPrize) {
-  // finalTotal is the totalAmount after discount (already used in the sale)
-  await claimPrizeAfterSale(pendingPrize.receipt, pendingPrize.value, totalAmount);
-  pendingPrize = null;
-}
+      if (pendingPrize) {
+        await claimPrizeAfterSale(pendingPrize.receipt, pendingPrize.value, totalAmount);
+        pendingPrize = null;
+      }
 
       localStorage.removeItem(`products_${currentStore}`);
 
@@ -1763,7 +1881,7 @@ function applyPrizeToCart() {
   function renderProductDetails(productsData) {
     const tbody = document.getElementById('productDetailsBody');
     if (!productsData || productsData.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No products sold in this period.</td></tr>';
+      tbody.innerHTML = ' <tr><td colspan="4" style="text-align: center;">No products sold in this period.</td></tr>';
       return;
     }
     let html = '';
@@ -1947,7 +2065,7 @@ function applyPrizeToCart() {
   function renderCollectionTable() {
     const tbody = document.getElementById('collectionTableBody');
     if (!currentUnsettledCash.length) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No unsettled cash records found.</td></tr>';
+      tbody.innerHTML = ' <tr><td colspan="4" style="text-align: center;">No unsettled cash records found.</td></tr>';
       return;
     }
     let html = '';
