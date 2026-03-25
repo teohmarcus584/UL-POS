@@ -1451,33 +1451,38 @@
     document.getElementById('customPromoValue').value = '';
   }
 
-  function applyBuy2Free1Perfume() {
+ function applyBuy2Free1Perfume() {
   // Debug: show all items in cart
   console.log("Cart items:", cart.map(item => ({
     name: item.product.name,
-    category: item.product.category
+    category: item.product.category,
+    quantity: item.quantity,
+    price: item.product.price
   })));
 
-  // Filter items where category contains "100ml perfume edp" (case‑insensitive, trimmed)
-  const perfumeItems = cart.filter(item => {
+  // Sum quantities of items that match the perfume category
+  let totalPerfumeUnits = 0;
+  let cheapestPrice = Infinity;
+  for (let item of cart) {
     const cat = (item.product.category || "").trim().toLowerCase();
-    return cat === "100ml perfume edp";
-  });
+    if (cat.includes("100ml perfume edp")) {
+      totalPerfumeUnits += item.quantity;
+      if (item.product.price < cheapestPrice) {
+        cheapestPrice = item.product.price;
+      }
+    }
+  }
 
-  console.log("Perfume items found:", perfumeItems.length);
+  console.log("Total perfume units:", totalPerfumeUnits, "Cheapest price:", cheapestPrice);
 
-  if (perfumeItems.length < 2) {
+  if (totalPerfumeUnits < 2) {
     const msgDiv = document.getElementById('promoMessage');
-    msgDiv.innerText = `Need at least 2 items in '100ML PERFUME EDP' category. Found ${perfumeItems.length}.`;
+    msgDiv.innerText = `Need at least 2 items in '100ML PERFUME EDP' category. Found ${totalPerfumeUnits}.`;
     msgDiv.style.display = 'block';
     return;
   }
 
-  // Find the cheapest item among them
-  const cheapest = perfumeItems.reduce((min, item) =>
-    (item.product.price < min.product.price ? item : min), perfumeItems[0]
-  );
-  promoDiscount = cheapest.product.price;
+  promoDiscount = cheapestPrice;
   updateCartUI();
   document.getElementById('specialPromoModal').style.display = 'none';
 }
@@ -1486,33 +1491,37 @@ function applyBuy3Free1ExcludePerfume() {
   // Debug: show all items in cart
   console.log("Cart items:", cart.map(item => ({
     name: item.product.name,
-    category: item.product.category
+    category: item.product.category,
+    quantity: item.quantity,
+    price: item.product.price
   })));
 
-  // Filter items that are NOT in the perfume category
-  const nonPerfumeItems = cart.filter(item => {
+  // Sum quantities of items that are NOT in the perfume category
+  let totalNonPerfumeUnits = 0;
+  let cheapestPrice = Infinity;
+  for (let item of cart) {
     const cat = (item.product.category || "").trim().toLowerCase();
-    return !cat.includes("100ml perfume edp");
-  });
+    if (!cat.includes("100ml perfume edp")) {
+      totalNonPerfumeUnits += item.quantity;
+      if (item.product.price < cheapestPrice) {
+        cheapestPrice = item.product.price;
+      }
+    }
+  }
 
-  console.log("Non‑perfume items found:", nonPerfumeItems.length);
+  console.log("Total non‑perfume units:", totalNonPerfumeUnits, "Cheapest price:", cheapestPrice);
 
-  if (nonPerfumeItems.length < 3) {
+  if (totalNonPerfumeUnits < 3) {
     const msgDiv = document.getElementById('promoMessage');
-    msgDiv.innerText = `Need at least 3 items excluding Perfume category. Found ${nonPerfumeItems.length}.`;
+    msgDiv.innerText = `Need at least 3 items excluding Perfume category. Found ${totalNonPerfumeUnits}.`;
     msgDiv.style.display = 'block';
     return;
   }
 
-  // Find the cheapest item among the qualifying ones
-  const cheapest = nonPerfumeItems.reduce((min, item) =>
-    (item.product.price < min.product.price ? item : min), nonPerfumeItems[0]
-  );
-  promoDiscount = cheapest.product.price;
+  promoDiscount = cheapestPrice;
   updateCartUI();
   document.getElementById('specialPromoModal').style.display = 'none';
 }
-
   function applyCustomDiscount() {
     const val = parseFloat(document.getElementById('customPromoValue').value);
     if (isNaN(val) || val <= 0) {
