@@ -548,14 +548,14 @@
 <!-- Store Selection Modal (shown on page load) -->
 <div id="storeSelectModal" class="modal-overlay" style="display: flex;">
   <div class="modal-container" style="max-width: 400px;">
-    <div class="modal-title">🏬 Select Store</div>
+    <div class="modal-title">?? Select Store</div>
     <select id="initialStoreSelect" class="store-select-modal">
       <option value="queens">Queens</option>
       <option value="sunshine">Sunshine</option>
       <option value="gurney_paragon">Gurney Paragon</option>
     </select>
     <div class="modal-buttons" style="margin-top: 24px;">
-      <button id="confirmStoreBtn" class="modal-btn modal-btn-primary">Next →</button>
+      <button id="confirmStoreBtn" class="modal-btn modal-btn-primary">Next ?</button>
     </div>
   </div>
 </div>
@@ -564,7 +564,7 @@
 <div id="loginModal" class="modal-overlay" style="display: none;">
   <div class="modal-container" style="max-width: 400px;">
     <span class="close-modal" id="closeLoginModal">×</span>
-    <div class="modal-title">🔐 Enter PIN</div>
+    <div class="modal-title">?? Enter PIN</div>
     <div class="login-form">
       <input type="password" id="pinInput" class="pin-input" placeholder="****" maxlength="4" inputmode="numeric" autofocus>
       <div class="pin-keypad">
@@ -577,9 +577,9 @@
         <button class="keypad-btn" data-digit="7">7</button>
         <button class="keypad-btn" data-digit="8">8</button>
         <button class="keypad-btn" data-digit="9">9</button>
-        <button class="keypad-btn clear" data-action="clear">⌫</button>
+        <button class="keypad-btn clear" data-action="clear">?</button>
         <button class="keypad-btn" data-digit="0">0</button>
-        <button class="keypad-btn enter" data-action="enter">↵</button>
+        <button class="keypad-btn enter" data-action="enter">?</button>
       </div>
       <div id="loginError" class="error-msg" style="color:#ef4444; font-size:0.9rem; text-align:center; margin-top:12px;"></div>
     </div>
@@ -588,28 +588,28 @@
 
 <div id="mainContent" style="display: none;">
   <div class="pos-header">
-    <h1>🛍️ POS System</h1>
+    <h1>??? POS System</h1>
     <div class="header-buttons">
-      <button id="reportsButton">📊 Reports</button>
-      <button id="receiptsButton">📜 Receipts</button>
-      <button id="connectPrinterButton">🖨️ Connect Printer</button>
-      <div id="printerStatus">⚪ Not connected</div>
+      <button id="reportsButton">?? Reports</button>
+      <button id="receiptsButton">?? Receipts</button>
+      <button id="connectPrinterButton">??? Connect Printer</button>
+      <div id="printerStatus">? Not connected</div>
     </div>
   </div>
 
   <div class="employee-bar">
-    <span class="employee-info">👤 Cashier: <span id="employeeName"></span></span>
+    <span class="employee-info">?? Cashier: <span id="employeeName"></span></span>
     <div class="employee-actions">
-      <button id="openDrawerBtn" class="drawer-btn" disabled>💰 Open Drawer</button>
-      <button id="settlementBtn" class="settlement-btn">💰 Settlement</button>
-      <button id="collectionBtn" class="collection-btn" style="display: none;">💵 Cash Collection</button>
+      <button id="openDrawerBtn" class="drawer-btn" disabled>?? Open Drawer</button>
+      <button id="settlementBtn" class="settlement-btn">?? Settlement</button>
+      <button id="collectionBtn" class="collection-btn" style="display: none;">?? Cash Collection</button>
       <button id="logoutButton" class="logout-btn">Logout</button>
     </div>
   </div>
 
   <div class="store-selector">
     <div style="display: flex; align-items: center; gap: 12px;">
-      <label>🏬 Store:</label>
+      <label>?? Store:</label>
       <select id="storeSelect">
         <option value="queens">Queens</option>
         <option value="sunshine">Sunshine</option>
@@ -617,7 +617,7 @@
       </select>
     </div>
     <div style="display: flex; align-items: center; gap: 12px;">
-      <label>👤 Sold By:</label>
+      <label>?? Sold By:</label>
       <select id="soldBySelect">
         <option value="">Loading...</option>
       </select>
@@ -627,8 +627,8 @@
   <div class="pos-dashboard">
     <div class="products-panel">
       <div class="filter-bar">
-        <select id="categorySelect"><option value="all">📂 All Categories</option></select>
-        <input type="text" id="searchInput" class="search-bar" placeholder="🔍 Search product...">
+        <select id="categorySelect"><option value="all">?? All Categories</option></select>
+        <input type="text" id="searchInput" class="search-bar" placeholder="?? Search product...">
         <div class="view-toggle">
           <button id="gridViewBtn" class="active">Grid View</button>
           <button id="listViewBtn">List View</button>
@@ -638,7 +638,7 @@
     </div>
 
     <div class="cart-panel">
-      <div class="cart-title">🧾 Current Sale</div>
+      <div class="cart-title">?? Current Sale</div>
       <div id="cartItemsContainer" class="cart-items">Cart is empty</div>
       <div class="cart-summary">
         <div class="summary-row"><span>Subtotal</span><span id="subtotal">RM 0.00</span></div>
@@ -646,10 +646,10 @@
         <div class="summary-row total-row"><span>TOTAL</span><span id="totalAmount">RM 0.00</span></div>
       </div>
       <div class="cart-actions">
-        <button id="checkoutBtn">💳 CHECKOUT</button>
-        <button id="claimPrizeBtn">🎁 Claim Prize</button>
-        <button id="clearCartBtn">🗑️ Clear</button>
-        <button id="refreshProductsBtn">🔄 Refresh</button>
+        <button id="checkoutBtn">?? CHECKOUT</button>
+        <button id="claimPrizeBtn">?? Claim Prize</button>
+        <button id="clearCartBtn">??? Clear</button>
+        <button id="refreshProductsBtn">?? Refresh</button>
       </div>
     </div>
   </div>
@@ -659,11 +659,11 @@
 <div id="paymentModal" class="modal-overlay">
   <div class="modal-container" style="max-width: 400px;">
     <span class="close-modal" id="closePaymentModal">×</span>
-    <div class="modal-title">💳 Select Payment Method</div>
+    <div class="modal-title">?? Select Payment Method</div>
     <div class="payment-buttons">
-      <button class="payment-btn" data-method="Cash">💵 Cash</button>
-      <button class="payment-btn" data-method="Card">💳 Card</button>
-      <button class="payment-btn" data-method="QR Pay">📱 QR Pay</button>
+      <button class="payment-btn" data-method="Cash">?? Cash</button>
+      <button class="payment-btn" data-method="Card">?? Card</button>
+      <button class="payment-btn" data-method="QR Pay">?? QR Pay</button>
     </div>
     <div id="cashOptions" style="display: none;">
       <div class="suggestions" id="suggestionsContainer"></div>
@@ -686,11 +686,11 @@
 <div id="luckyDrawModal" class="modal-overlay">
   <div class="modal-container" style="max-width: 400px;">
     <span class="close-modal" id="closeLuckyDrawModal">×</span>
-    <div class="modal-title">🎲 Lucky Draw</div>
+    <div class="modal-title">?? Lucky Draw</div>
     <p>Transaction ID: <strong id="luckyTxId"></strong></p>
     <p>Click below to enter the Lucky Draw with this receipt number.</p>
     <div class="modal-buttons">
-      <button id="openLuckyDrawBtn" class="modal-btn modal-btn-primary">🎁 Go to Lucky Draw</button>
+      <button id="openLuckyDrawBtn" class="modal-btn modal-btn-primary">?? Go to Lucky Draw</button>
       <button id="closeLuckyDrawBtn" class="modal-btn modal-btn-secondary">Close</button>
     </div>
   </div>
@@ -700,7 +700,7 @@
 <div id="claimPrizeModal" class="modal-overlay">
   <div class="modal-container" style="max-width: 400px;">
     <span class="close-modal" id="closeClaimPrizeModal">×</span>
-    <div class="modal-title">🎁 Claim Prize</div>
+    <div class="modal-title">?? Claim Prize</div>
     <div id="claimStep1">
       <p>Enter the receipt number from your Lucky Draw:</p>
       <input type="text" id="claimReceiptInput" class="modal-input" placeholder="e.g., TXN-1234567890-123" style="width: 100%; margin: 12px 0; padding: 12px;">
@@ -731,7 +731,7 @@
 <div id="adminReportModal" class="modal-overlay">
   <div class="modal-container">
     <span class="close-modal" id="closeAdminReportModal">×</span>
-    <div class="modal-title">📊 Sales Report</div>
+    <div class="modal-title">?? Sales Report</div>
     <div class="report-filters">
       <div class="filter-group" id="reportStoreFilterGroup" style="display: none;">
         <label>Store</label>
@@ -751,11 +751,11 @@
     </div>
     <div class="report-stats">
       <div class="stat-item">Total Sales: <span id="adminReportTotalSales" class="stat-value">RM 0.00</span></div>
-      <div class="stat-item breakdown">💵 Cash: <span id="adminReportCashTotal" class="stat-value">RM 0.00</span></div>
-      <div class="stat-item breakdown">💳 Card: <span id="adminReportCardTotal" class="stat-value">RM 0.00</span></div>
-      <div class="stat-item breakdown">📱 Other: <span id="adminReportOtherTotal" class="stat-value">RM 0.00</span></div>
-      <div class="stat-item breakdown">💰 Refunds: <span id="adminReportRefundTotal" class="stat-value">RM 0.00</span></div>
-      <div class="stat-item breakdown">📄 Refunded Bills: <span id="adminReportRefundedBills" class="stat-value">0</span></div>
+      <div class="stat-item breakdown">?? Cash: <span id="adminReportCashTotal" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item breakdown">?? Card: <span id="adminReportCardTotal" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item breakdown">?? Other: <span id="adminReportOtherTotal" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item breakdown">?? Refunds: <span id="adminReportRefundTotal" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item breakdown">?? Refunded Bills: <span id="adminReportRefundedBills" class="stat-value">0</span></div>
       <div class="stat-item">Transactions: <span id="adminReportTransactionCount" class="stat-value">0</span></div>
       <div class="stat-item">Items Sold: <span id="adminReportTotalItems" class="stat-value">0</span></div>
     </div>
@@ -767,7 +767,7 @@
       <canvas id="employeeChart" width="400" height="200"></canvas>
     </div>
     <div class="modal-section">
-      <button id="toggleProductDetailsBtn" class="modal-btn modal-btn-secondary" style="margin-bottom: 12px;">📦 Show Product Details</button>
+      <button id="toggleProductDetailsBtn" class="modal-btn modal-btn-secondary" style="margin-bottom: 12px;">?? Show Product Details</button>
       <div id="productDetailsContainer" style="display: none;">
         <h3 style="margin: 0 0 12px 0;">Product Sales Breakdown</h3>
         <div id="productDetailsTable" style="max-height: 300px; overflow-y: auto;">
@@ -786,10 +786,10 @@
 <div id="settlementModal" class="modal-overlay">
   <div class="modal-container" style="max-width: 500px;">
     <span class="close-modal" id="closeSettlementModal">×</span>
-    <div class="modal-title">💰 Daily Settlement</div>
+    <div class="modal-title">?? Daily Settlement</div>
     <div class="filter-group"><label>Store Location</label><select id="settlementStoreSelect"><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div>
     <div class="filter-group"><label>Petty Cash Float (Starting Cash)</label><input type="number" id="pettyCashFloat" class="modal-input" placeholder="Enter starting cash float" step="0.01" value="0.00"></div>
-    <div class="settlement-stats" id="systemTotalsDisplay"><p>📊 System totals for today (all employees):</p><p>💵 Cash: <strong id="sysCash">RM 0.00</strong></p><p>💳 Card: <strong id="sysCard">RM 0.00</strong></p><p>📱 QR Pay: <strong id="sysQR">RM 0.00</strong></p><p>💰 Refunds: <strong id="sysRefund">RM 0.00</strong></p></div>
+    <div class="settlement-stats" id="systemTotalsDisplay"><p>?? System totals for today (all employees):</p><p>?? Cash: <strong id="sysCash">RM 0.00</strong></p><p>?? Card: <strong id="sysCard">RM 0.00</strong></p><p>?? QR Pay: <strong id="sysQR">RM 0.00</strong></p><p>?? Refunds: <strong id="sysRefund">RM 0.00</strong></p></div>
     <div class="filter-group"><label>Cash Count (Actual)</label><input type="number" id="actualCash" class="modal-input" placeholder="Enter actual cash count" step="0.01"></div>
     <div class="filter-group"><label>Card Settlement (Actual)</label><input type="number" id="actualCard" class="modal-input" placeholder="Enter actual card settlement" step="0.01"></div>
     <div class="filter-group"><label>QR Settlement (Actual)</label><input type="number" id="actualQR" class="modal-input" placeholder="Enter actual QR settlement" step="0.01"></div>
@@ -802,9 +802,9 @@
 <div id="collectionModal" class="modal-overlay">
   <div class="modal-container" style="max-width: 800px;">
     <span class="close-modal" id="closeCollectionModal">×</span>
-    <div class="modal-title">💵 Cash Collection</div>
+    <div class="modal-title">?? Cash Collection</div>
     <div class="filter-group"><label>Store</label><select id="collectionStoreSelect"><option value="all">All Stores</option><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div>
-    <div id="collectionTotal" class="settlement-stats" style="margin-top: 12px;"><p>💰 Total Outstanding Cash: <strong id="totalOutstandingCash">RM 0.00</strong></p></div>
+    <div id="collectionTotal" class="settlement-stats" style="margin-top: 12px;"><p>?? Total Outstanding Cash: <strong id="totalOutstandingCash">RM 0.00</strong></p></div>
     <div style="overflow-x: auto;"><table class="collection-table" id="collectionTable"><thead><tr><th><input type="checkbox" id="selectAllCheckbox"></th><th>Date</th><th>Employee</th><th style="text-align: right;">Cash Amount (RM)</th></tr></thead><tbody id="collectionTableBody"><tr><td colspan="4" style="text-align: center;">Loading...</td></tr></tbody></table></div>
     <div class="modal-buttons" style="margin-top: 16px;"><button id="collectSelectedBtn" class="modal-btn modal-btn-primary" disabled>Collect Selected</button><button id="closeCollectionModalBtn" class="modal-btn modal-btn-secondary">Close</button></div>
   </div>
@@ -814,7 +814,7 @@
 <div id="receiptsModal" class="modal-overlay">
   <div class="modal-container">
     <span class="close-modal" id="closeReceiptsModal">×</span>
-    <div class="modal-title">📜 Receipt History</div>
+    <div class="modal-title">?? Receipt History</div>
     <div class="receipts-filters">
       <div class="filter-group" id="receiptsStoreFilterGroup"><label>Store</label><select id="receiptsStoreSelect"><option value="all">All Stores</option></select></div>
       <div id="receiptsEmployeeFilter" class="filter-group" style="display: none;"><label>Employee</label><select id="receiptsEmployeeSelect"><option value="all">All Employees</option></select></div>
@@ -1007,7 +1007,7 @@
         })).sort((a, b) => a.name.localeCompare(b.name));
 
         const categories = [...new Set(products.map(p => p.category))].sort();
-        categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
+        categorySelect.innerHTML = '<option value="all">?? All Categories</option>';
         categories.forEach(cat => {
           const option = document.createElement('option');
           option.value = cat;
@@ -1053,7 +1053,7 @@
           if (now - timestamp < 5 * 60 * 1000) {
             products = cachedProducts;
             const categories = [...new Set(products.map(p => p.category))].sort();
-            categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
+            categorySelect.innerHTML = '<option value="all">?? All Categories</option>';
             categories.forEach(cat => {
               const option = document.createElement('option');
               option.value = cat;
@@ -1083,7 +1083,7 @@
         })).sort((a, b) => a.name.localeCompare(b.name));
 
         const categories = [...new Set(products.map(p => p.category))].sort();
-        categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
+        categorySelect.innerHTML = '<option value="all">?? All Categories</option>';
         categories.forEach(cat => {
           const option = document.createElement('option');
           option.value = cat;
@@ -1118,7 +1118,7 @@
     }
     let html = '';
     filtered.forEach(prod => {
-      const stockStatus = prod.stock > 0 ? `📦 Stock: ${prod.stock}` : '❌ Out of stock';
+      const stockStatus = prod.stock > 0 ? `?? Stock: ${prod.stock}` : '? Out of stock';
       html += `<div class="product-card">
         <div class="product-name">${escapeHtml(prod.name)}</div>
         <div class="product-price">RM ${prod.price.toFixed(2)}</div>
@@ -1169,12 +1169,12 @@
           <div class="cart-item-price">RM ${item.product.price.toFixed(2)}</div>
         </div>
         <div class="cart-item-qty">
-          <button class="qty-btn" data-index="${idx}" data-delta="-1">−</button>
+          <button class="qty-btn" data-index="${idx}" data-delta="-1">?</button>
           <span>${item.quantity}</span>
           <button class="qty-btn" data-index="${idx}" data-delta="1">+</button>
         </div>
         <div class="cart-item-total">RM ${itemTotal.toFixed(2)}</div>
-        <button class="remove-item" data-index="${idx}">✕</button>
+        <button class="remove-item" data-index="${idx}">?</button>
       </div>`;
     });
     cartContainer.innerHTML = html;
@@ -1322,7 +1322,7 @@ function parseSpinDate(timestamp) {
   const parts = dateStr.split('/');
   if (parts.length === 3) {
     const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1; // JavaScript months are 0‑based
+    const month = parseInt(parts[1], 10) - 1; // JavaScript months are 0?based
     const year = parseInt(parts[2], 10);
     const d = new Date(year, month, day);
     // Validate that the date is correct (e.g., month/day overflow would produce a different date)
@@ -1398,7 +1398,7 @@ function getExpiryInfo(timestamp) {
         return;
       }
 
-      // ----- 30‑DAY EXPIRY CHECK -----
+      // ----- 30?DAY EXPIRY CHECK -----
       const expiry = getExpiryInfo(data.timestamp);
       if (!expiry.valid || expiry.expired) {
         const expiryDateStr = expiry.expiryDate ? expiry.expiryDate.toLocaleDateString() : 'unknown date';
@@ -1406,7 +1406,7 @@ function getExpiryInfo(timestamp) {
         return;
       }
 
-      // Extract discount value from prize name (e.g., "CAR AROMATIC RM 38" → 38)
+      // Extract discount value from prize name (e.g., "CAR AROMATIC RM 38" ? 38)
       const prizeName = data.prize;
       const match = prizeName.match(/\b(\d+(?:\.\d+)?)\b/);
       const discountValue = match ? parseFloat(match[1]) : 0;
@@ -1614,7 +1614,7 @@ function getExpiryInfo(timestamp) {
       } else {
         await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
       }
-      await showAlertModal('✅ Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
+      await showAlertModal('? Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
       document.getElementById('luckyTxId').innerText = transactionId;
       const luckyModal = document.getElementById('luckyDrawModal');
       luckyModal.style.display = 'flex';
@@ -1709,17 +1709,23 @@ function getExpiryInfo(timestamp) {
           <div>Items: ${itemsSummary}</div>
         </div>
         <div class="receipt-actions">
-          <button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>🖨️ Reprint</button>`;
+          <button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>??? Reprint</button>`;
       if (!isRefund && !isRefundedOriginal) {
-        html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>
-                 <button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">💰 Refund</button>`;
+        html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">?? Lucky Draw</button>
+                 <button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">?? Refund</button>`;
       } else if (!isRefund && isRefundedOriginal) {
-        html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>`;
+        
       }
       html += `</div></div>`;
     });
     container.innerHTML = html;
-
+ // Build receipt ID: add "- VOID" in red only for refunded original
+    let receiptIdHtml;
+    if (isRefundedOriginal) {
+      receiptIdHtml = `<span class="receipt-id">${rec.transaction_id} <span style="color: red;">- VOID</span></span>`;
+    } else {
+      receiptIdHtml = `<span class="receipt-id">${rec.transaction_id}</span>`;
+    }
     document.querySelectorAll('.reprint-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         reprintReceipt(JSON.parse(btn.dataset.receipt));
@@ -2032,7 +2038,7 @@ function getExpiryInfo(timestamp) {
       document.getElementById('sysRefund').innerText = `RM ${Math.abs(currentSettlementTotals.refund).toFixed(2)}`;
       const alreadySettled = await checkSettlementStatus(store, todayStr);
       if (alreadySettled) {
-        document.getElementById('settlementError').innerHTML = '⚠️ Settlement has already been recorded for today. No further settlement allowed.';
+        document.getElementById('settlementError').innerHTML = '?? Settlement has already been recorded for today. No further settlement allowed.';
         document.getElementById('settlementError').style.display = 'block';
         document.getElementById('checkSettlementBtn').disabled = true;
         document.getElementById('recordSettlementBtn').style.display = 'none';
@@ -2172,7 +2178,7 @@ function getExpiryInfo(timestamp) {
     function generateReceiptData(transaction, openDrawer = false) {
       const encoder = new TextEncoder();
       const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
-      const lines = ['', '    ★ POS INVOICE ★', '-----------------------------', `Txn: ${transaction.transaction_id}`, `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`, `Employee: ${employeeName}`, '-----------------------------'];
+      const lines = ['', '    ? POS INVOICE ?', '-----------------------------', `Txn: ${transaction.transaction_id}`, `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`, `Employee: ${employeeName}`, '-----------------------------'];
       let total = 0;
       for (let item of transaction.items) {
         const displayName = item.category ? `${item.category}: ${item.name}` : item.name;
@@ -2199,45 +2205,45 @@ function getExpiryInfo(timestamp) {
 
     async function openCashDrawer() {
       if (!isConnected || !printerCharacteristic) {
-        printerStatusDiv.innerText = '❌ Printer not connected';
+        printerStatusDiv.innerText = '? Printer not connected';
         return false;
       }
       try {
         const drawerCommand = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]);
         await printerCharacteristic.writeValue(drawerCommand);
-        printerStatusDiv.innerText = '💰 Drawer opened';
+        printerStatusDiv.innerText = '?? Drawer opened';
         setTimeout(() => {
-          if (isConnected) printerStatusDiv.innerText = '✅ Printer ready';
+          if (isConnected) printerStatusDiv.innerText = '? Printer ready';
         }, 2000);
         return true;
       } catch (err) {
         console.error(err);
-        printerStatusDiv.innerText = `❌ Drawer error`;
+        printerStatusDiv.innerText = `? Drawer error`;
         return false;
       }
     }
 
     async function printReceipt(transaction) {
       if (!isConnected || !printerCharacteristic) {
-        printerStatusDiv.innerText = '❌ Printer not connected';
+        printerStatusDiv.innerText = '? Printer not connected';
         return false;
       }
       try {
         const openDrawer = (transaction.payment_method === 'Cash');
         const data = generateReceiptData(transaction, openDrawer);
         await printerCharacteristic.writeValue(data);
-        printerStatusDiv.innerText = '✅ Receipt printed';
+        printerStatusDiv.innerText = '? Receipt printed';
         return true;
       } catch (err) {
         console.error(err);
-        printerStatusDiv.innerText = `❌ Print error`;
+        printerStatusDiv.innerText = `? Print error`;
         return false;
       }
     }
 
     async function connectPrinter() {
       try {
-        printerStatusDiv.innerText = '🔍 Scanning...';
+        printerStatusDiv.innerText = '?? Scanning...';
         connectBtn.disabled = true;
         const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] });
         gattServer = await device.gatt.connect();
@@ -2257,11 +2263,11 @@ function getExpiryInfo(timestamp) {
         printerCharacteristic = foundChar;
         isConnected = true;
         window.printerAPI.isConnected = true;
-        printerStatusDiv.innerText = '✅ Printer ready';
-        connectBtn.innerText = '🔌 Disconnect';
+        printerStatusDiv.innerText = '? Printer ready';
+        connectBtn.innerText = '?? Disconnect';
         openDrawerBtn.disabled = false;
       } catch (err) {
-        printerStatusDiv.innerText = `❌ ${err.message}`;
+        printerStatusDiv.innerText = `? ${err.message}`;
         gattServer = null;
         printerCharacteristic = null;
       } finally {
@@ -2277,8 +2283,8 @@ function getExpiryInfo(timestamp) {
       }
       isConnected = false;
       window.printerAPI.isConnected = false;
-      printerStatusDiv.innerText = '⚪ Not connected';
-      connectBtn.innerText = '🖨️ Connect Printer';
+      printerStatusDiv.innerText = '? Not connected';
+      connectBtn.innerText = '??? Connect Printer';
       openDrawerBtn.disabled = true;
     }
 
@@ -2482,7 +2488,7 @@ function getExpiryInfo(timestamp) {
       if (!cashOk) errorMessages.push(`Cash (System: RM ${currentSettlementTotals.cash.toFixed(2)}, Entered: RM ${actualCash.toFixed(2)})`);
       if (!cardOk) errorMessages.push(`Card (System: RM ${currentSettlementTotals.card.toFixed(2)}, Entered: RM ${actualCard.toFixed(2)})`);
       if (!qrOk) errorMessages.push(`QR (System: RM ${currentSettlementTotals.qr.toFixed(2)}, Entered: RM ${actualQR.toFixed(2)})`);
-      document.getElementById('settlementError').innerHTML = `❌ Mismatch in:<br>${errorMessages.join('<br>')}<br>Please correct and try again.`;
+      document.getElementById('settlementError').innerHTML = `? Mismatch in:<br>${errorMessages.join('<br>')}<br>Please correct and try again.`;
       document.getElementById('settlementError').style.display = 'block';
     }
   });
@@ -2676,11 +2682,11 @@ function getExpiryInfo(timestamp) {
     productDetailsVisible = !productDetailsVisible;
     if (productDetailsVisible) {
       productDetailsContainer.style.display = 'block';
-      toggleBtn.innerText = '📦 Hide Product Details';
+      toggleBtn.innerText = '?? Hide Product Details';
       if (lastProductData) renderProductDetails(lastProductData);
     } else {
       productDetailsContainer.style.display = 'none';
-      toggleBtn.innerText = '📦 Show Product Details';
+      toggleBtn.innerText = '?? Show Product Details';
     }
   });
 
