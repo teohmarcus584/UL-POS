@@ -541,11 +541,6 @@
     .collection-table td:nth-child(4) {
       text-align: right;
     }
-    /* Refund entry (negative total) – red background */
-.receipt-item.refund-entry {
-  background-color: #ffe6e6 !important;
-  border-left: 5px solid #ef4444 !important;
-}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -1697,11 +1692,9 @@ function getExpiryInfo(timestamp) {
       return `${displayName} x${i.quantity}`;
     }).join(', ');
     const employeeName = getEmployeeName(rec.employee_id);
-    const isRefundEntry = rec.total < 0;                          // the refund record (negative total)
+    const isRefundEntry = rec.total < 0;                     // refund record (negative total)
     const isRefundedOriginal = rec.refunded === true && !isRefundEntry; // original that was refunded
-    let receiptClass = '';
-    if (isRefundEntry) receiptClass = 'refund-entry';
-    if (isRefundedOriginal) receiptClass = 'refunded-original';
+    const refundClass = isRefundEntry ? 'refund-receipt' : '';   // only refund entry gets red background
 
     // Build receipt ID: add "- VOID" in red only for refunded original
     let receiptIdHtml;
@@ -1711,7 +1704,7 @@ function getExpiryInfo(timestamp) {
       receiptIdHtml = `<span class="receipt-id">${rec.transaction_id}</span>`;
     }
 
-    html += `<div class="receipt-item ${receiptClass}" data-receipt='${JSON.stringify(rec)}'>
+    html += `<div class="receipt-item ${refundClass}" data-receipt='${JSON.stringify(rec)}'>
       <div class="receipt-header">
         ${receiptIdHtml}
         <span class="receipt-date">${date}</span>
@@ -1736,7 +1729,7 @@ function getExpiryInfo(timestamp) {
   });
   container.innerHTML = html;
 
-  // Event listeners (unchanged)
+  // Re‑attach event listeners (unchanged)
   document.querySelectorAll('.reprint-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       reprintReceipt(JSON.parse(btn.dataset.receipt));
