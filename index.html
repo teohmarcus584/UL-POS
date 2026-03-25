@@ -719,7 +719,12 @@
   gap: 20px;
   align-items: center;
 }
-
+.employee-right-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
 .selector-group {
   display: flex;
   align-items: center;
@@ -824,6 +829,7 @@
   cursor: not-allowed;
   opacity: 0.7;
 }
+
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -889,17 +895,15 @@
     <div id="printerStatus">⚪ Not connected</div>
   </div>
 </div>
-  <div class="employee-bar">
+<div class="employee-bar">
   <div class="employee-info-group">
     <span class="employee-info">👤 Cashier: <span id="employeeName"></span></span>
     <button id="logoutButton" class="logout-btn">Logout</button>
   </div>
-  <div class="employee-actions">
+  <div class="employee-right-group">
     <button id="openDrawerBtn" class="drawer-btn" disabled>💰 Open Drawer</button>
     <button id="settlementBtn" class="settlement-btn">💰 Settlement</button>
     <button id="collectionBtn" class="collection-btn" style="display: none;">💵 Cash Collection</button>
-  </div>
-  <div class="employee-selectors">
     <div class="selector-group">
       <label>👤 Sold By:</label>
       <select id="soldBySelect">
