@@ -1290,6 +1290,18 @@ async function checkReceiptForClaim() {
         return;
       }
 
+      // Check 30-day grace period
+      const creationDate = new Date(data.timestamp);
+      const now = new Date();
+      const daysDiff = (now - creationDate) / (1000 * 60 * 60 * 24);
+      if (daysDiff > 30) {
+        const expiryDate = new Date(creationDate);
+        expiryDate.setDate(creationDate.getDate() + 30);
+        const formattedExpiry = expiryDate.toLocaleDateString();
+        showClaimError(`This prize expired on ${formattedExpiry} (30 days after creation). Claims are not allowed after 30 days.`);
+        return;
+      }
+
       // Extract discount value from prize name (e.g., "CAR AROMATIC RM 38" → 38)
       const prizeName = data.prize;
       const match = prizeName.match(/\b(\d+(?:\.\d+)?)\b/);
