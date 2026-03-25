@@ -1461,7 +1461,7 @@
   // Filter items where category contains "100ml perfume edp" (case‑insensitive, trimmed)
   const perfumeItems = cart.filter(item => {
     const cat = (item.product.category || "").trim().toLowerCase();
-    return cat.includes("100ML PERFUME EDP");
+    return cat === "100ml perfume edp";
   });
 
   console.log("Perfume items found:", perfumeItems.length);
