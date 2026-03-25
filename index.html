@@ -770,17 +770,25 @@
   </div>
   <div id="cartItemsContainer" class="cart-items">Cart is empty</div>
   <div class="cart-summary">
-    <div class="summary-row"><span>Subtotal</span><span id="subtotal">RM 0.00</span></div>
-    <div id="discountRow" class="summary-row discount-row" style="display: none;">
-      <span><i>🎲</i> Lucky Draw</span>
-      <span id="discountAmount">RM 0.00</span>
-    </div>
-    <div id="promoRow" class="summary-row discount-row" style="display: none;">
-      <span><i>🎁</i> Promo Discount</span>
-      <span id="promoDiscountDisplay">RM 0.00</span>
-    </div>
-    <div class="summary-row total-row"><span>TOTAL</span><span id="totalAmount">RM 0.00</span></div>
+  <div class="summary-row"><span>Subtotal</span><span id="subtotal">RM 0.00</span></div>
+  <div id="discountRow" class="summary-row discount-row" style="display: none;">
+    <span><i>🎲</i> Lucky Draw</span>
+    <span id="discountAmount">RM 0.00</span>
   </div>
+  <div id="promoBuy2Free1Row" class="summary-row discount-row" style="display: none;">
+    <span><i>🎯</i> Buy 2 Free 1 (Perfume)</span>
+    <span id="promoBuy2Free1Amount">RM 0.00</span>
+  </div>
+  <div id="promoBuy3Free1Row" class="summary-row discount-row" style="display: none;">
+    <span><i>🎯</i> Buy 3 Free 1 (Excluding Perfume)</span>
+    <span id="promoBuy3Free1Amount">RM 0.00</span>
+  </div>
+  <div id="customDiscountRow" class="summary-row discount-row" style="display: none;">
+    <span><i>💰</i> Custom Discount</span>
+    <span id="customDiscountAmount">RM 0.00</span>
+  </div>
+  <div class="summary-row total-row"><span>TOTAL</span><span id="totalAmount">RM 0.00</span></div>
+</div>
   <div class="cart-actions">
     <button id="checkoutBtn">💳 CHECKOUT</button>
     <button id="claimPrizeBtn">🎁 Claim Prize</button>
@@ -1019,7 +1027,9 @@
   let promoDiscount = 0;           // Promo discount
   let claimedReceiptInfo = null;
   let pendingPrize = null;          // { receipt, value, name }
-
+let buy2Free1Discount = 0;      // discount from Buy 2 Free 1 (Perfume)
+let buy3Free1Discount = 0;      // discount from Buy 3 Free 1 (Excluding Perfume)
+let customDiscount = 0;          // manually entered custom discount
   // DOM elements
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -1319,7 +1329,9 @@ function updateCartUI() {
     cartContainer.innerHTML = '<div style="color:#94a3b8; text-align:center;">Cart is empty</div>';
     subtotalSpan.innerText = `RM 0.00`;
     discountAmount = 0;
-    promoDiscount = 0;
+    buy2Free1Discount = 0;
+    buy3Free1Discount = 0;
+    customDiscount = 0;
     claimedReceiptInfo = null;
     pendingPrize = null;
     discountRow.style.display = 'none';
@@ -1356,8 +1368,12 @@ function updateCartUI() {
   cartContainer.innerHTML = html;
 
   subtotalSpan.innerText = `RM ${subtotal.toFixed(2)}`;
-  const total = subtotal - discountAmount - promoDiscount;
 
+  // Sum all promo discounts
+  const totalPromoDiscount = buy2Free1Discount + buy3Free1Discount + customDiscount;
+  const total = subtotal - discountAmount - totalPromoDiscount;
+
+  // Lucky Draw discount row
   if (discountAmount > 0) {
     discountRow.style.display = 'flex';
     discountAmountSpan.innerText = `RM ${discountAmount.toFixed(2)}`;   // minus sign added via CSS
@@ -1365,16 +1381,17 @@ function updateCartUI() {
     discountRow.style.display = 'none';
   }
 
-  if (promoDiscount > 0) {
+  // Promo discount row (all promotions combined)
+  if (totalPromoDiscount > 0) {
     promoRow.style.display = 'flex';
-    promoDiscountDisplay.innerText = `RM ${promoDiscount.toFixed(2)}`;  // minus sign added via CSS
+    promoDiscountDisplay.innerText = `RM ${totalPromoDiscount.toFixed(2)}`; // minus sign added via CSS
   } else {
     promoRow.style.display = 'none';
   }
 
   totalSpan.innerText = `RM ${total.toFixed(2)}`;
 
-  // Attach quantity buttons and remove buttons
+  // Reattach quantity and remove event listeners
   document.querySelectorAll('.qty-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const idx = parseInt(btn.dataset.index);
@@ -1444,11 +1461,12 @@ function updateCartUI() {
     pendingPrize = null;
     updateCartUI();
   }
-
-  function clearPromo() {
-    promoDiscount = 0;
-    updateCartUI();
-  }
+function clearPromo() {
+  buy2Free1Discount = 0;
+  buy3Free1Discount = 0;
+  customDiscount = 0;
+  updateCartUI();
+}
 
   // ==================== CLAIM PRIZE FUNCTIONS ====================
   function showClaimPrizeModal() {
@@ -1634,7 +1652,8 @@ function updateCartUI() {
     return;
   }
 
-  promoDiscount = cheapestPrice;
+  // Set the Buy2Free1 discount (this can be stacked with others)
+  buy2Free1Discount = cheapestPrice;
   updateCartUI();
   document.getElementById('specialPromoModal').style.display = 'none';
 }
@@ -1670,22 +1689,26 @@ function applyBuy3Free1ExcludePerfume() {
     return;
   }
 
-  promoDiscount = cheapestPrice;
+  // Set the Buy3Free1 discount (this can be stacked with others)
+  buy3Free1Discount = cheapestPrice;
   updateCartUI();
   document.getElementById('specialPromoModal').style.display = 'none';
 }
-  function applyCustomDiscount() {
-    const val = parseFloat(document.getElementById('customPromoValue').value);
-    if (isNaN(val) || val <= 0) {
-      const msgDiv = document.getElementById('promoMessage');
-      msgDiv.innerText = "Please enter a valid positive discount amount.";
-      msgDiv.style.display = 'block';
-      return;
-    }
-    promoDiscount = val;
-    updateCartUI();
-    document.getElementById('specialPromoModal').style.display = 'none';
+
+function applyCustomDiscount() {
+  const val = parseFloat(document.getElementById('customPromoValue').value);
+  if (isNaN(val) || val <= 0) {
+    const msgDiv = document.getElementById('promoMessage');
+    msgDiv.innerText = "Please enter a valid positive discount amount.";
+    msgDiv.style.display = 'block';
+    return;
   }
+
+  // Set the custom discount (this can be stacked with others)
+  customDiscount = val;
+  updateCartUI();
+  document.getElementById('specialPromoModal').style.display = 'none';
+}
 
   // ==================== CHECKOUT ====================
   async function startCheckout() {
