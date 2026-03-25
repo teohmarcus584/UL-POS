@@ -1307,39 +1307,29 @@
 function parseSpinDate(timestamp) {
   if (!timestamp) return null;
 
-  // Extract the date part before the comma (if any)
+  // Extract the date part before the comma
   let dateStr = timestamp;
   if (timestamp.includes(',')) {
     dateStr = timestamp.split(',')[0].trim();
   }
 
-  // Try to parse as a Date object directly (works for ISO and some browsers)
-  let d = new Date(dateStr);
-  if (!isNaN(d.getTime())) {
-    // Success: return midnight of that day
-    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  }
-
-  // Manual parsing: split by '/' or '-'
-  const parts = dateStr.split(/[-/]/);
+  // Split by '/' (expected format: DD/MM/YYYY)
+  const parts = dateStr.split('/');
   if (parts.length === 3) {
-    // Assume the format is DD/MM/YYYY (Malaysia locale)
     const day = parseInt(parts[0], 10);
     const month = parseInt(parts[1], 10) - 1; // JavaScript months are 0‑based
     const year = parseInt(parts[2], 10);
-    d = new Date(year, month, day);
-    if (!isNaN(d.getTime())) {
-      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const d = new Date(year, month, day);
+    // Validate that the date is correct (e.g., month/day overflow would produce a different date)
+    if (d.getFullYear() === year && d.getMonth() === month && d.getDate() === day) {
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate()); // midnight
     }
+  }
 
-    // Fallback: if that fails, try MM/DD/YYYY (for safety)
-    const day2 = parseInt(parts[1], 10);
-    const month2 = parseInt(parts[0], 10) - 1;
-    const year2 = parseInt(parts[2], 10);
-    d = new Date(year2, month2, day2);
-    if (!isNaN(d.getTime())) {
-      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    }
+  // Fallback: try generic parsing
+  let d = new Date(dateStr);
+  if (!isNaN(d.getTime())) {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
   }
 
   console.warn('Failed to parse timestamp:', timestamp);
@@ -1352,7 +1342,7 @@ function getExpiryInfo(timestamp) {
     return { valid: false, message: 'Invalid date format' };
   }
 
-  // Check if the creation date is in the future (invalid)
+  // Check if creation date is in the future (invalid)
   const now = new Date();
   const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   if (spinDate > todayMidnight) {
@@ -1370,7 +1360,7 @@ function getExpiryInfo(timestamp) {
     expiryDate
   };
 }
-  async function checkReceiptForClaim() {
+ async function checkReceiptForClaim() {
   const receipt = document.getElementById('claimReceiptInput').value.trim();
   if (!receipt) {
     showClaimError('Please enter a receipt number.');
@@ -1403,7 +1393,7 @@ function getExpiryInfo(timestamp) {
         return;
       }
 
-      // 🔥 Use the robust expiry check
+      // ----- 30‑DAY EXPIRY CHECK -----
       const expiry = getExpiryInfo(data.timestamp);
       if (!expiry.valid || expiry.expired) {
         const expiryDateStr = expiry.expiryDate ? expiry.expiryDate.toLocaleDateString() : 'unknown date';
@@ -1447,7 +1437,6 @@ function getExpiryInfo(timestamp) {
     hideLoading();
   }
 }
-
   function applyPrizeToCart() {
     const receiptData = window.pendingClaimReceipt;
     if (!receiptData) return;
