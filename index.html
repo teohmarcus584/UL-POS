@@ -775,7 +775,55 @@
     justify-content: space-between;
   }
 }
+.pos-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+  background: white;
+  padding: 12px 20px;
+  border-radius: 28px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
 
+.store-selector-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+}
+
+.store-selector-header label {
+  font-weight: 500;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.store-header-select {
+  padding: 6px 12px;
+  border-radius: 40px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 130px;
+}
+
+.store-header-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+}
+
+.store-header-select:disabled {
+  background: #f1f5f9;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -823,14 +871,24 @@
 
 <div id="mainContent" style="display: none;">
   <div class="pos-header">
-   <img src="https://i.imgur.com/STBkLrm.jpeg" alt="POS System Logo" class="pos-logo">
-    <div class="header-buttons">
-      <button id="reportsButton">📊 Reports</button>
-      <button id="receiptsButton">📜 Receipts</button>
-      <button id="connectPrinterButton">🖨️ Connect Printer</button>
-      <div id="printerStatus">⚪ Not connected</div>
+  <div style="display: flex; align-items: center; gap: 16px;">
+    <img src="https://i.imgur.com/STBkLrm.jpeg" alt="POS System Logo" class="pos-logo">
+    <div class="store-selector-header">
+      <label for="storeSelectHeader">🏬 Store:</label>
+      <select id="storeSelect" class="store-header-select">
+        <option value="queens">Queens</option>
+        <option value="sunshine">Sunshine</option>
+        <option value="gurney_paragon">Gurney Paragon</option>
+      </select>
     </div>
   </div>
+  <div class="header-buttons">
+    <button id="reportsButton">📊 Reports</button>
+    <button id="receiptsButton">📜 Receipts</button>
+    <button id="connectPrinterButton">🖨️ Connect Printer</button>
+    <div id="printerStatus">⚪ Not connected</div>
+  </div>
+</div>
 
   <div class="employee-bar">
   <div class="employee-info-group">
@@ -843,20 +901,9 @@
     <button id="collectionBtn" class="collection-btn" style="display: none;">💵 Cash Collection</button>
   </div>
   <div class="employee-selectors">
-    <div class="selector-group">
-      <label>🏬 Store:</label>
-      <select id="storeSelect">
-        <option value="queens">Queens</option>
-        <option value="sunshine">Sunshine</option>
-        <option value="gurney_paragon">Gurney Paragon</option>
-      </select>
-    </div>
-    <div class="selector-group">
-      <label>👤 Sold By:</label>
-      <select id="soldBySelect">
-        <option value="">Loading...</option>
-      </select>
-    </div>
+  <div class="selector-group">
+    <label>👤 Sold By:</label>
+    <select id="soldBySelect">...</select>
   </div>
 </div>
 
