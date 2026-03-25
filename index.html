@@ -870,11 +870,11 @@
 </div>
 
 <div id="mainContent" style="display: none;">
-  <div class="pos-header">
+ <div class="pos-header">
   <div style="display: flex; align-items: center; gap: 16px;">
     <img src="https://i.imgur.com/STBkLrm.jpeg" alt="POS System Logo" class="pos-logo">
     <div class="store-selector-header">
-      <label for="storeSelectHeader">🏬 Store:</label>
+      <label for="storeSelect">🏬 Store:</label>   <!-- fixed: for="storeSelect" -->
       <select id="storeSelect" class="store-header-select">
         <option value="queens">Queens</option>
         <option value="sunshine">Sunshine</option>
@@ -889,7 +889,6 @@
     <div id="printerStatus">⚪ Not connected</div>
   </div>
 </div>
-
   <div class="employee-bar">
   <div class="employee-info-group">
     <span class="employee-info">👤 Cashier: <span id="employeeName"></span></span>
@@ -901,13 +900,14 @@
     <button id="collectionBtn" class="collection-btn" style="display: none;">💵 Cash Collection</button>
   </div>
   <div class="employee-selectors">
-  <div class="selector-group">
-    <label>👤 Sold By:</label>
-    <select id="soldBySelect">...</select>
+    <div class="selector-group">
+      <label>👤 Sold By:</label>
+      <select id="soldBySelect">
+        <option value="">Loading...</option>
+      </select>
+    </div>
   </div>
 </div>
-
- 
 
   <div class="pos-dashboard">
     <div class="products-panel">
