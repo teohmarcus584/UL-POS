@@ -541,7 +541,6 @@
     .collection-table td:nth-child(4) {
       text-align: right;
     }
-    
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -1679,7 +1678,7 @@ function getExpiryInfo(timestamp) {
     }
   }
 
-  function renderReceiptsList(receipts) {
+ function renderReceiptsList(receipts) {
   const container = document.getElementById('receiptsList');
   if (!receipts.length) {
     container.innerHTML = '<div style="text-align:center; padding:30px;">No receipts found.</div>';
@@ -1693,19 +1692,18 @@ function getExpiryInfo(timestamp) {
       return `${displayName} x${i.quantity}`;
     }).join(', ');
     const employeeName = getEmployeeName(rec.employee_id);
-    const isRefund = rec.total < 0;
-    const isRefundedOriginal = rec.refunded === true && !isRefund;
-    const refundClass = isRefund ? 'refund-receipt' : '';
+    const isRefund = rec.total < 0;                      // refund entry
+    const isRefundedOriginal = rec.refunded === true && !isRefund; // original that was refunded
 
-    // Build receipt ID with optional -VOID suffix (in red)
+    // Build receipt ID: add "- VOID" in red only for refunded originals
     let receiptIdHtml;
-    if (isRefund) {
+    if (isRefundedOriginal) {
       receiptIdHtml = `<span class="receipt-id">${rec.transaction_id} <span style="color: red;">- VOID</span></span>`;
     } else {
       receiptIdHtml = `<span class="receipt-id">${rec.transaction_id}</span>`;
     }
 
-    html += `<div class="receipt-item ${refundClass}" data-receipt='${JSON.stringify(rec)}'>
+    html += `<div class="receipt-item" data-receipt='${JSON.stringify(rec)}'>
       <div class="receipt-header">
         ${receiptIdHtml}
         <span class="receipt-date">${date}</span>
@@ -1718,16 +1716,19 @@ function getExpiryInfo(timestamp) {
       <div class="receipt-actions">
         <button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>🖨️ Reprint</button>`;
     if (!isRefund && !isRefundedOriginal) {
+      // Not refunded and not a refund entry → show both buttons
       html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>
                <button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">💰 Refund</button>`;
     } else if (!isRefund && isRefundedOriginal) {
+      // Original transaction that has been refunded: show only Lucky Draw (Refund button omitted)
       html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>`;
     }
+    // For refund entries (isRefund true), no extra buttons are added
     html += `</div></div>`;
   });
   container.innerHTML = html;
 
-  // Event listeners for reprint, lucky draw, refund buttons (unchanged)
+  // Re‑attach event listeners (unchanged)
   document.querySelectorAll('.reprint-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       reprintReceipt(JSON.parse(btn.dataset.receipt));
