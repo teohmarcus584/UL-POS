@@ -675,54 +675,114 @@
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 16px;
   background: white;
   border-radius: 28px;
-  padding: 10px 20px;
+  padding: 12px 20px;
   margin-bottom: 20px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
+.employee-info-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 140px;
+}
+
+.employee-info {
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: #0f172a;
+}
+
+.logout-btn {
+  background: #ef4444;
+  border: none;
+  border-radius: 40px;
+  padding: 6px 16px;
+  color: white;
+  font-size: 0.8rem;
+  cursor: pointer;
+  width: fit-content;
+  transition: background 0.2s;
+}
+
+.logout-btn:hover {
+  background: #dc2626;
+}
+
+.employee-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .employee-selectors {
   display: flex;
-  gap: 20px;
+  gap: 16px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .selector-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  background: #f8fafc;
+  padding: 4px 12px;
+  border-radius: 40px;
+  border: 1px solid #e2e8f0;
 }
 
 .selector-group label {
   font-weight: 500;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
+  color: #334155;
   white-space: nowrap;
 }
 
 .selector-group select {
-  padding: 8px 12px;
-  border-radius: 40px;
-  border: 1px solid #cbd5e1;
-  background: white;
-  font-size: 0.9rem;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
-  min-width: 140px;
+  outline: none;
+  min-width: 100px;
+  color: #1e293b;
 }
 
 .selector-group select:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
 }
 
 .selector-group select:disabled {
-  background: #f1f5f9;
+  opacity: 0.6;
   cursor: not-allowed;
-  opacity: 0.7;
+}
+
+@media (max-width: 780px) {
+  .employee-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .employee-info-group {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .employee-actions {
+    justify-content: center;
+  }
+  .employee-selectors {
+    justify-content: space-between;
+  }
+  .selector-group {
+    flex: 1;
+  }
 }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
