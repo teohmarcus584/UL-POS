@@ -670,6 +670,60 @@
   object-fit: contain;
   vertical-align: middle;
 }
+.employee-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: white;
+  border-radius: 28px;
+  padding: 10px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.employee-selectors {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.selector-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.selector-group label {
+  font-weight: 500;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.selector-group select {
+  padding: 8px 12px;
+  border-radius: 40px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 140px;
+}
+
+.selector-group select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+}
+
+.selector-group select:disabled {
+  background: #f1f5f9;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -727,17 +781,15 @@
   </div>
 
   <div class="employee-bar">
-    <span class="employee-info">👤 Cashier: <span id="employeeName"></span></span>
-    <div class="employee-actions">
-      <button id="openDrawerBtn" class="drawer-btn" disabled>💰 Open Drawer</button>
-      <button id="settlementBtn" class="settlement-btn">💰 Settlement</button>
-      <button id="collectionBtn" class="collection-btn" style="display: none;">💵 Cash Collection</button>
-      <button id="logoutButton" class="logout-btn">Logout</button>
-    </div>
+  <span class="employee-info">👤 Cashier: <span id="employeeName"></span></span>
+  <div class="employee-actions">
+    <button id="openDrawerBtn" class="drawer-btn" disabled>💰 Open Drawer</button>
+    <button id="settlementBtn" class="settlement-btn">💰 Settlement</button>
+    <button id="collectionBtn" class="collection-btn" style="display: none;">💵 Cash Collection</button>
+    <button id="logoutButton" class="logout-btn">Logout</button>
   </div>
-
-  <div class="store-selector">
-    <div style="display: flex; align-items: center; gap: 12px;">
+  <div class="employee-selectors">
+    <div class="selector-group">
       <label>🏬 Store:</label>
       <select id="storeSelect">
         <option value="queens">Queens</option>
@@ -745,13 +797,16 @@
         <option value="gurney_paragon">Gurney Paragon</option>
       </select>
     </div>
-    <div style="display: flex; align-items: center; gap: 12px;">
+    <div class="selector-group">
       <label>👤 Sold By:</label>
       <select id="soldBySelect">
         <option value="">Loading...</option>
       </select>
     </div>
   </div>
+</div>
+
+ 
 
   <div class="pos-dashboard">
     <div class="products-panel">
