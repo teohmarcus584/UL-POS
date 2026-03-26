@@ -1058,19 +1058,7 @@
     </div>
   </div>
 </div>
-// Paper size selector handling
-const paperSizeSelect = document.getElementById('paperSizeSelect');
-if (paperSizeSelect) {
-  // Load saved setting
-  const savedSize = localStorage.getItem('printerPaperSize');
-  paperSizeSelect.value = savedSize === '58' ? '58' : '80';
-  
-  // Save on change
-  paperSizeSelect.addEventListener('change', () => {
-    localStorage.setItem('printerPaperSize', paperSizeSelect.value);
-    showAlertModal('Settings', `Paper size set to ${paperSizeSelect.value}mm.`);
-  });
-}
+
 <!-- All modals (unchanged for brevity, but fully functional) -->
 <div id="paymentModal" class="modal-overlay"><div class="modal-container" style="max-width: 400px;"><span class="close-modal" id="closePaymentModal">×</span><div class="modal-title">💳 Select Payment Method</div><div class="payment-buttons"><button class="payment-btn" data-method="Cash">💵 Cash</button><button class="payment-btn" data-method="Card">💳 Card</button><button class="payment-btn" data-method="QR Pay">📱 QR Pay</button></div><div id="cashOptions" style="display: none;"><div class="suggestions" id="suggestionsContainer"></div><input type="number" id="customCashInput" class="custom-cash-input" placeholder="Enter amount received (RM)" step="0.01"><div class="modal-buttons"><button id="confirmCashBtn" class="modal-btn modal-btn-primary">Confirm</button><button id="cancelPaymentBtn" class="modal-btn modal-btn-secondary">Cancel</button></div></div><div id="otherPaymentOptions" style="display: none;"><div class="modal-buttons"><button id="confirmOtherBtn" class="modal-btn modal-btn-primary">Confirm</button><button id="cancelOtherBtn" class="modal-btn modal-btn-secondary">Cancel</button></div></div></div></div>
 <div id="luckyDrawModal" class="modal-overlay"><div class="modal-container" style="max-width: 400px;"><span class="close-modal" id="closeLuckyDrawModal">×</span><div class="modal-title">🎲 Lucky Draw</div><p>Transaction ID: <strong id="luckyTxId"></strong></p><p>Click below to enter the Lucky Draw with this receipt number.</p><div class="modal-buttons"><button id="openLuckyDrawBtn" class="modal-btn modal-btn-primary">🎁 Go to Lucky Draw</button><button id="closeLuckyDrawBtn" class="modal-btn modal-btn-secondary">Close</button></div></div></div>
@@ -2785,7 +2773,19 @@ if (paperSizeSelect) {
       });
     }
   }
-
+// Paper size selector handling
+const paperSizeSelect = document.getElementById('paperSizeSelect');
+if (paperSizeSelect) {
+  // Load saved setting
+  const savedSize = localStorage.getItem('printerPaperSize');
+  paperSizeSelect.value = savedSize === '58' ? '58' : '80';
+  
+  // Save on change
+  paperSizeSelect.addEventListener('change', () => {
+    localStorage.setItem('printerPaperSize', paperSizeSelect.value);
+    showAlertModal('Settings', `Paper size set to ${paperSizeSelect.value}mm.`);
+  });
+}
   // ==================== EVENT LISTENERS ====================
   document.getElementById('confirmStoreBtn').addEventListener('click', () => {
     initialStore = document.getElementById('initialStoreSelect').value;
