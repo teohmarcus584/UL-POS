@@ -2496,20 +2496,18 @@
   const paperSize = localStorage.getItem('printerPaperSize') || '80';
   const maxChars = paperSize === '58' ? 32 : 48; // 58mm ~32 chars, 80mm ~48 chars
   
-  // Helper to pad/truncate text for fixed width
+  // Helper to pad/truncate text for fixed width (left-aligned)
   function formatLine(left, right = null) {
     if (right === null) {
-      // Single line, truncate if needed
       return left.length > maxChars ? left.substring(0, maxChars - 3) + '...' : left;
     }
-    // Two columns
     const leftMax = Math.floor(maxChars * 0.6);
     const rightMax = maxChars - leftMax - 2;
     let leftText = left.length > leftMax ? left.substring(0, leftMax - 3) + '...' : left;
     let rightText = right.length > rightMax ? right.substring(0, rightMax - 3) + '...' : right;
     return leftText.padEnd(leftMax) + ' ' + rightText.padStart(rightMax);
   }
-  
+
   // Group items by category
   const grouped = {};
   for (const item of transaction.items) {
@@ -2518,70 +2516,95 @@
     grouped[cat].push(item);
   }
   
-  const lines = [];
   const separator = '-'.repeat(maxChars);
+  const lines = [];
   
-  // Header
-  lines.push('', '    UL PERFUMERY', separator);
-  lines.push(formatLine(`STORE LOCATION : ${storeLocation}`));
-  lines.push(formatLine(`EMPLOYEE : ${employeeName}`));
-  lines.push(separator);
+  // Helper to add a line with optional alignment (0=left,1=center,2=right)
+  // We'll build commands directly; we'll return an array of commands for simplicity
+  let commands = [];
   
-  // Items by category
+  // Add a command array
+  function addCommands(cmdArray) {
+    commands.push(...cmdArray);
+  }
+  
+  // Add text line (with optional alignment override)
+  function addLine(text, align = 0) {
+    if (align !== undefined) {
+      // Set alignment (0=left,1=center,2=right)
+      addCommands([0x1B, 0x61, align]);
+    }
+    addCommands(encoder.encode(text + '\n'));
+  }
+  
+  // Reset to left alignment after a centered block
+  function setAlign(align) {
+    addCommands([0x1B, 0x61, align]);
+  }
+  
+  // Start with printer init and left alignment
+  addCommands([0x1B, 0x40]); // init
+  setAlign(0); // left
+  
+  // Header - center the title
+  addLine('', 0);
+  addLine('    UL PERFUMERY', 1); // center
+  setAlign(0);
+  addLine(separator);
+  addLine(`STORE LOCATION : ${storeLocation}`);
+  addLine(`EMPLOYEE : ${employeeName}`);
+  addLine(separator);
+  
+  // Items by category (left-aligned)
   for (const [category, items] of Object.entries(grouped)) {
     let categoryTotal = 0;
+    for (const item of items) categoryTotal += item.price * item.quantity;
+    addLine(formatLine(category, `RM ${categoryTotal.toFixed(2)}`));
     for (const item of items) {
-      categoryTotal += item.price * item.quantity;
-    }
-    lines.push(formatLine(category, `RM ${categoryTotal.toFixed(2)}`));
-    
-    for (const item of items) {
-      lines.push(`  ${item.name}`);
-      lines.push(`  ${item.quantity} x RM ${item.price.toFixed(2)}`);
+      addLine(`  ${item.name}`);
+      addLine(`  ${item.quantity} x RM ${item.price.toFixed(2)}`);
     }
   }
   
-  lines.push(separator);
+  addLine(separator);
   
-  // Total
+  // Totals (left-aligned)
   const totalAmount = transaction.total;
-  lines.push(formatLine('TOTAL', `RM ${totalAmount.toFixed(2)}`));
-  
-  // Payment method
-  lines.push(formatLine('PAYMENT METHOD', transaction.payment_method));
-  
-  // Change if cash
+  addLine(formatLine('TOTAL', `RM ${totalAmount.toFixed(2)}`));
+  addLine(formatLine('PAYMENT METHOD', transaction.payment_method));
   if (transaction.cash_received && transaction.payment_method === 'Cash') {
     const change = transaction.cash_received - totalAmount;
-    lines.push(formatLine('CHANGE', `RM ${change.toFixed(2)}`));
+    addLine(formatLine('CHANGE', `RM ${change.toFixed(2)}`));
   }
   
-  lines.push(separator);
-  lines.push('THANK YOU FOR YOUR PURCHASE');
-  lines.push('ANY ENQUIRY PLEASE CONTACT');
-  lines.push('+60134665831 ( MARCUS )');
-  lines.push('GOODS SOLD ARE NOT REFUNDABLE');
-  lines.push(separator);
+  addLine(separator);
   
-  // Transaction details
+  // Centered thank you and policy
+  addLine('THANK YOU FOR YOUR PURCHASE', 1);
+  addLine('ANY ENQUIRY PLEASE CONTACT', 1);
+  addLine('+60134665831 ( MARCUS )', 1);
+  addLine('GOODS SOLD ARE NOT REFUNDABLE', 1);
+  setAlign(0); // back to left
+  addLine(separator);
+  
+  // Transaction details (left-aligned)
   const date = new Date(transaction.timestamp);
   const formattedDate = `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
-  lines.push(formatLine(`TXN   : ${transaction.transaction_id}`));
-  lines.push(formatLine(`DATE  : ${formattedDate}`));
-  lines.push('');
+  addLine(`TXN   : ${transaction.transaction_id}`);
+  addLine(`DATE  : ${formattedDate}`);
+  addLine(''); // final blank line
   
-  const text = lines.join('\n');
+  // Final feed and cut
+  addCommands([0x1B, 0x64, 0x03]); // feed 3 lines
+  addCommands([0x1D, 0x56, 0x41, 0x00]); // cut paper
   
-  let commands = [];
-  commands.push(0x1B, 0x40); // Initialize printer
-  commands.push(0x1B, 0x61, 0x01); // Center alignment
-  commands.push(...encoder.encode(text));
-  commands.push(0x1B, 0x64, 0x03); // Feed 3 lines
-  commands.push(0x1D, 0x56, 0x41, 0x00); // Cut paper
+  // If cash, open drawer (drawer command goes before cut)
   if (openDrawer) {
     const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
-    commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
+    // Insert drawer command before the cut (last 4 bytes are cut)
+    commands.splice(commands.length - 4, 0, ...drawerCommand);
   }
+  
   return new Uint8Array(commands);
 }
 
