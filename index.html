@@ -1109,7 +1109,7 @@
   let claimedReceiptInfo = null;
   let pendingPrize = null;
   let pendingClaimReceipt = null; // added for claim flow
-
+let loadingTimeout = null;
   let inventoryMode = false;
   let updateStockTimeout = null;
   let stockHistory = []; // Stock adjustment log (array of entries)
@@ -1137,17 +1137,27 @@
   const cartPanelTitle = document.getElementById('cartPanelTitle');
 
   // ==================== HELPER FUNCTIONS ====================
-  function showLoading(msg = 'Loading...') {
-    const msgEl = document.getElementById('loadingMessage');
-    const overlay = document.getElementById('loadingOverlay');
-    if (msgEl) msgEl.innerText = msg;
-    if (overlay) overlay.style.display = 'flex';
-  }
+ function showLoading(msg = 'Loading...') {
+  // Clear any existing timeout to avoid multiple timers
+  if (loadingTimeout) clearTimeout(loadingTimeout);
+  const msgEl = document.getElementById('loadingMessage');
+  const overlay = document.getElementById('loadingOverlay');
+  if (msgEl) msgEl.innerText = msg;
+  if (overlay) overlay.style.display = 'flex';
+  // Auto‑hide after 30 seconds (30000 ms)
+  loadingTimeout = setTimeout(() => {
+    hideLoading();
+  }, 30000);
+}
 
-  function hideLoading() {
-    const overlay = document.getElementById('loadingOverlay');
-    if (overlay) overlay.style.display = 'none';
+function hideLoading() {
+  if (loadingTimeout) {
+    clearTimeout(loadingTimeout);
+    loadingTimeout = null;
   }
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
 
   function showAlertModal(title, message) {
     return new Promise((resolve) => {
