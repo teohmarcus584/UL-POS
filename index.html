@@ -1482,26 +1482,23 @@ let stockUpdateTimeout = null;      // debounce timer
       return [];
     }
   }
+// Called after the debounce timer to apply all pending changes
 async function applyPendingStockUpdates() {
   const productsToUpdate = Object.keys(pendingStockChanges);
   if (productsToUpdate.length === 0) return;
 
-  // Process each product that had adjustments
   for (const productId of productsToUpdate) {
     const netChange = pendingStockChanges[productId];
     const originalStock = productOriginalStock[productId];
     const newStock = originalStock + netChange;
 
-    // Find the product in our local array
     const product = products.find(p => p.id == productId);
     if (product) {
       // Record a single adjustment with the net change
       await recordStockAdjustment(productId, product.name, originalStock, newStock);
-
-      // Update server with the final stock (debounced update)
+      // Update server with the final stock
       await updateStockOnServer(productId, newStock);
-
-      // Update local product stock (already updated live, but ensure consistency)
+      // Ensure local stock matches (already updated live, but just in case)
       product.stock = newStock;
     }
   }
@@ -1511,46 +1508,64 @@ async function applyPendingStockUpdates() {
   productOriginalStock = {};
   stockUpdateTimeout = null;
 
-  // Refresh the stock history display (optional, but good)
+  // Refresh the stock history display (optional)
   if (inventoryMode) refreshStockHistory();
 }
-  async function saveStockAdjustment(productId, productName, oldStock, newStock, store, employeeId, employeeName) {
-    try {
-      const formData = new URLSearchParams();
-      formData.append("action", "saveStockAdjustment");
-      formData.append("productId", productId);
-      formData.append("productName", productName);
-      formData.append("oldStock", oldStock);
-      formData.append("newStock", newStock);
-      formData.append("store", store);
-      formData.append("employeeId", employeeId);
-      formData.append("employeeName", employeeName);
-      formData.append("timestamp", new Date().toISOString());
-      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
-      const result = await response.json();
-      if (!result.success) {
-        console.error("Failed to save stock adjustment:", result.error);
-      }
-    } catch (err) {
-      console.error("Error saving stock adjustment:", err);
-    }
-  }
 
-  async function refreshStockHistory() {
-    if (!inventoryMode) return;
-    showLoading('Loading stock history...');
-    try {
-      const history = await fetchStockHistory(currentStore);
-      displayStockHistory(history);
-    } catch (err) {
-      console.error(err);
-      const container = document.getElementById('stockHistoryList');
-      if (container) container.innerHTML = '<div class="stock-history-empty">Error loading history.</div>';
-    } finally {
-      hideLoading();
-    }
+// Fire-and-forget: sends a single adjustment record to the backend
+async function recordStockAdjustment(productId, productName, oldStock, newStock) {
+  try {
+    const formData = new URLSearchParams();
+    formData.append("action", "saveStockAdjustment");
+    formData.append("productId", productId);
+    formData.append("productName", productName);
+    formData.append("oldStock", oldStock);
+    formData.append("newStock", newStock);
+    formData.append("store", currentStore);
+    formData.append("employeeId", currentEmployee.id);
+    formData.append("employeeName", currentEmployee.name);
+    await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+  } catch (err) {
+    console.error("Error recording stock adjustment:", err);
   }
+}
 
+// Update the stock in the Products sheet (debounced version – called after aggregation)
+async function updateStockOnServer(productId, newStock) {
+  try {
+    const formData = new URLSearchParams();
+    formData.append("action", "updateStock");
+    formData.append("productId", productId);
+    formData.append("newStock", newStock);
+    formData.append("store", currentStore);
+    const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+    const result = await response.json();
+    if (!result.success) {
+      console.error("Stock update failed:", result.error);
+    } else {
+      // Invalidate cache
+      localStorage.removeItem(`products_${currentStore}`);
+    }
+  } catch (err) {
+    console.error("Error updating stock:", err);
+  }
+}
+
+// Refresh the stock history table (call this when needed)
+async function refreshStockHistory() {
+  if (!inventoryMode) return;
+  showLoading('Loading stock history...');
+  try {
+    const history = await fetchStockHistory(currentStore);
+    displayStockHistory(history);
+  } catch (err) {
+    console.error(err);
+    const container = document.getElementById('stockHistoryList');
+    if (container) container.innerHTML = '<div class="stock-history-empty">Error loading history.</div>';
+  } finally {
+    hideLoading();
+  }
+}
   function displayStockHistory(history) {
     const container = document.getElementById('stockHistoryList');
     if (!container) return;
