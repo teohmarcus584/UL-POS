@@ -2500,16 +2500,15 @@ if (paperSizeSelect) {
     return `${d}/${m}/${y} ${h}:${min}`;
   }
 
- function generateReceiptData(transaction, openDrawer = false) {
+function generateReceiptData(transaction, openDrawer = false) {
   const encoder = new TextEncoder();
   const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
   const storeLocation = transaction.store ? transaction.store.charAt(0).toUpperCase() + transaction.store.slice(1) : 'Queens';
-  
-  // Get paper size setting (default 80mm)
+
+  // Paper size setting
   const paperSize = localStorage.getItem('printerPaperSize') || '80';
-  const maxChars = paperSize === '58' ? 32 : 48; // 58mm ~32 chars, 80mm ~48 chars
-  
-  // Helper to pad/truncate text for fixed width (left-aligned)
+  const maxChars = paperSize === '58' ? 32 : 48;
+
   function formatLine(left, right = null) {
     if (right === null) {
       return left.length > maxChars ? left.substring(0, maxChars - 3) + '...' : left;
@@ -2528,46 +2527,34 @@ if (paperSizeSelect) {
     if (!grouped[cat]) grouped[cat] = [];
     grouped[cat].push(item);
   }
-  
+
   const separator = '-'.repeat(maxChars);
-  const lines = [];
-  
-  // Helper to add a line with optional alignment (0=left,1=center,2=right)
-  // We'll build commands directly; we'll return an array of commands for simplicity
   let commands = [];
-  
-  // Add a command array
+
   function addCommands(cmdArray) {
     commands.push(...cmdArray);
   }
-  
-  // Add text line (with optional alignment override)
+
   function addLine(text, align = 0) {
-    if (align !== undefined) {
-      // Set alignment (0=left,1=center,2=right)
-      addCommands([0x1B, 0x61, align]);
-    }
+    addCommands([0x1B, 0x61, align]);
     addCommands(encoder.encode(text + '\n'));
   }
-  
-  // Reset to left alignment after a centered block
+
   function setAlign(align) {
     addCommands([0x1B, 0x61, align]);
   }
-  
-  // Start with printer init and left alignment
+
   addCommands([0x1B, 0x40]); // init
   setAlign(0); // left
-  
-  // Header - center the title
+
   addLine('', 0);
-  addLine('    UL PERFUMERY', 1); // center
+  addLine('    UL PERFUMERY', 1); // center title
   setAlign(0);
   addLine(separator);
   addLine(`STORE LOCATION : ${storeLocation}`);
   addLine(`EMPLOYEE : ${employeeName}`);
   addLine(separator);
-  
+
   // Items by category (left-aligned)
   for (const [category, items] of Object.entries(grouped)) {
     let categoryTotal = 0;
@@ -2578,46 +2565,61 @@ if (paperSizeSelect) {
       addLine(`  ${item.quantity} x RM ${item.price.toFixed(2)}`);
     }
   }
-  
+
   addLine(separator);
-  
-  // Totals (left-aligned)
+
+  // ---- Discounts (if any) ----
+  if (transaction.discount > 0) {
+    addLine(formatLine('Lucky Draw', `-RM ${transaction.discount.toFixed(2)}`));
+  }
+  if (transaction.buy2_free1_discount > 0) {
+    addLine(formatLine('Buy 2 Free 1 (Perfume)', `-RM ${transaction.buy2_free1_discount.toFixed(2)}`));
+  }
+  if (transaction.buy3_free1_discount > 0) {
+    addLine(formatLine('Buy 3 Free 1 (Excl. Perfume)', `-RM ${transaction.buy3_free1_discount.toFixed(2)}`));
+  }
+  if (transaction.custom_discount > 0) {
+    addLine(formatLine('Custom Discount', `-RM ${transaction.custom_discount.toFixed(2)}`));
+  }
+
+  // Total
   const totalAmount = transaction.total;
   addLine(formatLine('TOTAL', `RM ${totalAmount.toFixed(2)}`));
+
+  // Payment & Change
   addLine(formatLine('PAYMENT METHOD', transaction.payment_method));
   if (transaction.cash_received && transaction.payment_method === 'Cash') {
     const change = transaction.cash_received - totalAmount;
     addLine(formatLine('CHANGE', `RM ${change.toFixed(2)}`));
   }
-  
+
   addLine(separator);
-  
+
   // Centered thank you and policy
   addLine('THANK YOU FOR YOUR PURCHASE', 1);
   addLine('ANY ENQUIRY PLEASE CONTACT', 1);
   addLine('+60134665831 ( MARCUS )', 1);
   addLine('GOODS SOLD ARE NOT REFUNDABLE', 1);
-  setAlign(0); // back to left
+  setAlign(0);
   addLine(separator);
-  
+
   // Transaction details (left-aligned)
   const date = new Date(transaction.timestamp);
   const formattedDate = `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
   addLine(`TXN   : ${transaction.transaction_id}`);
   addLine(`DATE  : ${formattedDate}`);
-  addLine(''); // final blank line
-  
-  // Final feed and cut
-  addCommands([0x1B, 0x64, 0x03]); // feed 3 lines
-  addCommands([0x1D, 0x56, 0x41, 0x00]); // cut paper
-  
-  // If cash, open drawer (drawer command goes before cut)
+  addLine(''); // blank line
+
+  // Feed & cut
+  addCommands([0x1B, 0x64, 0x03]);
+  addCommands([0x1D, 0x56, 0x41, 0x00]);
+
+  // Drawer if cash
   if (openDrawer) {
     const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
-    // Insert drawer command before the cut (last 4 bytes are cut)
     commands.splice(commands.length - 4, 0, ...drawerCommand);
   }
-  
+
   return new Uint8Array(commands);
 }
 
