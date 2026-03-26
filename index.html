@@ -2467,191 +2467,211 @@
   }
 
   // ==================== PRINTER SETUP ====================
-  (function setupPrinter() {
-    let gattServer = null, printerCharacteristic = null, isConnected = false;
-    const connectBtn = document.getElementById('connectPrinterButton');
-    const printerStatusDiv = document.getElementById('printerStatus');
-    const openDrawerBtn = document.getElementById('openDrawerBtn');
+  // ==================== PRINTER SETUP (with chunked writing) ====================
+(function setupPrinter() {
+  let gattServer = null, printerCharacteristic = null, isConnected = false;
+  const connectBtn = document.getElementById('connectPrinterButton');
+  const printerStatusDiv = document.getElementById('printerStatus');
+  const openDrawerBtn = document.getElementById('openDrawerBtn');
 
-    function formatDateForReceipt(date) {
-      const d = date.getDate().toString().padStart(2, '0');
-      const m = (date.getMonth() + 1).toString().padStart(2, '0');
-      const y = date.getFullYear();
-      const h = date.getHours().toString().padStart(2, '0');
-      const min = date.getMinutes().toString().padStart(2, '0');
-      return `${d}/${m}/${y} ${h}:${min}`;
+  function formatDateForReceipt(date) {
+    const d = date.getDate().toString().padStart(2, '0');
+    const m = (date.getMonth() + 1).toString().padStart(2, '0');
+    const y = date.getFullYear();
+    const h = date.getHours().toString().padStart(2, '0');
+    const min = date.getMinutes().toString().padStart(2, '0');
+    return `${d}/${m}/${y} ${h}:${min}`;
+  }
+
+  function generateReceiptData(transaction, openDrawer = false) {
+    const encoder = new TextEncoder();
+    const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
+    const storeLocation = transaction.store ? transaction.store.charAt(0).toUpperCase() + transaction.store.slice(1) : 'Queens';
+    
+    // Group items by category
+    const grouped = {};
+    for (const item of transaction.items) {
+      const cat = item.category || 'Uncategorized';
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(item);
     }
-
-    function generateReceiptData(transaction, openDrawer = false) {
-      const encoder = new TextEncoder();
-      const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
-      const storeLocation = transaction.store ? transaction.store.charAt(0).toUpperCase() + transaction.store.slice(1) : 'Queens';
-      
-      // Group items by category
-      const grouped = {};
-      for (const item of transaction.items) {
-        const cat = item.category || 'Uncategorized';
-        if (!grouped[cat]) grouped[cat] = [];
-        grouped[cat].push(item);
+    
+    const lines = [];
+    
+    // Header
+    lines.push('', '    UL PERFUMERY', '------------------------------------------');
+    lines.push(`STORE LOCATION : ${storeLocation}`);
+    lines.push(`EMPLOYEE : ${employeeName}`);
+    lines.push('------------------------------------------');
+    
+    // Items by category
+    for (const [category, items] of Object.entries(grouped)) {
+      // Calculate category total
+      let categoryTotal = 0;
+      for (const item of items) {
+        categoryTotal += item.price * item.quantity;
       }
+      lines.push(`${category.padEnd(30)} RM ${categoryTotal.toFixed(2).padStart(8)}`);
       
-      const lines = [];
-      
-      // Header
-      lines.push('', '    UL PERFUMERY', '------------------------------------------');
-      lines.push(`STORE LOCATION : ${storeLocation}`);
-      lines.push(`EMPLOYEE : ${employeeName}`);
-      lines.push('------------------------------------------');
-      
-      // Items by category
-      for (const [category, items] of Object.entries(grouped)) {
-        // Calculate category total
-        let categoryTotal = 0;
-        for (const item of items) {
-          categoryTotal += item.price * item.quantity;
-        }
-        lines.push(`${category.padEnd(30)} RM ${categoryTotal.toFixed(2).padStart(8)}`);
-        
-        // List each product in the category
-        for (const item of items) {
-          const productLine = `  ${item.name}`;
-          lines.push(productLine);
-          const qtyLine = `  ${item.quantity} x RM ${item.price.toFixed(2)}`;
-          lines.push(qtyLine);
-        }
+      // List each product in the category
+      for (const item of items) {
+        const productLine = `  ${item.name}`;
+        lines.push(productLine);
+        const qtyLine = `  ${item.quantity} x RM ${item.price.toFixed(2)}`;
+        lines.push(qtyLine);
       }
-      
-      lines.push('------------------------------------------');
-      
-      // Total
-      const totalAmount = transaction.total;
-      lines.push(`TOTAL${' '.repeat(30)} RM ${totalAmount.toFixed(2).padStart(8)}`);
-      
-      // Payment method
-      lines.push(`PAYMENT METHOD${' '.repeat(20)} ${transaction.payment_method.padStart(15)}`);
-      
-      // Change if cash
-      if (transaction.cash_received && transaction.payment_method === 'Cash') {
-        const change = transaction.cash_received - totalAmount;
-        lines.push(`CHANGE${' '.repeat(28)} RM ${change.toFixed(2).padStart(8)}`);
-      }
-      
-      lines.push('------------------------------------------');
-      lines.push('THANK YOU FOR YOUR PURCHASE');
-      lines.push('ANY ENQUIRY PLEASE CONTACT');
-      lines.push('+60134665831 ( MARCUS )');
-      lines.push('GOODS SOLD ARE NOT REFUNDABLE');
-      lines.push('------------------------------------------');
-      
-      // Transaction details
-      const date = new Date(transaction.timestamp);
-      const formattedDate = `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
-      lines.push(`TXN   : ${transaction.transaction_id}`);
-      lines.push(`DATE  : ${formattedDate}`);
-      lines.push('');
-      
-      const text = lines.join('\n');
-      
-      let commands = [];
-      commands.push(0x1B, 0x40); // Initialize printer
-      commands.push(0x1B, 0x61, 0x01); // Center alignment
-      commands.push(...encoder.encode(text));
-      commands.push(0x1B, 0x64, 0x03); // Feed 3 lines
-      commands.push(0x1D, 0x56, 0x41, 0x00); // Cut paper
-      if (openDrawer) {
-        const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
-        commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
-      }
-      return new Uint8Array(commands);
     }
+    
+    lines.push('------------------------------------------');
+    
+    // Total
+    const totalAmount = transaction.total;
+    lines.push(`TOTAL${' '.repeat(30)} RM ${totalAmount.toFixed(2).padStart(8)}`);
+    
+    // Payment method
+    lines.push(`PAYMENT METHOD${' '.repeat(20)} ${transaction.payment_method.padStart(15)}`);
+    
+    // Change if cash
+    if (transaction.cash_received && transaction.payment_method === 'Cash') {
+      const change = transaction.cash_received - totalAmount;
+      lines.push(`CHANGE${' '.repeat(28)} RM ${change.toFixed(2).padStart(8)}`);
+    }
+    
+    lines.push('------------------------------------------');
+    lines.push('THANK YOU FOR YOUR PURCHASE');
+    lines.push('ANY ENQUIRY PLEASE CONTACT');
+    lines.push('+60134665831 ( MARCUS )');
+    lines.push('GOODS SOLD ARE NOT REFUNDABLE');
+    lines.push('------------------------------------------');
+    
+    // Transaction details
+    const date = new Date(transaction.timestamp);
+    const formattedDate = `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+    lines.push(`TXN   : ${transaction.transaction_id}`);
+    lines.push(`DATE  : ${formattedDate}`);
+    lines.push('');
+    
+    const text = lines.join('\n');
+    
+    let commands = [];
+    commands.push(0x1B, 0x40); // Initialize printer
+    commands.push(0x1B, 0x61, 0x01); // Center alignment
+    commands.push(...encoder.encode(text));
+    commands.push(0x1B, 0x64, 0x03); // Feed 3 lines
+    commands.push(0x1D, 0x56, 0x41, 0x00); // Cut paper
+    if (openDrawer) {
+      const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
+      commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
+    }
+    return new Uint8Array(commands);
+  }
 
-    async function openCashDrawer() {
-      if (!isConnected || !printerCharacteristic) {
-        printerStatusDiv.innerText = '❌ Printer not connected';
-        return false;
-      }
+  // Helper to send data in chunks
+  async function sendChunkedData(data, chunkSize = 500) {
+    if (!printerCharacteristic) return false;
+    let offset = 0;
+    while (offset < data.length) {
+      const chunk = data.slice(offset, offset + chunkSize);
       try {
-        const drawerCommand = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]);
-        await printerCharacteristic.writeValue(drawerCommand);
-        printerStatusDiv.innerText = '💰 Drawer opened';
-        setTimeout(() => { if (isConnected) printerStatusDiv.innerText = '✅ Printer ready'; }, 2000);
-        return true;
+        await printerCharacteristic.writeValue(chunk);
+        // Small delay to allow printer to process chunk (optional)
+        await new Promise(resolve => setTimeout(resolve, 50));
       } catch (err) {
-        console.error(err);
-        printerStatusDiv.innerText = `❌ Drawer error`;
-        return false;
+        console.error('Chunk write failed:', err);
+        throw err;
       }
+      offset += chunkSize;
     }
+    return true;
+  }
 
-    async function printReceipt(transaction) {
-      if (!isConnected || !printerCharacteristic) {
-        printerStatusDiv.innerText = '❌ Printer not connected';
-        return false;
-      }
-      try {
-        const openDrawer = (transaction.payment_method === 'Cash');
-        const data = generateReceiptData(transaction, openDrawer);
-        await printerCharacteristic.writeValue(data);
-        printerStatusDiv.innerText = '✅ Receipt printed';
-        return true;
-      } catch (err) {
-        console.error(err);
-        printerStatusDiv.innerText = `❌ Print error`;
-        return false;
-      }
+  async function openCashDrawer() {
+    if (!isConnected || !printerCharacteristic) {
+      printerStatusDiv.innerText = '❌ Printer not connected';
+      return false;
     }
+    try {
+      const drawerCommand = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]);
+      await printerCharacteristic.writeValue(drawerCommand);
+      printerStatusDiv.innerText = '💰 Drawer opened';
+      setTimeout(() => { if (isConnected) printerStatusDiv.innerText = '✅ Printer ready'; }, 2000);
+      return true;
+    } catch (err) {
+      console.error(err);
+      printerStatusDiv.innerText = `❌ Drawer error`;
+      return false;
+    }
+  }
 
-    async function connectPrinter() {
-      try {
-        printerStatusDiv.innerText = '🔍 Scanning...';
-        connectBtn.disabled = true;
-        const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] });
-        gattServer = await device.gatt.connect();
-        const services = await gattServer.getPrimaryServices();
-        let foundChar = null;
-        for (const service of services) {
-          const chars = await service.getCharacteristics();
-          for (const char of chars) {
-            if (char.properties.write || char.properties.writeWithoutResponse) {
-              foundChar = char;
-              break;
-            }
+  async function printReceipt(transaction) {
+    if (!isConnected || !printerCharacteristic) {
+      printerStatusDiv.innerText = '❌ Printer not connected';
+      return false;
+    }
+    try {
+      const openDrawer = (transaction.payment_method === 'Cash');
+      const data = generateReceiptData(transaction, openDrawer);
+      // Send data in chunks to avoid exceeding characteristic's write limit
+      await sendChunkedData(data, 500);
+      printerStatusDiv.innerText = '✅ Receipt printed';
+      return true;
+    } catch (err) {
+      console.error(err);
+      printerStatusDiv.innerText = `❌ Print error: ${err.message}`;
+      return false;
+    }
+  }
+
+  async function connectPrinter() {
+    try {
+      printerStatusDiv.innerText = '🔍 Scanning...';
+      connectBtn.disabled = true;
+      const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] });
+      gattServer = await device.gatt.connect();
+      const services = await gattServer.getPrimaryServices();
+      let foundChar = null;
+      for (const service of services) {
+        const chars = await service.getCharacteristics();
+        for (const char of chars) {
+          if (char.properties.write || char.properties.writeWithoutResponse) {
+            foundChar = char;
+            break;
           }
-          if (foundChar) break;
         }
-        if (!foundChar) throw new Error('No writable characteristic');
-        printerCharacteristic = foundChar;
-        isConnected = true;
-        window.printerAPI.isConnected = true;
-        printerStatusDiv.innerText = '✅ Printer ready';
-        connectBtn.innerText = '🔌 Disconnect';
-        openDrawerBtn.disabled = false;
-      } catch (err) {
-        printerStatusDiv.innerText = `❌ ${err.message}`;
-        gattServer = null;
-        printerCharacteristic = null;
-      } finally {
-        connectBtn.disabled = false;
+        if (foundChar) break;
       }
+      if (!foundChar) throw new Error('No writable characteristic');
+      printerCharacteristic = foundChar;
+      isConnected = true;
+      window.printerAPI.isConnected = true;
+      printerStatusDiv.innerText = '✅ Printer ready';
+      connectBtn.innerText = '🔌 Disconnect';
+      openDrawerBtn.disabled = false;
+    } catch (err) {
+      printerStatusDiv.innerText = `❌ ${err.message}`;
+      gattServer = null;
+      printerCharacteristic = null;
+    } finally {
+      connectBtn.disabled = false;
     }
+  }
 
-    async function disconnectPrinter() {
-      if (gattServer) { gattServer.disconnect(); gattServer = null; printerCharacteristic = null; }
-      isConnected = false;
-      window.printerAPI.isConnected = false;
-      printerStatusDiv.innerText = '⚪ Not connected';
-      connectBtn.innerText = '🖨️ Connect Printer';
-      openDrawerBtn.disabled = true;
-    }
+  async function disconnectPrinter() {
+    if (gattServer) { gattServer.disconnect(); gattServer = null; printerCharacteristic = null; }
+    isConnected = false;
+    window.printerAPI.isConnected = false;
+    printerStatusDiv.innerText = '⚪ Not connected';
+    connectBtn.innerText = '🖨️ Connect Printer';
+    openDrawerBtn.disabled = true;
+  }
 
-    connectBtn.addEventListener('click', () => { if (!isConnected) connectPrinter(); else disconnectPrinter(); });
-    openDrawerBtn.addEventListener('click', async () => {
-      if (!isConnected) { await showAlertModal('Printer not connected', 'Please connect a printer first.'); return; }
-      await openCashDrawer();
-    });
-    window.printerAPI = { isConnected: false, printReceipt: printReceipt };
-  })();
-
+  connectBtn.addEventListener('click', () => { if (!isConnected) connectPrinter(); else disconnectPrinter(); });
+  openDrawerBtn.addEventListener('click', async () => {
+    if (!isConnected) { await showAlertModal('Printer not connected', 'Please connect a printer first.'); return; }
+    await openCashDrawer();
+  });
+  window.printerAPI = { isConnected: false, printReceipt: printReceipt };
+})();
   // ==================== RENDER PRODUCT GRID (with inventory mode) ====================
   function renderProductGrid() {
     const searchTerm = searchInput.value.toLowerCase();
