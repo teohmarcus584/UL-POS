@@ -2015,12 +2015,13 @@ function clearStockHistory() {
       ? `<span class="receipt-id">[REFUND] ${rec.transaction_id}</span>`
       : `<span class="receipt-id">${rec.transaction_id}</span>`;
 
-    // Build actions – always show Lucky Draw for original receipts
+    // Start building actions – always add reprint button
     let actionsHtml = `<button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>🖨️ Reprint</button>`;
+
     if (!isRefund) {
-      // Lucky Draw button always present for original receipts
+      // Always show Lucky Draw for original receipts
       actionsHtml += `<button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>`;
-      // Refund button only if the transaction hasn't been refunded yet
+      // Show Refund button only if the transaction hasn't been refunded yet
       if (!isRefundedOriginal) {
         actionsHtml += `<button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">💰 Refund</button>`;
       }
@@ -2043,7 +2044,7 @@ function clearStockHistory() {
   });
   container.innerHTML = html;
 
-  // Attach event listeners
+  // Attach event listeners (unchanged)
   document.querySelectorAll('.reprint-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       reprintReceipt(JSON.parse(btn.dataset.receipt));
