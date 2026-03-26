@@ -968,6 +968,10 @@
       <button id="reportsButton">📊 Reports</button>
       <button id="receiptsButton">📜 Receipts</button>
       <button id="connectPrinterButton">🖨️ Connect Printer</button>
+      <select id="paperSizeSelect" style="background: #f1f5f9; border-radius: 40px; padding: 10px 16px; font-size: 0.9rem; border: none; cursor: pointer;">
+  <option value="58">58mm</option>
+  <option value="80">80mm</option>
+</select>
       <button id="inventoryModeBtn">📦 Inventory Mode</button>
       <div id="printerStatus">⚪ Not connected</div>
     </div>
@@ -1054,7 +1058,19 @@
     </div>
   </div>
 </div>
-
+// Paper size selector handling
+const paperSizeSelect = document.getElementById('paperSizeSelect');
+if (paperSizeSelect) {
+  // Load saved setting
+  const savedSize = localStorage.getItem('printerPaperSize');
+  paperSizeSelect.value = savedSize === '58' ? '58' : '80';
+  
+  // Save on change
+  paperSizeSelect.addEventListener('change', () => {
+    localStorage.setItem('printerPaperSize', paperSizeSelect.value);
+    showAlertModal('Settings', `Paper size set to ${paperSizeSelect.value}mm.`);
+  });
+}
 <!-- All modals (unchanged for brevity, but fully functional) -->
 <div id="paymentModal" class="modal-overlay"><div class="modal-container" style="max-width: 400px;"><span class="close-modal" id="closePaymentModal">×</span><div class="modal-title">💳 Select Payment Method</div><div class="payment-buttons"><button class="payment-btn" data-method="Cash">💵 Cash</button><button class="payment-btn" data-method="Card">💳 Card</button><button class="payment-btn" data-method="QR Pay">📱 QR Pay</button></div><div id="cashOptions" style="display: none;"><div class="suggestions" id="suggestionsContainer"></div><input type="number" id="customCashInput" class="custom-cash-input" placeholder="Enter amount received (RM)" step="0.01"><div class="modal-buttons"><button id="confirmCashBtn" class="modal-btn modal-btn-primary">Confirm</button><button id="cancelPaymentBtn" class="modal-btn modal-btn-secondary">Cancel</button></div></div><div id="otherPaymentOptions" style="display: none;"><div class="modal-buttons"><button id="confirmOtherBtn" class="modal-btn modal-btn-primary">Confirm</button><button id="cancelOtherBtn" class="modal-btn modal-btn-secondary">Cancel</button></div></div></div></div>
 <div id="luckyDrawModal" class="modal-overlay"><div class="modal-container" style="max-width: 400px;"><span class="close-modal" id="closeLuckyDrawModal">×</span><div class="modal-title">🎲 Lucky Draw</div><p>Transaction ID: <strong id="luckyTxId"></strong></p><p>Click below to enter the Lucky Draw with this receipt number.</p><div class="modal-buttons"><button id="openLuckyDrawBtn" class="modal-btn modal-btn-primary">🎁 Go to Lucky Draw</button><button id="closeLuckyDrawBtn" class="modal-btn modal-btn-secondary">Close</button></div></div></div>
@@ -2483,88 +2499,103 @@
     return `${d}/${m}/${y} ${h}:${min}`;
   }
 
-  function generateReceiptData(transaction, openDrawer = false) {
-    const encoder = new TextEncoder();
-    const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
-    const storeLocation = transaction.store ? transaction.store.charAt(0).toUpperCase() + transaction.store.slice(1) : 'Queens';
-    
-    // Group items by category
-    const grouped = {};
-    for (const item of transaction.items) {
-      const cat = item.category || 'Uncategorized';
-      if (!grouped[cat]) grouped[cat] = [];
-      grouped[cat].push(item);
+ function generateReceiptData(transaction, openDrawer = false) {
+  const encoder = new TextEncoder();
+  const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
+  const storeLocation = transaction.store ? transaction.store.charAt(0).toUpperCase() + transaction.store.slice(1) : 'Queens';
+  
+  // Get paper size setting (default 80mm)
+  const paperSize = localStorage.getItem('printerPaperSize') || '80';
+  const maxChars = paperSize === '58' ? 32 : 48; // 58mm ~32 chars, 80mm ~48 chars
+  
+  // Helper to pad/truncate text for fixed width
+  function formatLine(left, right = null) {
+    if (right === null) {
+      // Single line, truncate if needed
+      return left.length > maxChars ? left.substring(0, maxChars - 3) + '...' : left;
     }
-    
-    const lines = [];
-    
-    // Header
-    lines.push('', '    UL PERFUMERY', '------------------------------------------');
-    lines.push(`STORE LOCATION : ${storeLocation}`);
-    lines.push(`EMPLOYEE : ${employeeName}`);
-    lines.push('------------------------------------------');
-    
-    // Items by category
-    for (const [category, items] of Object.entries(grouped)) {
-      // Calculate category total
-      let categoryTotal = 0;
-      for (const item of items) {
-        categoryTotal += item.price * item.quantity;
-      }
-      lines.push(`${category.padEnd(30)} RM ${categoryTotal.toFixed(2).padStart(8)}`);
-      
-      // List each product in the category
-      for (const item of items) {
-        const productLine = `  ${item.name}`;
-        lines.push(productLine);
-        const qtyLine = `  ${item.quantity} x RM ${item.price.toFixed(2)}`;
-        lines.push(qtyLine);
-      }
-    }
-    
-    lines.push('------------------------------------------');
-    
-    // Total
-    const totalAmount = transaction.total;
-    lines.push(`TOTAL${' '.repeat(30)} RM ${totalAmount.toFixed(2).padStart(8)}`);
-    
-    // Payment method
-    lines.push(`PAYMENT METHOD${' '.repeat(20)} ${transaction.payment_method.padStart(15)}`);
-    
-    // Change if cash
-    if (transaction.cash_received && transaction.payment_method === 'Cash') {
-      const change = transaction.cash_received - totalAmount;
-      lines.push(`CHANGE${' '.repeat(28)} RM ${change.toFixed(2).padStart(8)}`);
-    }
-    
-    lines.push('------------------------------------------');
-    lines.push('THANK YOU FOR YOUR PURCHASE');
-    lines.push('ANY ENQUIRY PLEASE CONTACT');
-    lines.push('+60134665831 ( MARCUS )');
-    lines.push('GOODS SOLD ARE NOT REFUNDABLE');
-    lines.push('------------------------------------------');
-    
-    // Transaction details
-    const date = new Date(transaction.timestamp);
-    const formattedDate = `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
-    lines.push(`TXN   : ${transaction.transaction_id}`);
-    lines.push(`DATE  : ${formattedDate}`);
-    lines.push('');
-    
-    const text = lines.join('\n');
-    
-    let commands = [];
-    commands.push(0x1B, 0x40); // Initialize printer
-    commands.push(0x1B, 0x61, 0x01); // Center alignment
-    commands.push(...encoder.encode(text));
-    commands.push(0x1B, 0x64, 0x03); // Feed 3 lines
-    commands.push(0x1D, 0x56, 0x41, 0x00); // Cut paper
-    if (openDrawer) {
-      const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
-      commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
-    }
-    return new Uint8Array(commands);
+    // Two columns
+    const leftMax = Math.floor(maxChars * 0.6);
+    const rightMax = maxChars - leftMax - 2;
+    let leftText = left.length > leftMax ? left.substring(0, leftMax - 3) + '...' : left;
+    let rightText = right.length > rightMax ? right.substring(0, rightMax - 3) + '...' : right;
+    return leftText.padEnd(leftMax) + ' ' + rightText.padStart(rightMax);
   }
+  
+  // Group items by category
+  const grouped = {};
+  for (const item of transaction.items) {
+    const cat = item.category || 'Uncategorized';
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(item);
+  }
+  
+  const lines = [];
+  const separator = '-'.repeat(maxChars);
+  
+  // Header
+  lines.push('', '    UL PERFUMERY', separator);
+  lines.push(formatLine(`STORE LOCATION : ${storeLocation}`));
+  lines.push(formatLine(`EMPLOYEE : ${employeeName}`));
+  lines.push(separator);
+  
+  // Items by category
+  for (const [category, items] of Object.entries(grouped)) {
+    let categoryTotal = 0;
+    for (const item of items) {
+      categoryTotal += item.price * item.quantity;
+    }
+    lines.push(formatLine(category, `RM ${categoryTotal.toFixed(2)}`));
+    
+    for (const item of items) {
+      lines.push(`  ${item.name}`);
+      lines.push(`  ${item.quantity} x RM ${item.price.toFixed(2)}`);
+    }
+  }
+  
+  lines.push(separator);
+  
+  // Total
+  const totalAmount = transaction.total;
+  lines.push(formatLine('TOTAL', `RM ${totalAmount.toFixed(2)}`));
+  
+  // Payment method
+  lines.push(formatLine('PAYMENT METHOD', transaction.payment_method));
+  
+  // Change if cash
+  if (transaction.cash_received && transaction.payment_method === 'Cash') {
+    const change = transaction.cash_received - totalAmount;
+    lines.push(formatLine('CHANGE', `RM ${change.toFixed(2)}`));
+  }
+  
+  lines.push(separator);
+  lines.push('THANK YOU FOR YOUR PURCHASE');
+  lines.push('ANY ENQUIRY PLEASE CONTACT');
+  lines.push('+60134665831 ( MARCUS )');
+  lines.push('GOODS SOLD ARE NOT REFUNDABLE');
+  lines.push(separator);
+  
+  // Transaction details
+  const date = new Date(transaction.timestamp);
+  const formattedDate = `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+  lines.push(formatLine(`TXN   : ${transaction.transaction_id}`));
+  lines.push(formatLine(`DATE  : ${formattedDate}`));
+  lines.push('');
+  
+  const text = lines.join('\n');
+  
+  let commands = [];
+  commands.push(0x1B, 0x40); // Initialize printer
+  commands.push(0x1B, 0x61, 0x01); // Center alignment
+  commands.push(...encoder.encode(text));
+  commands.push(0x1B, 0x64, 0x03); // Feed 3 lines
+  commands.push(0x1D, 0x56, 0x41, 0x00); // Cut paper
+  if (openDrawer) {
+    const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
+    commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
+  }
+  return new Uint8Array(commands);
+}
 
   // Helper to send data in chunks
   async function sendChunkedData(data, chunkSize = 500) {
