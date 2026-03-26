@@ -1743,7 +1743,7 @@ if (paperSizeSelect) {
   }
 
  function applyBuy2Free1Perfume() {
-  // Get eligible items: category contains "perfume edp" (case-insensitive) AND not Humidifier Machine
+  // Eligible: category contains "perfume edp" (50ml or 100ml) – humidifier excluded
   const eligiblePrices = getUnitPricesFromFilter(item => {
     const cat = (item.product.category || "").trim().toLowerCase();
     return cat.includes("perfume edp") && !cat.includes("humidifier");
@@ -1766,11 +1766,11 @@ if (paperSizeSelect) {
   document.getElementById('specialPromoModal').style.display = 'none';
 }
 
-  function applyBuy3Free1ExcludePerfume() {
-  // Exclude Perfume EDP (50ml/100ml) and Humidifier Machine
+function applyBuy3Free1ExcludePerfume() {
+  // Eligible: excludes Perfume EDP (50ml/100ml) but includes Humidifier
   const eligiblePrices = getUnitPricesFromFilter(item => {
     const cat = (item.product.category || "").trim().toLowerCase();
-    return !cat.includes("perfume edp") && !cat.includes("humidifier");
+    return !cat.includes("perfume edp");  // allows humidifier
   });
 
   const totalUnits = eligiblePrices.length;
@@ -1778,7 +1778,7 @@ if (paperSizeSelect) {
   
   if (freeItems === 0) {
     const msgDiv = document.getElementById('promoMessage');
-    msgDiv.innerText = `Need at least 4 items excluding Perfume and Humidifier categories. Found ${totalUnits}.`;
+    msgDiv.innerText = `Need at least 4 items excluding Perfume categories. Found ${totalUnits}.`;
     msgDiv.style.display = 'block';
     return;
   }
