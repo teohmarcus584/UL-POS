@@ -1289,7 +1289,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby9Y9mndsad_8qJ7gEC3elkj2mO9Y0y59yAdbj0k9Awm_hztfoXTQzF1tmvDNEjZJvD7w/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx7LTxTViURkrTzKVhQ0KXif0xFjS7itB3b7gIfOCS9TGFxNQ2zzCemNo7imryEknhJ/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1316,7 +1316,8 @@ let productOriginalStock = {};     // productId -> stock at first change
 let stockUpdateTimeout = null;      // debounce timer
   let inventoryMode = false;
   let updateStockTimeout = null;
-
+let pendingStockChanges = {};      // productId → net change
+let productOriginalStock = {};     // productId → original stock at start of inventory session
   // DOM elements
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -1487,6 +1488,8 @@ async function applyPendingStockUpdates() {
   const productsToUpdate = Object.keys(pendingStockChanges);
   if (productsToUpdate.length === 0) return;
 
+  showLoading('Committing stock changes...');
+
   for (const productId of productsToUpdate) {
     const netChange = pendingStockChanges[productId];
     const originalStock = productOriginalStock[productId];
@@ -1494,22 +1497,22 @@ async function applyPendingStockUpdates() {
 
     const product = products.find(p => p.id == productId);
     if (product) {
-      // Record a single adjustment with the net change
+      // Record one aggregated adjustment
       await recordStockAdjustment(productId, product.name, originalStock, newStock);
-      // Update server with the final stock
+      // Update server stock
       await updateStockOnServer(productId, newStock);
-      // Ensure local stock matches (already updated live, but just in case)
-      product.stock = newStock;
+      // Ensure local product stock matches final (already updated)
     }
   }
 
   // Clear pending data
   pendingStockChanges = {};
   productOriginalStock = {};
-  stockUpdateTimeout = null;
 
-  // Refresh the stock history display (optional)
-  if (inventoryMode) refreshStockHistory();
+  // Refresh history after commit
+  await refreshStockHistory();
+  hideLoading();
+  showAlertModal('Success', 'All stock changes have been recorded.');
 }
 
 // Fire-and-forget: sends a single adjustment record to the backend
@@ -1729,10 +1732,18 @@ async function refreshStockHistory() {
   }
 }
 
- function scheduleStockUpdate(productId, newStock) {
+ let updateStockTimeout = null; // global debounce timer
+
+function scheduleStockUpdate(productId, newStock, oldStock, productName) {
+  // Clear any existing timer
   if (updateStockTimeout) clearTimeout(updateStockTimeout);
+
+  // Set a new timer to update the server after 500ms of inactivity
   updateStockTimeout = setTimeout(() => {
+    // Update the server with the final stock
     updateStockOnServer(productId, newStock);
+    // Record the adjustment in history (this was the old way – now removed)
+    // recordStockAdjustment(productId, productName, oldStock, newStock);
   }, 500);
 }
 async function recordStockAdjustment(productId, productName, oldStock, newStock) {
@@ -1754,23 +1765,29 @@ async function recordStockAdjustment(productId, productName, oldStock, newStock)
 }
   // ==================== INVENTORY MODE TOGGLE ====================
   function toggleInventoryMode() {
-    inventoryMode = !inventoryMode;
-    if (inventoryMode) {
-      // Enter inventory mode
-      normalCartSections.style.display = 'none';
-      stockHistoryContainer.style.display = 'block';
-      inventoryModeBtn.innerText = '🛍️ Exit Inventory';
-      if (updateStockTimeout) clearTimeout(updateStockTimeout);
-      refreshStockHistory(); // load history
-    } else {
-      // Exit inventory mode
-      normalCartSections.style.display = 'block';
-      stockHistoryContainer.style.display = 'none';
-      inventoryModeBtn.innerText = '📦 Inventory Mode';
+  if (inventoryMode) {
+    // Exit inventory mode: commit all pending changes
+    if (Object.keys(pendingStockChanges).length > 0) {
+      applyPendingStockUpdates();
     }
-    renderProductGrid(); // re-render products with appropriate controls
+    // Switch UI
+    normalCartSections.style.display = 'block';
+    stockHistoryContainer.style.display = 'none';
+    inventoryModeBtn.innerText = '📦 Inventory Mode';
+    inventoryMode = false;
+  } else {
+    // Enter inventory mode: reset pending data
+    pendingStockChanges = {};
+    productOriginalStock = {};
+    // Switch UI
+    normalCartSections.style.display = 'none';
+    stockHistoryContainer.style.display = 'block';
+    inventoryModeBtn.innerText = '🛍️ Exit Inventory';
+    inventoryMode = true;
+    refreshStockHistory(); // load existing history
   }
-
+  renderProductGrid();
+}
   // ==================== CART FUNCTIONS ====================
   function updateCartUI() {
     if (!cartContainer) return;
@@ -2990,57 +3007,54 @@ function renderProductGrid() {
   let html = '';
   filtered.forEach(prod => {
     if (inventoryMode) {
-      html += `<div class="product-card">
-        <div class="product-name">${escapeHtml(prod.name)}</div>
-        <div class="product-price">RM ${prod.price.toFixed(2)}</div>
-        <div class="inventory-controls">
-          <button class="inventory-btn dec-stock" data-id="${prod.id}">−</button>
-          <span class="stock-display" data-id="${prod.id}">${prod.stock}</span>
-          <button class="inventory-btn inc-stock" data-id="${prod.id}">+</button>
-        </div>
-      </div>`;
-    } else {
-      const stockStatus = prod.stock > 0 ? `📦 Stock: ${prod.stock}` : '❌ Out of stock';
-      html += `<div class="product-card">
-        <div class="product-name">${escapeHtml(prod.name)}</div>
-        <div class="product-price">RM ${prod.price.toFixed(2)}</div>
-        <div class="product-stock">${stockStatus}</div>
-        <button class="add-btn" data-id="${prod.id}" ${prod.stock <= 0 ? 'disabled' : ''}>+ Add to cart</button>
-      </div>`;
-    }
-  });
-  productGridEl.innerHTML = html;
-  productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
+  // Decrement button ( - )
+  document.querySelectorAll('.dec-stock').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = btn.dataset.id;
+      const product = products.find(p => p.id == id);
+      if (product && product.stock > 0) {
+        const delta = -1;
+        const newStock = product.stock + delta;
 
-  if (inventoryMode) {
-    // Decrement button ( - )
-    document.querySelectorAll('.dec-stock').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const id = btn.dataset.id;
-        const product = products.find(p => p.id == id);
-        if (product && product.stock > 0) {
-          const delta = -1;
-          const newStock = product.stock + delta;
+        // Update UI immediately
+        product.stock = newStock;
+        const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
+        if (displaySpan) displaySpan.innerText = newStock;
 
-          // 1. Update UI immediately
-          product.stock = newStock;
-          const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
-          if (displaySpan) displaySpan.innerText = newStock;
-
-          // 2. Track pending change (aggregation)
-          if (!(id in pendingStockChanges)) {
-            // Store original stock BEFORE this change
-            productOriginalStock[id] = product.stock - delta;
-          }
-          pendingStockChanges[id] = (pendingStockChanges[id] || 0) + delta;
-
-          // 3. Debounce final update
-          if (stockUpdateTimeout) clearTimeout(stockUpdateTimeout);
-          stockUpdateTimeout = setTimeout(applyPendingStockUpdates, 500);
+        // Track pending change
+        if (!(id in pendingStockChanges)) {
+          productOriginalStock[id] = product.stock - delta; // original before any change
         }
-        e.stopPropagation();
-      });
+        pendingStockChanges[id] = (pendingStockChanges[id] || 0) + delta;
+      }
+      e.stopPropagation();
     });
+  });
+
+  // Increment button ( + )
+  document.querySelectorAll('.inc-stock').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = btn.dataset.id;
+      const product = products.find(p => p.id == id);
+      if (product) {
+        const delta = 1;
+        const newStock = product.stock + delta;
+
+        // Update UI immediately
+        product.stock = newStock;
+        const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
+        if (displaySpan) displaySpan.innerText = newStock;
+
+        // Track pending change
+        if (!(id in pendingStockChanges)) {
+          productOriginalStock[id] = product.stock - delta; // original before any change
+        }
+        pendingStockChanges[id] = (pendingStockChanges[id] || 0) + delta;
+      }
+      e.stopPropagation();
+    });
+  });
+}
 
     // Increment button ( + )
     document.querySelectorAll('.inc-stock').forEach(btn => {
