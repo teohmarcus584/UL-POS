@@ -2369,7 +2369,7 @@ function stopReceiptPolling() {
     tbody.innerHTML = html;
   }
 
- async function updateAdminReport() {
+async function updateAdminReport() {
   let store, employeeId;
   if (currentEmployee.isAdmin) {
     store = document.getElementById('adminReportStoreSelect').value;
@@ -2378,10 +2378,12 @@ function stopReceiptPolling() {
     store = 'all';
     employeeId = currentEmployee.id;
   }
+
   const range = document.getElementById('adminReportDateRangeSelect').value;
   let from = null, to = null;
   const today = new Date();
-  today.setHours(0,0,0,0);
+  today.setHours(0, 0, 0, 0);
+
   if (range === 'today') {
     from = getLocalDateString(today);
     to = from;
@@ -2405,26 +2407,26 @@ function stopReceiptPolling() {
     if (!from || !to) return;
   }
 
-  // Fetch all required data in parallel for better performance
-  const [salesReport, chartData, employeeData, productData] = await Promise.all([
+  // Build array of promises for all data we need
+  const promises = [
     fetchSalesReport(store, employeeId, from, to),
     fetchSalesChartData(store, employeeId, from, to),
-    currentEmployee.isAdmin ? fetchEmployeeSalesData(store, from, to) : null,
     fetchProductSalesReport(store, employeeId, from, to)
-  ]);
-
-  if (salesReport) {
-    // Already updated by fetchSalesReport, but we need to ensure the UI is up to date
-    // (fetchSalesReport already updates the UI)
+  ];
+  if (currentEmployee.isAdmin) {
+    promises.push(fetchEmployeeSalesData(store, from, to));
   }
+
+  // Wait for all fetches to complete
+  const results = await Promise.all(promises);
+  const productData = results[2]; // third item = product sales report
+
   if (productData) {
     lastProductData = productData;
-    if (productDetailsVisible) {
-      renderProductDetails(lastProductData);
-    }
+    if (productDetailsVisible) renderProductDetails(lastProductData);
   }
 
-  // Hide loading indicator
+  // Hide loading indicator (created by the Reports button click)
   const loadingMsg = document.getElementById('adminReportLoadingMsg');
   if (loadingMsg) loadingMsg.style.display = 'none';
 }
@@ -2990,7 +2992,6 @@ startReceiptPolling();
   // For completeness, we add them here (abbreviated).
 if (document.getElementById('reportsButton')) {
   document.getElementById('reportsButton').addEventListener('click', async () => {
-    // Handle admin vs non‑admin filters
     if (currentEmployee?.isAdmin) {
       const employees = await fetchEmployees();
       const adminReportEmpSelect = document.getElementById('adminReportEmployeeSelect');
@@ -3043,7 +3044,7 @@ if (document.getElementById('reportsButton')) {
       }
       loadingMsg.style.display = 'block';
 
-      // Fetch fresh data (cached receipts will be shown instantly if needed)
+      // Load fresh data
       setTimeout(() => updateAdminReport(), 200);
     }
   });
@@ -3076,7 +3077,29 @@ if (document.getElementById('reportsButton')) {
 
   if (document.getElementById('receiptsButton')) {
   document.getElementById('receiptsButton').addEventListener('click', async () => {
-    // Handle admin vs non‑admin filters
+    // 1. Open modal instantly
+    const modal = document.getElementById('receiptsModal');
+    if (modal) {
+      modal.style.display = 'flex';
+
+      // 2. Add loading indicator inside modal (if not already present)
+      let loadingMsg = document.getElementById('receiptsLoadingMsg');
+      if (!loadingMsg) {
+        loadingMsg = document.createElement('div');
+        loadingMsg.id = 'receiptsLoadingMsg';
+        loadingMsg.style.textAlign = 'center';
+        loadingMsg.style.padding = '20px';
+        loadingMsg.style.background = '#f8fafc';
+        loadingMsg.style.borderRadius = '12px';
+        loadingMsg.style.margin = '10px 0';
+        loadingMsg.innerText = 'Loading receipts...';
+        const receiptsList = document.getElementById('receiptsList');
+        if (receiptsList) receiptsList.insertAdjacentElement('beforebegin', loadingMsg);
+      }
+      loadingMsg.style.display = 'block';
+    }
+
+    // 3. Background tasks (admin filter setup, etc.)
     if (currentEmployee?.isAdmin) {
       const employees = await fetchEmployees();
       const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
@@ -3101,22 +3124,18 @@ if (document.getElementById('reportsButton')) {
       const receiptsStore = document.getElementById('receiptsStoreSelect');
       if (receiptsStore) receiptsStore.value = currentStore;
     }
+
     populateStoreSelects();
 
-    const modal = document.getElementById('receiptsModal');
-    if (modal) {
-      modal.style.display = 'flex';
-      // Show cached data instantly if available
-      if (cachedReceipts) {
-        renderReceiptsList(cachedReceipts);
-      } else {
-        // Fallback: show loading message
-        const container = document.getElementById('receiptsList');
-        if (container) container.innerHTML = '<div style="text-align:center; padding:30px;">Loading receipts...</div>';
-      }
-      // Then fetch fresh data (will update if needed)
-      updateReceipts();
+    // 4. Show cached data instantly if available
+    if (cachedReceipts) {
+      renderReceiptsList(cachedReceipts);
+      const msg = document.getElementById('receiptsLoadingMsg');
+      if (msg) msg.style.display = 'none';
     }
+
+    // 5. Fetch fresh data in background (will update the list)
+    updateReceipts();
   });
 }
 
