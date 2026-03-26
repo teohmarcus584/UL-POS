@@ -2088,7 +2088,7 @@ function stopReceiptPolling() {
 }
   // ==================== RECEIPTS ====================
   async function fetchReceipts(store, employeeId, from, to, search) {
-    showLoading('Loading receipts...');
+    
     try {
       let url = `${APPS_SCRIPT_URL}?action=getReceipts&store=${store}&employeeId=${employeeId}`;
       if (from) url += `&from=${encodeURIComponent(from)}`;
