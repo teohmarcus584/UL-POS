@@ -306,6 +306,72 @@
     #clearCartBtn, #refreshProductsBtn { /* handled by .cart-header-btn */ }
     button:active { transform: scale(0.97); }
 
+    /* Stock History Table Styles */
+    .stock-history-container {
+      max-height: 65vh;
+      overflow-y: auto;
+      margin: 16px 0;
+    }
+    .stock-history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .stock-history-table th,
+    .stock-history-table td {
+      padding: 10px 6px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .stock-history-table th {
+      background: #f1f5f9;
+      position: sticky;
+      top: 0;
+      font-weight: 600;
+    }
+    .stock-history-table tr:hover {
+      background: #f8fafc;
+    }
+    .stock-history-table td:nth-child(3) {
+      text-align: center;
+    }
+    .stock-history-table td:nth-child(4) {
+      text-align: right;
+      font-weight: 500;
+    }
+    .stock-history-table td:nth-child(5) {
+      text-align: right;
+      font-weight: 500;
+      color: #2c7a4b;
+    }
+    .stock-history-empty {
+      text-align: center;
+      color: #94a3b8;
+      padding: 40px;
+      font-style: italic;
+    }
+    .stock-history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .stock-history-header h3 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+    .refresh-history-btn {
+      background: #f1f5f9;
+      border: none;
+      border-radius: 40px;
+      padding: 6px 12px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .refresh-history-btn:hover {
+      background: #e2e8f0;
+    }
+
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 2000;
@@ -957,37 +1023,50 @@
 
     <div class="cart-panel">
       <div class="cart-header">
-        <div class="cart-title">🧾 Current Sale</div>
-        <div class="cart-header-buttons">
+        <div class="cart-title" id="cartPanelTitle">🧾 Current Sale</div>
+        <div class="cart-header-buttons" id="cartHeaderButtons">
           <button id="clearCartBtn" class="cart-header-btn">🗑️ Clear</button>
           <button id="refreshProductsBtn" class="cart-header-btn">🔄 Refresh</button>
         </div>
       </div>
-      <div id="cartItemsContainer" class="cart-items">Cart is empty</div>
-      <div class="cart-summary">
-        <div class="summary-row"><span>Subtotal</span><span id="subtotal">RM 0.00</span></div>
-        <div id="discountRow" class="summary-row discount-row" style="display: none;">
-          <span><i>🎲</i> Lucky Draw</span>
-          <span id="discountAmount">RM 0.00</span>
+      <!-- Normal Cart Sections -->
+      <div id="normalCartSections">
+        <div id="cartItemsContainer" class="cart-items">Cart is empty</div>
+        <div class="cart-summary">
+          <div class="summary-row"><span>Subtotal</span><span id="subtotal">RM 0.00</span></div>
+          <div id="discountRow" class="summary-row discount-row" style="display: none;">
+            <span><i>🎲</i> Lucky Draw</span>
+            <span id="discountAmount">RM 0.00</span>
+          </div>
+          <div id="promoBuy2Free1Row" class="summary-row discount-row" style="display: none;">
+            <span><i>🎯</i> Buy 2 Free 1 (Perfume)</span>
+            <span id="promoBuy2Free1Amount">RM 0.00</span>
+          </div>
+          <div id="promoBuy3Free1Row" class="summary-row discount-row" style="display: none;">
+            <span><i>🎯</i> Buy 3 Free 1 (Excluding Perfume)</span>
+            <span id="promoBuy3Free1Amount">RM 0.00</span>
+          </div>
+          <div id="customDiscountRow" class="summary-row discount-row" style="display: none;">
+            <span><i>💰</i> Custom Discount</span>
+            <span id="customDiscountAmount">RM 0.00</span>
+          </div>
+          <div class="summary-row total-row"><span>TOTAL</span><span id="totalAmount">RM 0.00</span></div>
         </div>
-        <div id="promoBuy2Free1Row" class="summary-row discount-row" style="display: none;">
-          <span><i>🎯</i> Buy 2 Free 1 (Perfume)</span>
-          <span id="promoBuy2Free1Amount">RM 0.00</span>
+        <div class="cart-actions" id="cartActions">
+          <button id="checkoutBtn">💳 CHECKOUT</button>
+          <button id="claimPrizeBtn">🎁 Claim Prize</button>
+          <button id="specialPromoBtn">🎁 Special Promo</button>
         </div>
-        <div id="promoBuy3Free1Row" class="summary-row discount-row" style="display: none;">
-          <span><i>🎯</i> Buy 3 Free 1 (Excluding Perfume)</span>
-          <span id="promoBuy3Free1Amount">RM 0.00</span>
-        </div>
-        <div id="customDiscountRow" class="summary-row discount-row" style="display: none;">
-          <span><i>💰</i> Custom Discount</span>
-          <span id="customDiscountAmount">RM 0.00</span>
-        </div>
-        <div class="summary-row total-row"><span>TOTAL</span><span id="totalAmount">RM 0.00</span></div>
       </div>
-      <div class="cart-actions">
-        <button id="checkoutBtn">💳 CHECKOUT</button>
-        <button id="claimPrizeBtn">🎁 Claim Prize</button>
-        <button id="specialPromoBtn">🎁 Special Promo</button>
+      <!-- Stock History Container (initially hidden) -->
+      <div id="stockHistoryContainer" style="display: none;">
+        <div class="stock-history-header">
+          <h3>📦 Stock Addition History</h3>
+          <button id="refreshStockHistoryBtn" class="refresh-history-btn">🔄 Refresh</button>
+        </div>
+        <div id="stockHistoryList" class="stock-history-container">
+          <div class="stock-history-empty">Loading stock history...</div>
+        </div>
       </div>
     </div>
   </div>
@@ -1142,7 +1221,7 @@
           <table class="product-details-table">
             <thead>   </thead>
             <tbody id="productDetailsBody">   </tbody>
-           </table>
+          </table>
         </div>
       </div>
     </div>
@@ -1178,7 +1257,7 @@
         <thead>
           <tr><th><input type="checkbox" id="selectAllCheckbox"></th><th>Date</th><th>Employee</th><th>Amount</th></tr>
         </thead>
-        <tbody id="collectionTableBody">   </tbody>
+        <tbody id="collectionTableBody"></tbody>
       </table>
     </div>
     <div class="modal-buttons" style="margin-top: 16px;"><button id="collectSelectedBtn" class="modal-btn modal-btn-primary" disabled>Collect Selected</button><button id="closeCollectionModalBtn" class="modal-btn modal-btn-secondary">Close</button></div>
@@ -1210,7 +1289,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw66T42b-FpYvVqVPxQwhLJedfqYOLS1qLHl7nDjnxErUTVAwhQ47JlLpoHrdzAYjvWXw/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwS-Cfl79fT_JCycSW1ngJ73IApo-Z8_CsKoFOecJ0WY5VjI-WHSzHUrT1GA-U5l4TQWw/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1254,6 +1333,9 @@
   const soldBySelect = document.getElementById('soldBySelect');
   const inventoryModeBtn = document.getElementById('inventoryModeBtn');
   const cartPanel = document.querySelector('.cart-panel');
+  const normalCartSections = document.getElementById('normalCartSections');
+  const stockHistoryContainer = document.getElementById('stockHistoryContainer');
+  const refreshStockHistoryBtn = document.getElementById('refreshStockHistoryBtn');
 
   // ==================== HELPER FUNCTIONS ====================
   function showAlertModal(title, message) {
@@ -1380,6 +1462,88 @@
     return employeeNameMap[employeeId] || employeeId;
   }
 
+  // ==================== STOCK HISTORY FUNCTIONS ====================
+  async function fetchStockHistory(store) {
+    try {
+      const url = `${APPS_SCRIPT_URL}?action=getStockHistory&store=${encodeURIComponent(store)}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        return result.history || [];
+      } else {
+        console.error('Failed to fetch stock history:', result.error);
+        return [];
+      }
+    } catch (err) {
+      console.error('Error fetching stock history:', err);
+      return [];
+    }
+  }
+
+  async function saveStockAdjustment(productId, productName, oldStock, newStock, store, employeeId, employeeName) {
+    try {
+      const formData = new URLSearchParams();
+      formData.append("action", "saveStockAdjustment");
+      formData.append("productId", productId);
+      formData.append("productName", productName);
+      formData.append("oldStock", oldStock);
+      formData.append("newStock", newStock);
+      formData.append("store", store);
+      formData.append("employeeId", employeeId);
+      formData.append("employeeName", employeeName);
+      formData.append("timestamp", new Date().toISOString());
+      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+      const result = await response.json();
+      if (!result.success) {
+        console.error("Failed to save stock adjustment:", result.error);
+      }
+    } catch (err) {
+      console.error("Error saving stock adjustment:", err);
+    }
+  }
+
+  async function refreshStockHistory() {
+    if (!inventoryMode) return;
+    showLoading('Loading stock history...');
+    try {
+      const history = await fetchStockHistory(currentStore);
+      displayStockHistory(history);
+    } catch (err) {
+      console.error(err);
+      const container = document.getElementById('stockHistoryList');
+      if (container) container.innerHTML = '<div class="stock-history-empty">Error loading history.</div>';
+    } finally {
+      hideLoading();
+    }
+  }
+
+  function displayStockHistory(history) {
+    const container = document.getElementById('stockHistoryList');
+    if (!container) return;
+    if (!history || history.length === 0) {
+      container.innerHTML = '<div class="stock-history-empty">No stock adjustments recorded yet.</div>';
+      return;
+    }
+    let html = '<table class="stock-history-table"><thead><tr><th>Time</th><th>Product</th><th>Change</th><th>Old Stock</th><th>New Stock</th><th>Employee</th></tr></thead><tbody>';
+    for (const adj of history) {
+      const change = adj.newStock - adj.oldStock;
+      const changeClass = change > 0 ? 'positive' : 'negative';
+      const changeSign = change > 0 ? `+${change}` : `${change}`;
+      const changeStyle = change > 0 ? 'color: #2c7a4b;' : 'color: #dc2626;';
+      const date = new Date(adj.timestamp).toLocaleString();
+      html += `<tr>
+        <td>${date}</td>
+        <td>${escapeHtml(adj.productName)}</td>
+        <td style="${changeStyle}">${changeSign}</td>
+        <td>${adj.oldStock}</td>
+        <td>${adj.newStock}</td>
+        <td>${escapeHtml(adj.employeeName)}</td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  }
+
   // ==================== INITIAL DATA LOAD ====================
   async function loadInitialData() {
     try {
@@ -1495,7 +1659,7 @@
     }
   }
 
-  // ==================== STOCK UPDATE ====================
+  // ==================== STOCK UPDATE (with history) ====================
   async function updateStockOnServer(productId, newStock) {
     try {
       const formData = new URLSearchParams();
@@ -1513,16 +1677,22 @@
         if (product) product.stock = newStock;
         // Invalidate cache
         localStorage.removeItem(`products_${currentStore}`);
+        // After successful update, refresh stock history if in inventory mode
+        if (inventoryMode) refreshStockHistory();
       }
     } catch (err) {
       console.error("Error updating stock:", err);
     }
   }
 
-  function scheduleStockUpdate(productId, newStock) {
+  function scheduleStockUpdate(productId, newStock, oldStock, productName) {
     if (updateStockTimeout) clearTimeout(updateStockTimeout);
     updateStockTimeout = setTimeout(() => {
       updateStockOnServer(productId, newStock);
+      // Save adjustment history
+      if (currentEmployee) {
+        saveStockAdjustment(productId, productName, oldStock, newStock, currentStore, currentEmployee.id, currentEmployee.name);
+      }
     }, 500);
   }
 
@@ -1530,11 +1700,16 @@
   function toggleInventoryMode() {
     inventoryMode = !inventoryMode;
     if (inventoryMode) {
-      cartPanel.style.display = 'none';
+      // Enter inventory mode
+      normalCartSections.style.display = 'none';
+      stockHistoryContainer.style.display = 'block';
       inventoryModeBtn.innerText = '🛍️ Exit Inventory';
       if (updateStockTimeout) clearTimeout(updateStockTimeout);
+      refreshStockHistory(); // load history
     } else {
-      cartPanel.style.display = 'flex';
+      // Exit inventory mode
+      normalCartSections.style.display = 'block';
+      stockHistoryContainer.style.display = 'none';
       inventoryModeBtn.innerText = '📦 Inventory Mode';
     }
     renderProductGrid(); // re-render products with appropriate controls
@@ -2787,11 +2962,12 @@
           const id = btn.dataset.id;
           const product = products.find(p => p.id == id);
           if (product && product.stock > 0) {
+            const oldStock = product.stock;
             const newStock = product.stock - 1;
             product.stock = newStock;
             const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
             if (displaySpan) displaySpan.innerText = newStock;
-            scheduleStockUpdate(id, newStock);
+            scheduleStockUpdate(id, newStock, oldStock, product.name);
             btn.dataset.current = newStock;
             const incBtn = document.querySelector(`.inc-stock[data-id="${id}"]`);
             if (incBtn) incBtn.dataset.current = newStock;
@@ -2804,11 +2980,12 @@
           const id = btn.dataset.id;
           const product = products.find(p => p.id == id);
           if (product) {
+            const oldStock = product.stock;
             const newStock = product.stock + 1;
             product.stock = newStock;
             const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
             if (displaySpan) displaySpan.innerText = newStock;
-            scheduleStockUpdate(id, newStock);
+            scheduleStockUpdate(id, newStock, oldStock, product.name);
             btn.dataset.current = newStock;
             const decBtn = document.querySelector(`.dec-stock[data-id="${id}"]`);
             if (decBtn) decBtn.dataset.current = newStock;
@@ -2837,21 +3014,22 @@
     document.getElementById('loginModal').style.display = 'flex';
     document.getElementById('pinInput').focus();
   });
-// ==================== VIEW TOGGLE FUNCTIONS ====================
-function setViewMode(mode) {
-  viewMode = mode;
-  document.getElementById('gridViewBtn').classList.toggle('active', mode === 'grid');
-  document.getElementById('listViewBtn').classList.toggle('active', mode === 'list');
-  renderProductGrid();   // re‑render products with the new view mode
-}
 
-// ==================== EVENT LISTENERS (put this after all functions) ====================
-const gridBtn = document.getElementById('gridViewBtn');
-const listBtn = document.getElementById('listViewBtn');
-if (gridBtn && listBtn) {
-  gridBtn.addEventListener('click', () => setViewMode('grid'));
-  listBtn.addEventListener('click', () => setViewMode('list'));
-}
+  // ==================== VIEW TOGGLE FUNCTIONS ====================
+  function setViewMode(mode) {
+    viewMode = mode;
+    document.getElementById('gridViewBtn').classList.toggle('active', mode === 'grid');
+    document.getElementById('listViewBtn').classList.toggle('active', mode === 'list');
+    renderProductGrid();   // re‑render products with the new view mode
+  }
+
+  const gridBtn = document.getElementById('gridViewBtn');
+  const listBtn = document.getElementById('listViewBtn');
+  if (gridBtn && listBtn) {
+    gridBtn.addEventListener('click', () => setViewMode('grid'));
+    listBtn.addEventListener('click', () => setViewMode('list'));
+  }
+
   async function verifyEmployeeByPin(pin) {
     showLoading('Verifying...');
     try {
@@ -3207,6 +3385,7 @@ if (gridBtn && listBtn) {
         currentStore = storeSelect.value;
         await fetchProductsFromSheet();
         clearCart();
+        if (inventoryMode) refreshStockHistory();
       }
     });
   }
@@ -3226,6 +3405,11 @@ if (gridBtn && listBtn) {
     document.getElementById('refreshProductsBtn').addEventListener('click', () => {
       localStorage.removeItem(`products_${currentStore}`);
       fetchProductsFromSheet(true);
+    });
+  }
+  if (refreshStockHistoryBtn) {
+    refreshStockHistoryBtn.addEventListener('click', () => {
+      if (inventoryMode) refreshStockHistory();
     });
   }
   if (searchInput) {
