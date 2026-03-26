@@ -1742,69 +1742,53 @@ if (paperSizeSelect) {
     return prices;
   }
 
-  function applyBuy2Free1Perfume() {
-    console.log("Cart items:", cart.map(item => ({
-      name: item.product.name,
-      category: item.product.category,
-      quantity: item.quantity,
-      price: item.product.price
-    })));
+ function applyBuy2Free1Perfume() {
+  // Get eligible items: category contains "perfume edp" (case-insensitive) AND not Humidifier Machine
+  const eligiblePrices = getUnitPricesFromFilter(item => {
+    const cat = (item.product.category || "").trim().toLowerCase();
+    return cat.includes("perfume edp") && !cat.includes("humidifier");
+  });
 
-    const perfumePrices = getUnitPricesFromFilter(item => {
-      const cat = (item.product.category || "").trim().toLowerCase();
-      return cat.includes("100ml perfume edp");
-    });
-
-    const totalUnits = perfumePrices.length;
-    const freeItems = Math.floor(totalUnits / 3);
-    console.log(`Total perfume units: ${totalUnits}, free items: ${freeItems}`);
-
-    if (freeItems === 0) {
-      const msgDiv = document.getElementById('promoMessage');
-      msgDiv.innerText = `Need at least 3 items in '100ML PERFUME EDP' category. Found ${totalUnits}.`;
-      msgDiv.style.display = 'block';
-      return;
-    }
-
-    perfumePrices.sort((a, b) => a - b);
-    const discount = perfumePrices.slice(0, freeItems).reduce((sum, p) => sum + p, 0);
-
-    buy2Free1Discount = discount;
-    updateCartUI();
-    document.getElementById('specialPromoModal').style.display = 'none';
+  const totalUnits = eligiblePrices.length;
+  const freeItems = Math.floor(totalUnits / 3);
+  
+  if (freeItems === 0) {
+    const msgDiv = document.getElementById('promoMessage');
+    msgDiv.innerText = `Need at least 3 items from Perfume EDP (50ml/100ml) category. Found ${totalUnits}.`;
+    msgDiv.style.display = 'block';
+    return;
   }
+
+  eligiblePrices.sort((a, b) => a - b);
+  const discount = eligiblePrices.slice(0, freeItems).reduce((sum, p) => sum + p, 0);
+  buy2Free1Discount = discount;
+  updateCartUI();
+  document.getElementById('specialPromoModal').style.display = 'none';
+}
 
   function applyBuy3Free1ExcludePerfume() {
-    console.log("Cart items:", cart.map(item => ({
-      name: item.product.name,
-      category: item.product.category,
-      quantity: item.quantity,
-      price: item.product.price
-    })));
+  // Exclude Perfume EDP (50ml/100ml) and Humidifier Machine
+  const eligiblePrices = getUnitPricesFromFilter(item => {
+    const cat = (item.product.category || "").trim().toLowerCase();
+    return !cat.includes("perfume edp") && !cat.includes("humidifier");
+  });
 
-    const nonPerfumePrices = getUnitPricesFromFilter(item => {
-      const cat = (item.product.category || "").trim().toLowerCase();
-      return !cat.includes("100ml perfume edp");
-    });
-
-    const totalUnits = nonPerfumePrices.length;
-    const freeItems = Math.floor(totalUnits / 4);
-    console.log(`Total non‑perfume units: ${totalUnits}, free items: ${freeItems}`);
-
-    if (freeItems === 0) {
-      const msgDiv = document.getElementById('promoMessage');
-      msgDiv.innerText = `Need at least 4 items excluding Perfume category. Found ${totalUnits}.`;
-      msgDiv.style.display = 'block';
-      return;
-    }
-
-    nonPerfumePrices.sort((a, b) => a - b);
-    const discount = nonPerfumePrices.slice(0, freeItems).reduce((sum, p) => sum + p, 0);
-
-    buy3Free1Discount = discount;
-    updateCartUI();
-    document.getElementById('specialPromoModal').style.display = 'none';
+  const totalUnits = eligiblePrices.length;
+  const freeItems = Math.floor(totalUnits / 4);
+  
+  if (freeItems === 0) {
+    const msgDiv = document.getElementById('promoMessage');
+    msgDiv.innerText = `Need at least 4 items excluding Perfume and Humidifier categories. Found ${totalUnits}.`;
+    msgDiv.style.display = 'block';
+    return;
   }
+
+  eligiblePrices.sort((a, b) => a - b);
+  const discount = eligiblePrices.slice(0, freeItems).reduce((sum, p) => sum + p, 0);
+  buy3Free1Discount = discount;
+  updateCartUI();
+  document.getElementById('specialPromoModal').style.display = 'none';
+}
 
   function applyCustomDiscount() {
     const value = parseFloat(document.getElementById('customPromoValue').value);
