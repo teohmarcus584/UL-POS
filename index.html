@@ -1310,7 +1310,10 @@
   let customDiscount = 0;          // manually entered custom discount
   let claimedReceiptInfo = null;
   let pendingPrize = null;          // { receipt, value, name }
-
+// Stock adjustment aggregation (inventory mode)
+let pendingStockChanges = {};      // productId -> net change (e.g., +3, -2)
+let productOriginalStock = {};     // productId -> stock at first change
+let stockUpdateTimeout = null;      // debounce timer
   let inventoryMode = false;
   let updateStockTimeout = null;
 
@@ -1479,7 +1482,38 @@
       return [];
     }
   }
+async function applyPendingStockUpdates() {
+  const productsToUpdate = Object.keys(pendingStockChanges);
+  if (productsToUpdate.length === 0) return;
 
+  // Process each product that had adjustments
+  for (const productId of productsToUpdate) {
+    const netChange = pendingStockChanges[productId];
+    const originalStock = productOriginalStock[productId];
+    const newStock = originalStock + netChange;
+
+    // Find the product in our local array
+    const product = products.find(p => p.id == productId);
+    if (product) {
+      // Record a single adjustment with the net change
+      await recordStockAdjustment(productId, product.name, originalStock, newStock);
+
+      // Update server with the final stock (debounced update)
+      await updateStockOnServer(productId, newStock);
+
+      // Update local product stock (already updated live, but ensure consistency)
+      product.stock = newStock;
+    }
+  }
+
+  // Clear pending data
+  pendingStockChanges = {};
+  productOriginalStock = {};
+  stockUpdateTimeout = null;
+
+  // Refresh the stock history display (optional, but good)
+  if (inventoryMode) refreshStockHistory();
+}
   async function saveStockAdjustment(productId, productName, oldStock, newStock, store, employeeId, employeeName) {
     try {
       const formData = new URLSearchParams();
@@ -1674,8 +1708,6 @@
     } else {
       // Invalidate cache
       localStorage.removeItem(`products_${currentStore}`);
-      // Refresh the stock history display
-      if (inventoryMode) refreshStockHistory();
     }
   } catch (err) {
     console.error("Error updating stock:", err);
@@ -2947,9 +2979,9 @@ function renderProductGrid() {
         <div class="product-name">${escapeHtml(prod.name)}</div>
         <div class="product-price">RM ${prod.price.toFixed(2)}</div>
         <div class="inventory-controls">
-          <button class="inventory-btn dec-stock" data-id="${prod.id}" data-current="${prod.stock}">−</button>
+          <button class="inventory-btn dec-stock" data-id="${prod.id}">−</button>
           <span class="stock-display" data-id="${prod.id}">${prod.stock}</span>
-          <button class="inventory-btn inc-stock" data-id="${prod.id}" data-current="${prod.stock}">+</button>
+          <button class="inventory-btn inc-stock" data-id="${prod.id}">+</button>
         </div>
       </div>`;
     } else {
@@ -2972,17 +3004,24 @@ function renderProductGrid() {
         const id = btn.dataset.id;
         const product = products.find(p => p.id == id);
         if (product && product.stock > 0) {
-          const oldStock = product.stock;
-          const newStock = product.stock - 1;
+          const delta = -1;
+          const newStock = product.stock + delta;
+
+          // 1. Update UI immediately
           product.stock = newStock;
           const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
           if (displaySpan) displaySpan.innerText = newStock;
 
-          // Record this individual change in history
-          recordStockAdjustment(id, product.name, oldStock, newStock);
+          // 2. Track pending change (aggregation)
+          if (!(id in pendingStockChanges)) {
+            // Store original stock BEFORE this change
+            productOriginalStock[id] = product.stock - delta;
+          }
+          pendingStockChanges[id] = (pendingStockChanges[id] || 0) + delta;
 
-          // Schedule server update (debounced)
-          scheduleStockUpdate(id, newStock);
+          // 3. Debounce final update
+          if (stockUpdateTimeout) clearTimeout(stockUpdateTimeout);
+          stockUpdateTimeout = setTimeout(applyPendingStockUpdates, 500);
         }
         e.stopPropagation();
       });
@@ -2994,23 +3033,30 @@ function renderProductGrid() {
         const id = btn.dataset.id;
         const product = products.find(p => p.id == id);
         if (product) {
-          const oldStock = product.stock;
-          const newStock = product.stock + 1;
+          const delta = 1;
+          const newStock = product.stock + delta;
+
+          // 1. Update UI immediately
           product.stock = newStock;
           const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
           if (displaySpan) displaySpan.innerText = newStock;
 
-          // Record this individual change in history
-          recordStockAdjustment(id, product.name, oldStock, newStock);
+          // 2. Track pending change (aggregation)
+          if (!(id in pendingStockChanges)) {
+            // Store original stock BEFORE this change
+            productOriginalStock[id] = product.stock - delta;
+          }
+          pendingStockChanges[id] = (pendingStockChanges[id] || 0) + delta;
 
-          // Schedule server update (debounced)
-          scheduleStockUpdate(id, newStock);
+          // 3. Debounce final update
+          if (stockUpdateTimeout) clearTimeout(stockUpdateTimeout);
+          stockUpdateTimeout = setTimeout(applyPendingStockUpdates, 500);
         }
         e.stopPropagation();
       });
     });
   } else {
-    // Normal add‑to‑cart buttons
+    // Normal add-to-cart buttons
     document.querySelectorAll('.add-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const product = products.find(p => p.id == btn.dataset.id);
