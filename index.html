@@ -1923,11 +1923,7 @@
       localStorage.removeItem(`products_${currentStore}`);
 
       if (window.printerAPI?.isConnected && window.printerAPI.printReceipt) {
-      const transactionWithName = { 
-  ...transaction, 
-  employee_name: currentEmployee.name,
-  store: currentStore   // add this line
-};
+        const transactionWithName = { ...transaction, employee_name: currentEmployee.name };
         await window.printerAPI.printReceipt(transactionWithName);
       } else {
         await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
