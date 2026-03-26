@@ -1113,7 +1113,7 @@ let loadingTimeout = null;
   let inventoryMode = false;
   let updateStockTimeout = null;
   let stockHistory = []; // Stock adjustment log (array of entries)
-
+let employeesByPin = {};   // maps PIN -> employee object
   // DOM elements
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -1383,17 +1383,18 @@ function renderStockHistory() {
         });
         renderProductGrid();
 
-        employeeNameMap = {};
-        const employees = result.employees;
-        soldBySelect.innerHTML = '';
-        employees.forEach(emp => {
-          employeeNameMap[emp.id] = emp.name;
-          const option = document.createElement('option');
-          option.value = emp.id;
-          option.textContent = `${emp.name} (ID: ${emp.id})`;
-          if (currentEmployee && emp.id == currentEmployee.id) option.selected = true;
-          soldBySelect.appendChild(option);
-        });
+    // ... inside loadInitialData, after the employee loop
+employeeNameMap = {};
+employeesByPin = {};  // clear previous map
+employees.forEach(emp => {
+  employeeNameMap[emp.id] = emp.name;
+  employeesByPin[emp.pin] = emp;   // store employee by PIN
+  const option = document.createElement('option');
+  option.value = emp.id;
+  option.textContent = `${emp.name} (ID: ${emp.id})`;
+  if (currentEmployee && emp.id == currentEmployee.id) option.selected = true;
+  soldBySelect.appendChild(option);
+});
         return true;
       } else {
         throw new Error('Failed to load initial data');
@@ -2844,71 +2845,73 @@ if (paperSizeSelect) {
   });
 
   async function verifyEmployeeByPin(pin) {
-    showLoading('Verifying...');
-    try {
-      const url = `${APPS_SCRIPT_URL}?action=verifyByPin&pin=${encodeURIComponent(pin)}`;
-      const response = await fetch(url);
-      const result = await response.json();
-      if (result.success) {
-        currentEmployee = result.employee;
-        document.getElementById('employeeName').innerText = currentEmployee.name;
-        document.getElementById('loginModal').style.display = 'none';
-        document.getElementById('mainContent').style.display = 'block';
-
-        if (initialDataPromise) await initialDataPromise;
-        else await loadInitialData();
-
-        soldBySelect.value = currentEmployee.id;
-
-        if (!currentEmployee.isAdmin) {
-          storeSelect.disabled = true;
-          inventoryModeBtn.style.display = 'none';
-        } else {
-          storeSelect.disabled = false;
-          inventoryModeBtn.style.display = 'flex';
-        }
-
-        const reportStoreFilter = document.getElementById('reportStoreFilterGroup');
-        const employeeFilterGroup = document.getElementById('employeeFilterGroup');
-        const storeChartContainer = document.getElementById('storeChartContainer');
-        const employeeChartContainer = document.getElementById('employeeChartContainer');
-        const collectionBtn = document.getElementById('collectionBtn');
-        if (currentEmployee.isAdmin) {
-          reportStoreFilter.style.display = 'flex';
-          employeeFilterGroup.style.display = 'flex';
-          storeChartContainer.style.display = 'block';
-          employeeChartContainer.style.display = 'block';
-          collectionBtn.style.display = 'flex';
-        } else {
-          reportStoreFilter.style.display = 'none';
-          employeeFilterGroup.style.display = 'none';
-          storeChartContainer.style.display = 'none';
-          employeeChartContainer.style.display = 'none';
-          collectionBtn.style.display = 'none';
-        }
-
-        const settlementStoreSelect = document.getElementById('settlementStoreSelect');
-        if (!currentEmployee.isAdmin) {
-          settlementStoreSelect.value = initialStore;
-          settlementStoreSelect.disabled = true;
-        } else {
-          settlementStoreSelect.disabled = false;
-        }
-startReceiptPolling();
-        updateCartUI();
-        return true;
-      } else {
-        document.getElementById('loginError').innerText = result.error || 'Invalid PIN';
-        return false;
-      }
-    } catch (err) {
-      console.error(err);
-      document.getElementById('loginError').innerText = 'Connection error';
+  showLoading('Verifying...');
+  try {
+    // Look up employee by PIN from local cache
+    const employee = employeesByPin[pin];
+    if (!employee) {
+      document.getElementById('loginError').innerText = 'Invalid PIN';
       return false;
-    } finally {
-      hideLoading();
     }
+
+    currentEmployee = employee;
+    document.getElementById('employeeName').innerText = currentEmployee.name;
+    document.getElementById('loginModal').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+
+    if (initialDataPromise) await initialDataPromise;
+    else await loadInitialData();
+
+    soldBySelect.value = currentEmployee.id;
+
+    if (!currentEmployee.isAdmin) {
+      storeSelect.disabled = true;
+      inventoryModeBtn.style.display = 'none';
+    } else {
+      storeSelect.disabled = false;
+      inventoryModeBtn.style.display = 'flex';
+    }
+
+    const reportStoreFilter = document.getElementById('reportStoreFilterGroup');
+    const employeeFilterGroup = document.getElementById('employeeFilterGroup');
+    const storeChartContainer = document.getElementById('storeChartContainer');
+    const employeeChartContainer = document.getElementById('employeeChartContainer');
+    const collectionBtn = document.getElementById('collectionBtn');
+    if (currentEmployee.isAdmin) {
+      reportStoreFilter.style.display = 'flex';
+      employeeFilterGroup.style.display = 'flex';
+      storeChartContainer.style.display = 'block';
+      employeeChartContainer.style.display = 'block';
+      collectionBtn.style.display = 'flex';
+    } else {
+      reportStoreFilter.style.display = 'none';
+      employeeFilterGroup.style.display = 'none';
+      storeChartContainer.style.display = 'none';
+      employeeChartContainer.style.display = 'none';
+      collectionBtn.style.display = 'none';
+    }
+
+    const settlementStoreSelect = document.getElementById('settlementStoreSelect');
+    if (!currentEmployee.isAdmin) {
+      settlementStoreSelect.value = initialStore;
+      settlementStoreSelect.disabled = true;
+    } else {
+      settlementStoreSelect.disabled = false;
+    }
+
+    // Start background receipt polling (if you already added that)
+    if (typeof startReceiptPolling === 'function') startReceiptPolling();
+
+    updateCartUI();
+    return true;
+  } catch (err) {
+    console.error(err);
+    document.getElementById('loginError').innerText = 'Connection error';
+    return false;
+  } finally {
+    hideLoading();
   }
+}
 
   // Attach other event listeners (reports, receipts, etc.) - abbreviated for brevity but fully functional in final code
   const gridBtn = document.getElementById('gridViewBtn');
