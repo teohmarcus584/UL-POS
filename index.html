@@ -2642,19 +2642,17 @@ if (paperSizeSelect) {
   let html = '';
   filtered.forEach(prod => {
     if (inventoryMode) {
-      // Inventory mode: show stock controls
       html += `<div class="product-card">
         <div class="product-name">${escapeHtml(prod.name)}</div>
         <div class="product-category">${escapeHtml(prod.category)}</div>
         <div class="product-price">RM ${prod.price.toFixed(2)}</div>
         <div class="inventory-controls">
-          <button class="inventory-btn dec-stock" data-id="${prod.id}" data-current="${prod.stock}">−</button>
+          <button class="inventory-btn dec-stock" data-id="${prod.id}" data-name="${escapeHtml(prod.name)}" data-current="${prod.stock}">−</button>
           <span class="stock-display" data-id="${prod.id}">${prod.stock}</span>
-          <button class="inventory-btn inc-stock" data-id="${prod.id}" data-current="${prod.stock}">+</button>
+          <button class="inventory-btn inc-stock" data-id="${prod.id}" data-name="${escapeHtml(prod.name)}" data-current="${prod.stock}">+</button>
         </div>
       </div>`;
     } else {
-      // Normal mode: show add to cart button
       const stockStatus = prod.stock > 0 ? `📦 Stock: ${prod.stock}` : '❌ Out of stock';
       html += `<div class="product-card">
         <div class="product-name">${escapeHtml(prod.name)}</div>
@@ -2669,17 +2667,19 @@ if (paperSizeSelect) {
   productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
 
   if (inventoryMode) {
-    // Inventory mode event handlers
     document.querySelectorAll('.dec-stock').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = btn.dataset.id;
         const product = products.find(p => p.id == id);
         if (product && product.stock > 0) {
+          const oldStock = product.stock;
           const newStock = product.stock - 1;
           product.stock = newStock;
           const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
           if (displaySpan) displaySpan.innerText = newStock;
           scheduleStockUpdate(id, newStock);
+          // Record adjustment in history
+          logStockChange(product.id, product.name, oldStock, newStock, -1);
           btn.dataset.current = newStock;
           const incBtn = document.querySelector(`.inc-stock[data-id="${id}"]`);
           if (incBtn) incBtn.dataset.current = newStock;
@@ -2692,11 +2692,14 @@ if (paperSizeSelect) {
         const id = btn.dataset.id;
         const product = products.find(p => p.id == id);
         if (product) {
+          const oldStock = product.stock;
           const newStock = product.stock + 1;
           product.stock = newStock;
           const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
           if (displaySpan) displaySpan.innerText = newStock;
           scheduleStockUpdate(id, newStock);
+          // Record adjustment in history
+          logStockChange(product.id, product.name, oldStock, newStock, 1);
           btn.dataset.current = newStock;
           const decBtn = document.querySelector(`.dec-stock[data-id="${id}"]`);
           if (decBtn) decBtn.dataset.current = newStock;
@@ -2705,7 +2708,6 @@ if (paperSizeSelect) {
       });
     });
   } else {
-    // Normal mode add to cart handlers
     document.querySelectorAll('.add-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const product = products.find(p => p.id == btn.dataset.id);
