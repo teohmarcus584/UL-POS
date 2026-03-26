@@ -2967,7 +2967,7 @@ function renderProductGrid() {
     return;
   }
 
-  // 1. Build HTML string
+  // 1. Build HTML
   let html = '';
   filtered.forEach(prod => {
     if (inventoryMode) {
@@ -2995,7 +2995,7 @@ function renderProductGrid() {
   productGridEl.innerHTML = html;
   productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
 
-  // 3. Attach event listeners
+  // 3. Attach event listeners (only after HTML is in the DOM)
   if (inventoryMode) {
     // Decrement button ( - )
     document.querySelectorAll('.dec-stock').forEach(btn => {
@@ -3013,6 +3013,30 @@ function renderProductGrid() {
 
           // Track pending change (aggregation)
           if (!(id in pendingStockChanges)) {
+            productOriginalStock[id] = product.stock - delta; // original before first change
+          }
+          pendingStockChanges[id] = (pendingStockChanges[id] || 0) + delta;
+        }
+        e.stopPropagation();
+      });
+    });
+
+    // Increment button ( + )
+    document.querySelectorAll('.inc-stock').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = btn.dataset.id;
+        const product = products.find(p => p.id == id);
+        if (product) {
+          const delta = 1;
+          const newStock = product.stock + delta;
+
+          // Update UI immediately
+          product.stock = newStock;
+          const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
+          if (displaySpan) displaySpan.innerText = newStock;
+
+          // Track pending change (aggregation)
+          if (!(id in pendingStockChanges)) {
             productOriginalStock[id] = product.stock - delta;
           }
           pendingStockChanges[id] = (pendingStockChanges[id] || 0) + delta;
@@ -3020,6 +3044,17 @@ function renderProductGrid() {
         e.stopPropagation();
       });
     });
+  } else {
+    // Normal add‑to‑cart buttons
+    document.querySelectorAll('.add-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const product = products.find(p => p.id == btn.dataset.id);
+        if (product && product.stock > 0) addToCart(product);
+        e.stopPropagation();
+      });
+    });
+  }
+}
 
     // Increment button ( + )
     document.querySelectorAll('.inc-stock').forEach(btn => {
