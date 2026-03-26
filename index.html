@@ -306,64 +306,86 @@
     #clearCartBtn, #refreshProductsBtn { /* handled by .cart-header-btn */ }
     button:active { transform: scale(0.97); }
 
-    /* Stock History Panel */
-    #stockHistoryContainer {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-    }
-    #stockHistoryList {
-      max-height: 55vh;
-      overflow-y: auto;
-      margin: 16px 0;
-      border-top: 1px solid #e2e8f0;
-      padding-top: 12px;
-    }
-    .history-entry {
-      background: #f8fafc;
-      border-radius: 16px;
-      padding: 12px;
-      margin-bottom: 10px;
-      border-left: 4px solid #8b5cf6;
-      font-size: 0.85rem;
-    }
-    .history-entry .product-name {
-      font-weight: 700;
-      margin-bottom: 4px;
-      font-size: 0.9rem;
-    }
-    .history-entry .stock-change {
-      display: flex;
-      gap: 16px;
-      margin: 6px 0;
-      flex-wrap: wrap;
-    }
-    .history-entry .delta {
-  font-size: 1.3rem;
-  font-weight: 800;
-  display: inline-block;
-  min-width: 3rem;
-  text-align: right;
+/* Stock History Panel - Updated */
+#stockHistoryContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
-    .history-entry .delta.negative {
-      color: #ef4444;
-    }
-    .history-entry .timestamp {
-      font-size: 0.7rem;
-      color: #64748b;
-      text-align: right;
-      margin-top: 6px;
-    }
-    #clearStockHistoryBtn {
-      background: #ef4444;
-      color: white;
-      border: none;
-      width: fit-content;
-      align-self: flex-end;
-    }
-    #clearStockHistoryBtn:hover {
-      background: #dc2626;
-    }
+
+#stockHistoryList {
+  max-height: 55vh;
+  overflow-y: auto;
+  margin: 16px 0;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 12px;
+}
+
+.history-entry {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 12px;
+  margin-bottom: 10px;
+  border-left: 4px solid #8b5cf6;
+}
+
+.delta-badge {
+  font-size: 1.5rem;
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  min-width: 60px;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.delta-badge.delta {
+  color: #10b981;
+}
+
+.delta-badge.delta.negative {
+  color: #ef4444;
+}
+
+.history-main {
+  flex: 1;
+}
+
+.history-main .product-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+.history-main .stock-change {
+  margin: 6px 0;
+  font-size: 0.85rem;
+  color: #334155;
+}
+
+.history-main .timestamp {
+  font-size: 0.7rem;
+  color: #64748b;
+  text-align: right;
+  margin-top: 6px;
+}
+
+#clearStockHistoryBtn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  width: fit-content;
+  align-self: flex-end;
+}
+
+#clearStockHistoryBtn:hover {
+  background: #dc2626;
+}
 
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -1313,22 +1335,17 @@ function renderStockHistory() {
     const deltaSymbol = entry.delta > 0 ? `+${entry.delta}` : `${entry.delta}`;
     html += `
       <div class="history-entry">
-        <div class="product-name">${escapeHtml(entry.productName)}</div>
-        <div class="product-category" style="font-size:0.7rem; color:#64748b; margin-bottom:4px;">${escapeHtml(entry.category)}</div>
-        <div class="stock-change">
-          <span>Stock: ${entry.oldStock} → ${entry.newStock}</span>
-          <span class="${deltaClass}">${deltaSymbol}</span>
+        <div class="delta-badge ${deltaClass}">${deltaSymbol}</div>
+        <div class="history-main">
+          <div class="product-name">${escapeHtml(entry.productName)}</div>
+          <div class="product-category" style="font-size:0.7rem; color:#64748b; margin-bottom:4px;">${escapeHtml(entry.category)}</div>
+          <div class="stock-change">Stock: ${entry.oldStock} → ${entry.newStock}</div>
+          <div class="timestamp">${entry.timestamp}</div>
         </div>
-        <div class="timestamp">${entry.timestamp}</div>
       </div>
     `;
   }
   historyList.innerHTML = html;
-}
-
-function clearStockHistory() {
-  stockHistory = [];
-  renderStockHistory();
 }
   // ==================== INVENTORY MODE TOGGLE ====================
   function toggleInventoryMode() {
