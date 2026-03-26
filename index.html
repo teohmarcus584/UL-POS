@@ -1262,72 +1262,67 @@
   }
 
   // ==================== STOCK HISTORY (Grouped by product) ====================
-  function logStockChange(productId, productName, oldStock, newStock, delta) {
-    const now = Date.now();
-    const formattedTime = new Date().toLocaleString();
-    // Find existing entry for this product
-    let existingIndex = -1;
-    for (let i = 0; i < stockHistory.length; i++) {
-      if (stockHistory[i].productId === productId) {
-        existingIndex = i;
-        break;
-      }
+function logStockChange(productId, productName, category, oldStock, newStock, delta) {
+  const now = Date.now();
+  const formattedTime = new Date().toLocaleString();
+  let existingIndex = -1;
+  // Look for existing entry for this product (group within 2 seconds)
+  for (let i = 0; i < stockHistory.length; i++) {
+    if (stockHistory[i].productId === productId) {
+      existingIndex = i;
+      break;
     }
-    if (existingIndex !== -1) {
-      // Update existing entry
-      const entry = stockHistory[existingIndex];
-      entry.newStock = newStock;
-      entry.delta += delta;
-      entry.timestamp = formattedTime;
-      entry.timestampMs = now;
-      // Move to front (to show most recently updated)
-      stockHistory.splice(existingIndex, 1);
-      stockHistory.unshift(entry);
-    } else {
-      // Create new entry
-      stockHistory.unshift({
-        productId,
-        productName,
-        oldStock,
-        newStock,
-        delta,
-        timestamp: formattedTime,
-        timestampMs: now
-      });
-    }
-    renderStockHistory();
   }
-
-  function renderStockHistory() {
-    const historyList = document.getElementById('stockHistoryList');
-    if (!historyList) return;
-    if (stockHistory.length === 0) {
-      historyList.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 20px;">No adjustments yet.</div>';
-      return;
-    }
-    let html = '';
-    for (const entry of stockHistory) {
-      const deltaClass = entry.delta > 0 ? 'delta' : 'delta negative';
-      const deltaSymbol = entry.delta > 0 ? `+${entry.delta}` : `${entry.delta}`;
-      html += `
-        <div class="history-entry">
-          <div class="product-name">${escapeHtml(entry.productName)}</div>
-          <div class="stock-change">
-            <span>Stock: ${entry.oldStock} → ${entry.newStock}</span>
-            <span class="${deltaClass}">${deltaSymbol}</span>
-          </div>
-          <div class="timestamp">${entry.timestamp}</div>
+  if (existingIndex !== -1) {
+    const entry = stockHistory[existingIndex];
+    entry.newStock = newStock;
+    entry.delta += delta;
+    entry.timestamp = formattedTime;
+    entry.timestampMs = now;
+    // Update category (in case it changed, though it won't)
+    entry.category = category;
+    // Move to front (most recent at top)
+    stockHistory.splice(existingIndex, 1);
+    stockHistory.unshift(entry);
+  } else {
+    stockHistory.unshift({
+      productId,
+      productName,
+      category,
+      oldStock,
+      newStock,
+      delta,
+      timestamp: formattedTime,
+      timestampMs: now
+    });
+  }
+  renderStockHistory();
+}
+ function renderStockHistory() {
+  const historyList = document.getElementById('stockHistoryList');
+  if (!historyList) return;
+  if (stockHistory.length === 0) {
+    historyList.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 20px;">No adjustments yet.</div>';
+    return;
+  }
+  let html = '';
+  for (const entry of stockHistory) {
+    const deltaClass = entry.delta > 0 ? 'delta' : 'delta negative';
+    const deltaSymbol = entry.delta > 0 ? `+${entry.delta}` : `${entry.delta}`;
+    html += `
+      <div class="history-entry">
+        <div class="product-name">${escapeHtml(entry.productName)}</div>
+        <div class="product-category" style="font-size:0.7rem; color:#64748b; margin-bottom:4px;">${escapeHtml(entry.category)}</div>
+        <div class="stock-change">
+          <span>Stock: ${entry.oldStock} → ${entry.newStock}</span>
+          <span class="${deltaClass}">${deltaSymbol}</span>
         </div>
-      `;
-    }
-    historyList.innerHTML = html;
+        <div class="timestamp">${entry.timestamp}</div>
+      </div>
+    `;
   }
-
-  function clearStockHistory() {
-    stockHistory = [];
-    renderStockHistory();
-  }
-
+  historyList.innerHTML = html;
+}
   // ==================== INVENTORY MODE TOGGLE ====================
   function toggleInventoryMode() {
     inventoryMode = !inventoryMode;
@@ -2628,7 +2623,7 @@ if (paperSizeSelect) {
   window.printerAPI = { isConnected: false, printReceipt: printReceipt };
 })();
   // ==================== RENDER PRODUCT GRID (with inventory mode and logging) ====================
-  function renderProductGrid() {
+ function renderProductGrid() {
   const searchTerm = searchInput.value.toLowerCase();
   const selectedCategory = categorySelect.value;
   let filtered = products;
@@ -2647,9 +2642,9 @@ if (paperSizeSelect) {
         <div class="product-category">${escapeHtml(prod.category)}</div>
         <div class="product-price">RM ${prod.price.toFixed(2)}</div>
         <div class="inventory-controls">
-          <button class="inventory-btn dec-stock" data-id="${prod.id}" data-name="${escapeHtml(prod.name)}" data-current="${prod.stock}">−</button>
+          <button class="inventory-btn dec-stock" data-id="${prod.id}" data-current="${prod.stock}">−</button>
           <span class="stock-display" data-id="${prod.id}">${prod.stock}</span>
-          <button class="inventory-btn inc-stock" data-id="${prod.id}" data-name="${escapeHtml(prod.name)}" data-current="${prod.stock}">+</button>
+          <button class="inventory-btn inc-stock" data-id="${prod.id}" data-current="${prod.stock}">+</button>
         </div>
       </div>`;
     } else {
@@ -2678,8 +2673,7 @@ if (paperSizeSelect) {
           const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
           if (displaySpan) displaySpan.innerText = newStock;
           scheduleStockUpdate(id, newStock);
-          // Record adjustment in history
-          logStockChange(product.id, product.name, oldStock, newStock, -1);
+          logStockChange(product.id, product.name, product.category, oldStock, newStock, -1);
           btn.dataset.current = newStock;
           const incBtn = document.querySelector(`.inc-stock[data-id="${id}"]`);
           if (incBtn) incBtn.dataset.current = newStock;
@@ -2698,8 +2692,7 @@ if (paperSizeSelect) {
           const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
           if (displaySpan) displaySpan.innerText = newStock;
           scheduleStockUpdate(id, newStock);
-          // Record adjustment in history
-          logStockChange(product.id, product.name, oldStock, newStock, 1);
+          logStockChange(product.id, product.name, product.category, oldStock, newStock, 1);
           btn.dataset.current = newStock;
           const decBtn = document.querySelector(`.dec-stock[data-id="${id}"]`);
           if (decBtn) decBtn.dataset.current = newStock;
