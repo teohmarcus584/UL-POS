@@ -1316,8 +1316,7 @@ let productOriginalStock = {};     // productId -> stock at first change
 let stockUpdateTimeout = null;      // debounce timer
   let inventoryMode = false;
   let updateStockTimeout = null;
-let pendingStockChanges = {};      // productId → net change
-let productOriginalStock = {};     // productId → original stock at start of inventory session
+
   // DOM elements
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
