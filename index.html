@@ -3432,11 +3432,99 @@ startReceiptPolling();
     applyCustomPromoBtn.addEventListener('click', applyCustomDiscount);
   }
 
-  // Unused collection functions placeholder
-  async function loadUnsettledCash() { /* placeholder */ }
-  function renderCollectionTable() { /* placeholder */ }
-  function updateCollectionButtonState() { /* placeholder */ }
-  function openCollectionModal() { /* placeholder */ }
+  // ==================== CASH COLLECTION ====================
+let currentUnsettledCash = [];
+
+async function openCollectionModal() {
+  await loadUnsettledCash();
+  document.getElementById('collectionModal').style.display = 'flex';
+}
+
+async function loadUnsettledCash() {
+  const store = document.getElementById('collectionStoreSelect').value;
+  showLoading('Loading unsettled cash...');
+  try {
+    let url = `${APPS_SCRIPT_URL}?action=getUnsettledCash&store=${store}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    if (result.success) {
+      currentUnsettledCash = result.records;
+      renderCollectionTable();
+      updateTotalOutstanding();
+      document.getElementById('collectSelectedBtn').disabled = true;
+      const selectAll = document.getElementById('selectAllCheckbox');
+      if (selectAll) selectAll.checked = false;
+    } else {
+      await showAlertModal('Error', 'Failed to load unsettled cash: ' + (result.error || 'Unknown error'));
+    }
+  } catch (err) {
+    console.error(err);
+    await showAlertModal('Error', 'Connection error while loading unsettled cash.');
+  } finally {
+    hideLoading();
+  }
+}
+
+function renderCollectionTable() {
+  const tbody = document.getElementById('collectionTableBody');
+  if (!currentUnsettledCash.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No unsettled cash records found.</td></tr>';
+    return;
+  }
+  let html = '';
+  currentUnsettledCash.forEach(rec => {
+    const date = new Date(rec.timestamp).toLocaleDateString();
+    html += `<tr data-id="${rec.id}">
+      <td><input type="checkbox" class="collection-checkbox" value="${rec.id}"></td>
+      <td>${date}</td>
+      <td>${getEmployeeName(rec.employee_id)}</td>
+      <td style="text-align: right;">RM ${rec.cash_actual.toFixed(2)}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+  document.querySelectorAll('.collection-checkbox').forEach(cb => {
+    cb.addEventListener('change', updateCollectionButtonState);
+  });
+}
+
+function updateTotalOutstanding() {
+  const total = currentUnsettledCash.reduce((sum, rec) => sum + rec.cash_actual, 0);
+  document.getElementById('totalOutstandingCash').innerText = `RM ${total.toFixed(2)}`;
+}
+
+function updateCollectionButtonState() {
+  const anyChecked = document.querySelectorAll('.collection-checkbox:checked').length > 0;
+  document.getElementById('collectSelectedBtn').disabled = !anyChecked;
+}
+
+// Add this event listener inside the existing code (already present, but ensure it's there)
+if (document.getElementById('collectSelectedBtn')) {
+  document.getElementById('collectSelectedBtn').addEventListener('click', async () => {
+    const selectedIds = Array.from(document.querySelectorAll('.collection-checkbox:checked')).map(cb => cb.value);
+    if (selectedIds.length === 0) return;
+    showLoading('Marking as collected...');
+    try {
+      const formData = new URLSearchParams();
+      formData.append("action", "markCashCollected");
+      formData.append("ids", JSON.stringify(selectedIds));
+      formData.append("employee_id", currentEmployee.id);
+      formData.append("employee_name", currentEmployee.name);
+      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+      const result = await response.json();
+      if (result.success) {
+        await showAlertModal('Success', `${selectedIds.length} cash record(s) marked as collected.`);
+        await loadUnsettledCash();
+      } else {
+        await showAlertModal('Error', 'Failed to mark as collected: ' + (result.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error(err);
+      await showAlertModal('Error', 'Connection error while marking collected.');
+    } finally {
+      hideLoading();
+    }
+  });
+}
 </script>
 </body>
 </html>
