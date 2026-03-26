@@ -306,72 +306,6 @@
     #clearCartBtn, #refreshProductsBtn { /* handled by .cart-header-btn */ }
     button:active { transform: scale(0.97); }
 
-    /* Stock History Table Styles */
-    .stock-history-container {
-      max-height: 65vh;
-      overflow-y: auto;
-      margin: 16px 0;
-    }
-    .stock-history-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85rem;
-    }
-    .stock-history-table th,
-    .stock-history-table td {
-      padding: 10px 6px;
-      text-align: left;
-      border-bottom: 1px solid #e2e8f0;
-    }
-    .stock-history-table th {
-      background: #f1f5f9;
-      position: sticky;
-      top: 0;
-      font-weight: 600;
-    }
-    .stock-history-table tr:hover {
-      background: #f8fafc;
-    }
-    .stock-history-table td:nth-child(3) {
-      text-align: center;
-    }
-    .stock-history-table td:nth-child(4) {
-      text-align: right;
-      font-weight: 500;
-    }
-    .stock-history-table td:nth-child(5) {
-      text-align: right;
-      font-weight: 500;
-      color: #2c7a4b;
-    }
-    .stock-history-empty {
-      text-align: center;
-      color: #94a3b8;
-      padding: 40px;
-      font-style: italic;
-    }
-    .stock-history-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    .stock-history-header h3 {
-      margin: 0;
-      font-size: 1.1rem;
-    }
-    .refresh-history-btn {
-      background: #f1f5f9;
-      border: none;
-      border-radius: 40px;
-      padding: 6px 12px;
-      font-size: 0.75rem;
-      cursor: pointer;
-    }
-    .refresh-history-btn:hover {
-      background: #e2e8f0;
-    }
-
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 2000;
@@ -1023,50 +957,37 @@
 
     <div class="cart-panel">
       <div class="cart-header">
-        <div class="cart-title" id="cartPanelTitle">🧾 Current Sale</div>
-        <div class="cart-header-buttons" id="cartHeaderButtons">
+        <div class="cart-title">🧾 Current Sale</div>
+        <div class="cart-header-buttons">
           <button id="clearCartBtn" class="cart-header-btn">🗑️ Clear</button>
           <button id="refreshProductsBtn" class="cart-header-btn">🔄 Refresh</button>
         </div>
       </div>
-      <!-- Normal Cart Sections -->
-      <div id="normalCartSections">
-        <div id="cartItemsContainer" class="cart-items">Cart is empty</div>
-        <div class="cart-summary">
-          <div class="summary-row"><span>Subtotal</span><span id="subtotal">RM 0.00</span></div>
-          <div id="discountRow" class="summary-row discount-row" style="display: none;">
-            <span><i>🎲</i> Lucky Draw</span>
-            <span id="discountAmount">RM 0.00</span>
-          </div>
-          <div id="promoBuy2Free1Row" class="summary-row discount-row" style="display: none;">
-            <span><i>🎯</i> Buy 2 Free 1 (Perfume)</span>
-            <span id="promoBuy2Free1Amount">RM 0.00</span>
-          </div>
-          <div id="promoBuy3Free1Row" class="summary-row discount-row" style="display: none;">
-            <span><i>🎯</i> Buy 3 Free 1 (Excluding Perfume)</span>
-            <span id="promoBuy3Free1Amount">RM 0.00</span>
-          </div>
-          <div id="customDiscountRow" class="summary-row discount-row" style="display: none;">
-            <span><i>💰</i> Custom Discount</span>
-            <span id="customDiscountAmount">RM 0.00</span>
-          </div>
-          <div class="summary-row total-row"><span>TOTAL</span><span id="totalAmount">RM 0.00</span></div>
+      <div id="cartItemsContainer" class="cart-items">Cart is empty</div>
+      <div class="cart-summary">
+        <div class="summary-row"><span>Subtotal</span><span id="subtotal">RM 0.00</span></div>
+        <div id="discountRow" class="summary-row discount-row" style="display: none;">
+          <span><i>🎲</i> Lucky Draw</span>
+          <span id="discountAmount">RM 0.00</span>
         </div>
-        <div class="cart-actions" id="cartActions">
-          <button id="checkoutBtn">💳 CHECKOUT</button>
-          <button id="claimPrizeBtn">🎁 Claim Prize</button>
-          <button id="specialPromoBtn">🎁 Special Promo</button>
+        <div id="promoBuy2Free1Row" class="summary-row discount-row" style="display: none;">
+          <span><i>🎯</i> Buy 2 Free 1 (Perfume)</span>
+          <span id="promoBuy2Free1Amount">RM 0.00</span>
         </div>
+        <div id="promoBuy3Free1Row" class="summary-row discount-row" style="display: none;">
+          <span><i>🎯</i> Buy 3 Free 1 (Excluding Perfume)</span>
+          <span id="promoBuy3Free1Amount">RM 0.00</span>
+        </div>
+        <div id="customDiscountRow" class="summary-row discount-row" style="display: none;">
+          <span><i>💰</i> Custom Discount</span>
+          <span id="customDiscountAmount">RM 0.00</span>
+        </div>
+        <div class="summary-row total-row"><span>TOTAL</span><span id="totalAmount">RM 0.00</span></div>
       </div>
-      <!-- Stock History Container (initially hidden) -->
-      <div id="stockHistoryContainer" style="display: none;">
-        <div class="stock-history-header">
-          <h3>📦 Stock Addition History</h3>
-          <button id="refreshStockHistoryBtn" class="refresh-history-btn">🔄 Refresh</button>
-        </div>
-        <div id="stockHistoryList" class="stock-history-container">
-          <div class="stock-history-empty">Loading stock history...</div>
-        </div>
+      <div class="cart-actions">
+        <button id="checkoutBtn">💳 CHECKOUT</button>
+        <button id="claimPrizeBtn">🎁 Claim Prize</button>
+        <button id="specialPromoBtn">🎁 Special Promo</button>
       </div>
     </div>
   </div>
@@ -1221,7 +1142,7 @@
           <table class="product-details-table">
             <thead>   </thead>
             <tbody id="productDetailsBody">   </tbody>
-          </table>
+           </table>
         </div>
       </div>
     </div>
@@ -1257,7 +1178,7 @@
         <thead>
           <tr><th><input type="checkbox" id="selectAllCheckbox"></th><th>Date</th><th>Employee</th><th>Amount</th></tr>
         </thead>
-        <tbody id="collectionTableBody"></tbody>
+        <tbody id="collectionTableBody">   </tbody>
       </table>
     </div>
     <div class="modal-buttons" style="margin-top: 16px;"><button id="collectSelectedBtn" class="modal-btn modal-btn-primary" disabled>Collect Selected</button><button id="closeCollectionModalBtn" class="modal-btn modal-btn-secondary">Close</button></div>
@@ -1289,7 +1210,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx7LTxTViURkrTzKVhQ0KXif0xFjS7itB3b7gIfOCS9TGFxNQ2zzCemNo7imryEknhJ/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw66T42b-FpYvVqVPxQwhLJedfqYOLS1qLHl7nDjnxErUTVAwhQ47JlLpoHrdzAYjvWXw/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1310,12 +1231,9 @@
   let customDiscount = 0;          // manually entered custom discount
   let claimedReceiptInfo = null;
   let pendingPrize = null;          // { receipt, value, name }
-// Stock adjustment aggregation (inventory mode)
-let pendingStockChanges = {};      // productId -> net change (e.g., +3, -2)
-let productOriginalStock = {};     // productId -> stock at first change
-let stockUpdateTimeout = null;      // debounce timer
+
   let inventoryMode = false;
-  
+  let updateStockTimeout = null;
 
   // DOM elements
   const productGridEl = document.getElementById('productGrid');
@@ -1336,9 +1254,6 @@ let stockUpdateTimeout = null;      // debounce timer
   const soldBySelect = document.getElementById('soldBySelect');
   const inventoryModeBtn = document.getElementById('inventoryModeBtn');
   const cartPanel = document.querySelector('.cart-panel');
-  const normalCartSections = document.getElementById('normalCartSections');
-  const stockHistoryContainer = document.getElementById('stockHistoryContainer');
-  const refreshStockHistoryBtn = document.getElementById('refreshStockHistoryBtn');
 
   // ==================== HELPER FUNCTIONS ====================
   function showAlertModal(title, message) {
@@ -1465,117 +1380,6 @@ let stockUpdateTimeout = null;      // debounce timer
     return employeeNameMap[employeeId] || employeeId;
   }
 
-  // ==================== STOCK HISTORY FUNCTIONS ====================
-  async function fetchStockHistory(store) {
-    try {
-      const url = `${APPS_SCRIPT_URL}?action=getStockHistory&store=${encodeURIComponent(store)}`;
-      const response = await fetch(url);
-      const result = await response.json();
-      if (result.success) {
-        return result.history || [];
-      } else {
-        console.error('Failed to fetch stock history:', result.error);
-        return [];
-      }
-    } catch (err) {
-      console.error('Error fetching stock history:', err);
-      return [];
-    }
-  }
-// Called after the debounce timer to apply all pending changes
-async function applyPendingStockUpdates() {
-  const productsToUpdate = Object.keys(pendingStockChanges);
-  if (productsToUpdate.length === 0) return;
-
-  showLoading('Committing stock changes...');
-
-  for (const productId of productsToUpdate) {
-    const netChange = pendingStockChanges[productId];
-    const originalStock = productOriginalStock[productId];
-    const newStock = originalStock + netChange;
-
-    const product = products.find(p => p.id == productId);
-    if (product) {
-      // Record one aggregated adjustment
-      await recordStockAdjustment(productId, product.name, originalStock, newStock);
-      // Update server stock
-      await updateStockOnServer(productId, newStock);
-      // Ensure local product stock matches final (already updated)
-    }
-  }
-
-  // Clear pending data
-  pendingStockChanges = {};
-  productOriginalStock = {};
-
-  // Refresh history after commit
-  await refreshStockHistory();
-  hideLoading();
-  showAlertModal('Success', 'All stock changes have been recorded.');
-}
-
-// Fire-and-forget: sends a single adjustment record to the backend
-async function recordStockAdjustment(productId, productName, oldStock, newStock) {
-  try {
-    const formData = new URLSearchParams();
-    formData.append("action", "saveStockAdjustment");
-    formData.append("productId", productId);
-    formData.append("productName", productName);
-    formData.append("oldStock", oldStock);
-    formData.append("newStock", newStock);
-    formData.append("store", currentStore);
-    formData.append("employeeId", currentEmployee.id);
-    formData.append("employeeName", currentEmployee.name);
-    await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
-  } catch (err) {
-    console.error("Error recording stock adjustment:", err);
-  }
-}
-
-
-
-// Refresh the stock history table (call this when needed)
-async function refreshStockHistory() {
-  if (!inventoryMode) return;
-  showLoading('Loading stock history...');
-  try {
-    const history = await fetchStockHistory(currentStore);
-    displayStockHistory(history);
-  } catch (err) {
-    console.error(err);
-    const container = document.getElementById('stockHistoryList');
-    if (container) container.innerHTML = '<div class="stock-history-empty">Error loading history.</div>';
-  } finally {
-    hideLoading();
-  }
-}
-  function displayStockHistory(history) {
-  const container = document.getElementById('stockHistoryList');
-  if (!container) return;
-  if (!history || history.length === 0) {
-    container.innerHTML = '<div class="stock-history-empty">No stock adjustments recorded yet.</div>';
-    return;
-  }
-  let html = '<table class="stock-history-table"><thead><tr><th>Time</th><th>Product</th><th>Change</th><th>Old Stock</th><th>New Stock</th><th>Employee</th></tr></thead><tbody>';
-  for (const adj of history) {
-    const change = adj.newStock - adj.oldStock;
-    const changeClass = change > 0 ? 'positive' : 'negative';
-    const changeSign = change > 0 ? `+${change}` : `${change}`;
-    const changeStyle = change > 0 ? 'color: #2c7a4b;' : 'color: #dc2626;';
-    const date = new Date(adj.timestamp).toLocaleString();
-    html += `<tr>
-      <td>${date}</td>
-      <td>${escapeHtml(adj.productName)}</td>
-      <td style="${changeStyle}">${changeSign}</td>
-      <td>${adj.oldStock}</td>
-      <td>${adj.newStock}</td>
-      <td>${escapeHtml(adj.employeeName)}</td>
-    </tr>`;
-  }
-  html += '</tbody></table>';
-  container.innerHTML = html;
-}
-
   // ==================== INITIAL DATA LOAD ====================
   async function loadInitialData() {
     try {
@@ -1691,66 +1495,51 @@ async function refreshStockHistory() {
     }
   }
 
-  // ==================== STOCK UPDATE (with history) ====================
+  // ==================== STOCK UPDATE ====================
   async function updateStockOnServer(productId, newStock) {
-  try {
-    const formData = new URLSearchParams();
-    formData.append("action", "updateStock");
-    formData.append("productId", productId);
-    formData.append("newStock", newStock);
-    formData.append("store", currentStore);
-    const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
-    const result = await response.json();
-    if (!result.success) {
-      console.error("Stock update failed:", result.error);
-    } else {
-      localStorage.removeItem(`products_${currentStore}`);
+    try {
+      const formData = new URLSearchParams();
+      formData.append("action", "updateStock");
+      formData.append("productId", productId);
+      formData.append("newStock", newStock);
+      formData.append("store", currentStore);
+      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+      const result = await response.json();
+      if (!result.success) {
+        console.error("Stock update failed:", result.error);
+      } else {
+        // Update local product stock
+        const product = products.find(p => p.id == productId);
+        if (product) product.stock = newStock;
+        // Invalidate cache
+        localStorage.removeItem(`products_${currentStore}`);
+      }
+    } catch (err) {
+      console.error("Error updating stock:", err);
     }
-  } catch (err) {
-    console.error("Error updating stock:", err);
   }
-}
 
- let updateStockTimeout = null; // global debounce timer
-
-function scheduleStockUpdate(productId, newStock, oldStock, productName) {
-  // Clear any existing timer
-  if (updateStockTimeout) clearTimeout(updateStockTimeout);
-
-  // Set a new timer to update the server after 500ms of inactivity
-  updateStockTimeout = setTimeout(() => {
-    // Update the server with the final stock
-    updateStockOnServer(productId, newStock);
-    // Record the adjustment in history (this was the old way – now removed)
-    // recordStockAdjustment(productId, productName, oldStock, newStock);
-  }, 500);
-}
+  function scheduleStockUpdate(productId, newStock) {
+    if (updateStockTimeout) clearTimeout(updateStockTimeout);
+    updateStockTimeout = setTimeout(() => {
+      updateStockOnServer(productId, newStock);
+    }, 500);
+  }
 
   // ==================== INVENTORY MODE TOGGLE ====================
   function toggleInventoryMode() {
-  if (inventoryMode) {
-    // Exit inventory mode: commit all pending changes
-    if (Object.keys(pendingStockChanges).length > 0) {
-      applyPendingStockUpdates();
+    inventoryMode = !inventoryMode;
+    if (inventoryMode) {
+      cartPanel.style.display = 'none';
+      inventoryModeBtn.innerText = '🛍️ Exit Inventory';
+      if (updateStockTimeout) clearTimeout(updateStockTimeout);
+    } else {
+      cartPanel.style.display = 'flex';
+      inventoryModeBtn.innerText = '📦 Inventory Mode';
     }
-    // Switch UI
-    normalCartSections.style.display = 'block';
-    stockHistoryContainer.style.display = 'none';
-    inventoryModeBtn.innerText = '📦 Inventory Mode';
-    inventoryMode = false;
-  } else {
-    // Enter inventory mode: reset pending data
-    pendingStockChanges = {};
-    productOriginalStock = {};
-    // Switch UI
-    normalCartSections.style.display = 'none';
-    stockHistoryContainer.style.display = 'block';
-    inventoryModeBtn.innerText = '🛍️ Exit Inventory';
-    inventoryMode = true;
-    refreshStockHistory(); // load existing history
+    renderProductGrid(); // re-render products with appropriate controls
   }
-  renderProductGrid();
-}
+
   // ==================== CART FUNCTIONS ====================
   function updateCartUI() {
     if (!cartContainer) return;
@@ -2956,106 +2745,88 @@ function scheduleStockUpdate(productId, newStock, oldStock, productName) {
   })();
 
   // ==================== RENDER PRODUCT GRID (with inventory mode) ====================
-// ==================== RENDER PRODUCT GRID (with inventory mode) ====================
-function renderProductGrid() {
-  const searchTerm = searchInput.value.toLowerCase();
-  const selectedCategory = categorySelect.value;
-  let filtered = products;
-  if (selectedCategory !== 'all') filtered = filtered.filter(p => p.category === selectedCategory);
-  if (searchTerm) filtered = filtered.filter(p => p.name.toLowerCase().includes(searchTerm));
-  if (filtered.length === 0) {
-    productGridEl.innerHTML = '<div style="text-align:center; padding:20px;">No products found</div>';
-    return;
-  }
-
-  // Build HTML
-  let html = '';
-  filtered.forEach(prod => {
-    if (inventoryMode) {
-      html += `<div class="product-card">
-        <div class="product-name">${escapeHtml(prod.name)}</div>
-        <div class="product-price">RM ${prod.price.toFixed(2)}</div>
-        <div class="inventory-controls">
-          <button class="inventory-btn dec-stock" data-id="${prod.id}">−</button>
-          <span class="stock-display" data-id="${prod.id}">${prod.stock}</span>
-          <button class="inventory-btn inc-stock" data-id="${prod.id}">+</button>
-        </div>
-      </div>`;
-    } else {
-      const stockStatus = prod.stock > 0 ? `📦 Stock: ${prod.stock}` : '❌ Out of stock';
-      html += `<div class="product-card">
-        <div class="product-name">${escapeHtml(prod.name)}</div>
-        <div class="product-price">RM ${prod.price.toFixed(2)}</div>
-        <div class="product-stock">${stockStatus}</div>
-        <button class="add-btn" data-id="${prod.id}" ${prod.stock <= 0 ? 'disabled' : ''}>+ Add to cart</button>
-      </div>`;
+  function renderProductGrid() {
+    const searchTerm = searchInput.value.toLowerCase();
+    const selectedCategory = categorySelect.value;
+    let filtered = products;
+    if (selectedCategory !== 'all') filtered = filtered.filter(p => p.category === selectedCategory);
+    if (searchTerm) filtered = filtered.filter(p => p.name.toLowerCase().includes(searchTerm));
+    if (filtered.length === 0) {
+      productGridEl.innerHTML = '<div style="text-align:center; padding:20px;">No products found</div>';
+      return;
     }
-  });
 
-  // Inject HTML
-  productGridEl.innerHTML = html;
-  productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
+    let html = '';
+    filtered.forEach(prod => {
+      if (inventoryMode) {
+        html += `<div class="product-card">
+          <div class="product-name">${escapeHtml(prod.name)}</div>
+          <div class="product-price">RM ${prod.price.toFixed(2)}</div>
+          <div class="inventory-controls">
+            <button class="inventory-btn dec-stock" data-id="${prod.id}" data-current="${prod.stock}">−</button>
+            <span class="stock-display" data-id="${prod.id}">${prod.stock}</span>
+            <button class="inventory-btn inc-stock" data-id="${prod.id}" data-current="${prod.stock}">+</button>
+          </div>
+        </div>`;
+      } else {
+        const stockStatus = prod.stock > 0 ? `📦 Stock: ${prod.stock}` : '❌ Out of stock';
+        html += `<div class="product-card">
+          <div class="product-name">${escapeHtml(prod.name)}</div>
+          <div class="product-price">RM ${prod.price.toFixed(2)}</div>
+          <div class="product-stock">${stockStatus}</div>
+          <button class="add-btn" data-id="${prod.id}" ${prod.stock <= 0 ? 'disabled' : ''}>+ Add to cart</button>
+        </div>`;
+      }
+    });
+    productGridEl.innerHTML = html;
+    productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
 
-  // Attach event listeners
-  if (inventoryMode) {
-    // Decrement button ( - )
-    document.querySelectorAll('.dec-stock').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const id = btn.dataset.id;
-        const product = products.find(p => p.id == id);
-        if (product && product.stock > 0) {
-          const delta = -1;
-          const newStock = product.stock + delta;
-
-          // Update UI immediately
-          product.stock = newStock;
-          const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
-          if (displaySpan) displaySpan.innerText = newStock;
-
-          // Track pending change (aggregation)
-          if (!(id in pendingStockChanges)) {
-            productOriginalStock[id] = product.stock - delta; // original before first change
+    if (inventoryMode) {
+      document.querySelectorAll('.dec-stock').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = btn.dataset.id;
+          const product = products.find(p => p.id == id);
+          if (product && product.stock > 0) {
+            const newStock = product.stock - 1;
+            product.stock = newStock;
+            const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
+            if (displaySpan) displaySpan.innerText = newStock;
+            scheduleStockUpdate(id, newStock);
+            btn.dataset.current = newStock;
+            const incBtn = document.querySelector(`.inc-stock[data-id="${id}"]`);
+            if (incBtn) incBtn.dataset.current = newStock;
           }
-          pendingStockChanges[id] = (pendingStockChanges[id] || 0) + delta;
-        }
-        e.stopPropagation();
+          e.stopPropagation();
+        });
       });
-    });
-
-    // Increment button ( + )
-    document.querySelectorAll('.inc-stock').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const id = btn.dataset.id;
-        const product = products.find(p => p.id == id);
-        if (product) {
-          const delta = 1;
-          const newStock = product.stock + delta;
-
-          // Update UI immediately
-          product.stock = newStock;
-          const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
-          if (displaySpan) displaySpan.innerText = newStock;
-
-          // Track pending change (aggregation)
-          if (!(id in pendingStockChanges)) {
-            productOriginalStock[id] = product.stock - delta;
+      document.querySelectorAll('.inc-stock').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = btn.dataset.id;
+          const product = products.find(p => p.id == id);
+          if (product) {
+            const newStock = product.stock + 1;
+            product.stock = newStock;
+            const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
+            if (displaySpan) displaySpan.innerText = newStock;
+            scheduleStockUpdate(id, newStock);
+            btn.dataset.current = newStock;
+            const decBtn = document.querySelector(`.dec-stock[data-id="${id}"]`);
+            if (decBtn) decBtn.dataset.current = newStock;
           }
-          pendingStockChanges[id] = (pendingStockChanges[id] || 0) + delta;
-        }
-        e.stopPropagation();
+          e.stopPropagation();
+        });
       });
-    });
-  } else {
-    // Normal add‑to‑cart buttons
-    document.querySelectorAll('.add-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const product = products.find(p => p.id == btn.dataset.id);
-        if (product && product.stock > 0) addToCart(product);
-        e.stopPropagation();
+    } else {
+      document.querySelectorAll('.add-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const product = products.find(p => p.id == btn.dataset.id);
+          if (product && product.stock > 0) addToCart(product);
+          e.stopPropagation();
+        });
       });
-    });
+    }
   }
-}
+
   // ==================== EVENT LISTENERS ====================
   document.getElementById('confirmStoreBtn').addEventListener('click', () => {
     initialStore = document.getElementById('initialStoreSelect').value;
@@ -3066,22 +2837,21 @@ function renderProductGrid() {
     document.getElementById('loginModal').style.display = 'flex';
     document.getElementById('pinInput').focus();
   });
+// ==================== VIEW TOGGLE FUNCTIONS ====================
+function setViewMode(mode) {
+  viewMode = mode;
+  document.getElementById('gridViewBtn').classList.toggle('active', mode === 'grid');
+  document.getElementById('listViewBtn').classList.toggle('active', mode === 'list');
+  renderProductGrid();   // re‑render products with the new view mode
+}
 
-  // ==================== VIEW TOGGLE FUNCTIONS ====================
-  function setViewMode(mode) {
-    viewMode = mode;
-    document.getElementById('gridViewBtn').classList.toggle('active', mode === 'grid');
-    document.getElementById('listViewBtn').classList.toggle('active', mode === 'list');
-    renderProductGrid();   // re‑render products with the new view mode
-  }
-
-  const gridBtn = document.getElementById('gridViewBtn');
-  const listBtn = document.getElementById('listViewBtn');
-  if (gridBtn && listBtn) {
-    gridBtn.addEventListener('click', () => setViewMode('grid'));
-    listBtn.addEventListener('click', () => setViewMode('list'));
-  }
-
+// ==================== EVENT LISTENERS (put this after all functions) ====================
+const gridBtn = document.getElementById('gridViewBtn');
+const listBtn = document.getElementById('listViewBtn');
+if (gridBtn && listBtn) {
+  gridBtn.addEventListener('click', () => setViewMode('grid'));
+  listBtn.addEventListener('click', () => setViewMode('list'));
+}
   async function verifyEmployeeByPin(pin) {
     showLoading('Verifying...');
     try {
@@ -3437,7 +3207,6 @@ function renderProductGrid() {
         currentStore = storeSelect.value;
         await fetchProductsFromSheet();
         clearCart();
-        if (inventoryMode) refreshStockHistory();
       }
     });
   }
@@ -3457,11 +3226,6 @@ function renderProductGrid() {
     document.getElementById('refreshProductsBtn').addEventListener('click', () => {
       localStorage.removeItem(`products_${currentStore}`);
       fetchProductsFromSheet(true);
-    });
-  }
-  if (refreshStockHistoryBtn) {
-    refreshStockHistoryBtn.addEventListener('click', () => {
-      if (inventoryMode) refreshStockHistory();
     });
   }
   if (searchInput) {
