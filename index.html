@@ -1661,41 +1661,50 @@
 
   // ==================== STOCK UPDATE (with history) ====================
   async function updateStockOnServer(productId, newStock) {
-    try {
-      const formData = new URLSearchParams();
-      formData.append("action", "updateStock");
-      formData.append("productId", productId);
-      formData.append("newStock", newStock);
-      formData.append("store", currentStore);
-      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
-      const result = await response.json();
-      if (!result.success) {
-        console.error("Stock update failed:", result.error);
-      } else {
-        // Update local product stock
-        const product = products.find(p => p.id == productId);
-        if (product) product.stock = newStock;
-        // Invalidate cache
-        localStorage.removeItem(`products_${currentStore}`);
-        // After successful update, refresh stock history if in inventory mode
-        if (inventoryMode) refreshStockHistory();
-      }
-    } catch (err) {
-      console.error("Error updating stock:", err);
+  try {
+    const formData = new URLSearchParams();
+    formData.append("action", "updateStock");
+    formData.append("productId", productId);
+    formData.append("newStock", newStock);
+    formData.append("store", currentStore);
+    const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+    const result = await response.json();
+    if (!result.success) {
+      console.error("Stock update failed:", result.error);
+    } else {
+      // Invalidate cache
+      localStorage.removeItem(`products_${currentStore}`);
+      // Refresh the stock history display
+      if (inventoryMode) refreshStockHistory();
     }
+  } catch (err) {
+    console.error("Error updating stock:", err);
   }
+}
 
-  function scheduleStockUpdate(productId, newStock, oldStock, productName) {
-    if (updateStockTimeout) clearTimeout(updateStockTimeout);
-    updateStockTimeout = setTimeout(() => {
-      updateStockOnServer(productId, newStock);
-      // Save adjustment history
-      if (currentEmployee) {
-        saveStockAdjustment(productId, productName, oldStock, newStock, currentStore, currentEmployee.id, currentEmployee.name);
-      }
-    }, 500);
+ function scheduleStockUpdate(productId, newStock) {
+  if (updateStockTimeout) clearTimeout(updateStockTimeout);
+  updateStockTimeout = setTimeout(() => {
+    updateStockOnServer(productId, newStock);
+  }, 500);
+}
+async function recordStockAdjustment(productId, productName, oldStock, newStock) {
+  try {
+    const formData = new URLSearchParams();
+    formData.append("action", "saveStockAdjustment");
+    formData.append("productId", productId);
+    formData.append("productName", productName);
+    formData.append("oldStock", oldStock);
+    formData.append("newStock", newStock);
+    formData.append("store", currentStore);
+    formData.append("employeeId", currentEmployee.id);
+    formData.append("employeeName", currentEmployee.name);
+    await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+    // No need to wait; fire and forget
+  } catch (err) {
+    console.error("Error recording stock adjustment:", err);
   }
-
+}
   // ==================== INVENTORY MODE TOGGLE ====================
   function toggleInventoryMode() {
     inventoryMode = !inventoryMode;
@@ -2920,90 +2929,97 @@
   })();
 
   // ==================== RENDER PRODUCT GRID (with inventory mode) ====================
-  function renderProductGrid() {
-    const searchTerm = searchInput.value.toLowerCase();
-    const selectedCategory = categorySelect.value;
-    let filtered = products;
-    if (selectedCategory !== 'all') filtered = filtered.filter(p => p.category === selectedCategory);
-    if (searchTerm) filtered = filtered.filter(p => p.name.toLowerCase().includes(searchTerm));
-    if (filtered.length === 0) {
-      productGridEl.innerHTML = '<div style="text-align:center; padding:20px;">No products found</div>';
-      return;
-    }
-
-    let html = '';
-    filtered.forEach(prod => {
-      if (inventoryMode) {
-        html += `<div class="product-card">
-          <div class="product-name">${escapeHtml(prod.name)}</div>
-          <div class="product-price">RM ${prod.price.toFixed(2)}</div>
-          <div class="inventory-controls">
-            <button class="inventory-btn dec-stock" data-id="${prod.id}" data-current="${prod.stock}">−</button>
-            <span class="stock-display" data-id="${prod.id}">${prod.stock}</span>
-            <button class="inventory-btn inc-stock" data-id="${prod.id}" data-current="${prod.stock}">+</button>
-          </div>
-        </div>`;
-      } else {
-        const stockStatus = prod.stock > 0 ? `📦 Stock: ${prod.stock}` : '❌ Out of stock';
-        html += `<div class="product-card">
-          <div class="product-name">${escapeHtml(prod.name)}</div>
-          <div class="product-price">RM ${prod.price.toFixed(2)}</div>
-          <div class="product-stock">${stockStatus}</div>
-          <button class="add-btn" data-id="${prod.id}" ${prod.stock <= 0 ? 'disabled' : ''}>+ Add to cart</button>
-        </div>`;
-      }
-    });
-    productGridEl.innerHTML = html;
-    productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
-
-    if (inventoryMode) {
-      document.querySelectorAll('.dec-stock').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const id = btn.dataset.id;
-          const product = products.find(p => p.id == id);
-          if (product && product.stock > 0) {
-            const oldStock = product.stock;
-            const newStock = product.stock - 1;
-            product.stock = newStock;
-            const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
-            if (displaySpan) displaySpan.innerText = newStock;
-            scheduleStockUpdate(id, newStock, oldStock, product.name);
-            btn.dataset.current = newStock;
-            const incBtn = document.querySelector(`.inc-stock[data-id="${id}"]`);
-            if (incBtn) incBtn.dataset.current = newStock;
-          }
-          e.stopPropagation();
-        });
-      });
-      document.querySelectorAll('.inc-stock').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const id = btn.dataset.id;
-          const product = products.find(p => p.id == id);
-          if (product) {
-            const oldStock = product.stock;
-            const newStock = product.stock + 1;
-            product.stock = newStock;
-            const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
-            if (displaySpan) displaySpan.innerText = newStock;
-            scheduleStockUpdate(id, newStock, oldStock, product.name);
-            btn.dataset.current = newStock;
-            const decBtn = document.querySelector(`.dec-stock[data-id="${id}"]`);
-            if (decBtn) decBtn.dataset.current = newStock;
-          }
-          e.stopPropagation();
-        });
-      });
-    } else {
-      document.querySelectorAll('.add-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const product = products.find(p => p.id == btn.dataset.id);
-          if (product && product.stock > 0) addToCart(product);
-          e.stopPropagation();
-        });
-      });
-    }
+function renderProductGrid() {
+  const searchTerm = searchInput.value.toLowerCase();
+  const selectedCategory = categorySelect.value;
+  let filtered = products;
+  if (selectedCategory !== 'all') filtered = filtered.filter(p => p.category === selectedCategory);
+  if (searchTerm) filtered = filtered.filter(p => p.name.toLowerCase().includes(searchTerm));
+  if (filtered.length === 0) {
+    productGridEl.innerHTML = '<div style="text-align:center; padding:20px;">No products found</div>';
+    return;
   }
 
+  let html = '';
+  filtered.forEach(prod => {
+    if (inventoryMode) {
+      html += `<div class="product-card">
+        <div class="product-name">${escapeHtml(prod.name)}</div>
+        <div class="product-price">RM ${prod.price.toFixed(2)}</div>
+        <div class="inventory-controls">
+          <button class="inventory-btn dec-stock" data-id="${prod.id}" data-current="${prod.stock}">−</button>
+          <span class="stock-display" data-id="${prod.id}">${prod.stock}</span>
+          <button class="inventory-btn inc-stock" data-id="${prod.id}" data-current="${prod.stock}">+</button>
+        </div>
+      </div>`;
+    } else {
+      const stockStatus = prod.stock > 0 ? `📦 Stock: ${prod.stock}` : '❌ Out of stock';
+      html += `<div class="product-card">
+        <div class="product-name">${escapeHtml(prod.name)}</div>
+        <div class="product-price">RM ${prod.price.toFixed(2)}</div>
+        <div class="product-stock">${stockStatus}</div>
+        <button class="add-btn" data-id="${prod.id}" ${prod.stock <= 0 ? 'disabled' : ''}>+ Add to cart</button>
+      </div>`;
+    }
+  });
+  productGridEl.innerHTML = html;
+  productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
+
+  if (inventoryMode) {
+    // Decrement button ( - )
+    document.querySelectorAll('.dec-stock').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = btn.dataset.id;
+        const product = products.find(p => p.id == id);
+        if (product && product.stock > 0) {
+          const oldStock = product.stock;
+          const newStock = product.stock - 1;
+          product.stock = newStock;
+          const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
+          if (displaySpan) displaySpan.innerText = newStock;
+
+          // Record this individual change in history
+          recordStockAdjustment(id, product.name, oldStock, newStock);
+
+          // Schedule server update (debounced)
+          scheduleStockUpdate(id, newStock);
+        }
+        e.stopPropagation();
+      });
+    });
+
+    // Increment button ( + )
+    document.querySelectorAll('.inc-stock').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = btn.dataset.id;
+        const product = products.find(p => p.id == id);
+        if (product) {
+          const oldStock = product.stock;
+          const newStock = product.stock + 1;
+          product.stock = newStock;
+          const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
+          if (displaySpan) displaySpan.innerText = newStock;
+
+          // Record this individual change in history
+          recordStockAdjustment(id, product.name, oldStock, newStock);
+
+          // Schedule server update (debounced)
+          scheduleStockUpdate(id, newStock);
+        }
+        e.stopPropagation();
+      });
+    });
+  } else {
+    // Normal add‑to‑cart buttons
+    document.querySelectorAll('.add-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const product = products.find(p => p.id == btn.dataset.id);
+        if (product && product.stock > 0) addToCart(product);
+        e.stopPropagation();
+      });
+    });
+  }
+}
   // ==================== EVENT LISTENERS ====================
   document.getElementById('confirmStoreBtn').addEventListener('click', () => {
     initialStore = document.getElementById('initialStoreSelect').value;
