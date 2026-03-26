@@ -1983,7 +1983,109 @@ function clearStockHistory() {
       hideLoading();
     }
   }
+// Global variables (add near other let declarations)
+let cachedReceipts = null;
+let receiptPollingInterval = null;
+let loadingTimeout = null;
 
+// Helper: clear loading overlay after timeout
+function showLoading(msg = 'Loading...') {
+  if (loadingTimeout) clearTimeout(loadingTimeout);
+  const msgEl = document.getElementById('loadingMessage');
+  const overlay = document.getElementById('loadingOverlay');
+  if (msgEl) msgEl.innerText = msg;
+  if (overlay) overlay.style.display = 'flex';
+  loadingTimeout = setTimeout(() => hideLoading(), 30000);
+}
+
+function hideLoading() {
+  if (loadingTimeout) {
+    clearTimeout(loadingTimeout);
+    loadingTimeout = null;
+  }
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+// Stock history clear function
+function clearStockHistory() {
+  stockHistory = [];
+  renderStockHistory();
+}
+
+// Background receipt fetcher
+async function fetchAndCacheReceipts() {
+  try {
+    let store, employeeId;
+    if (currentEmployee?.isAdmin) {
+      store = document.getElementById('receiptsStoreSelect')?.value || 'all';
+      employeeId = document.getElementById('receiptsEmployeeSelect')?.value || 'all';
+    } else {
+      store = currentStore;
+      employeeId = 'all';
+    }
+    const rangeSelect = document.getElementById('receiptsDateRangeSelect');
+    const range = rangeSelect ? rangeSelect.value : 'today';
+    const search = document.getElementById('receiptsSearch')?.value || '';
+    let from = null, to = null;
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    if (range === 'today') {
+      from = getLocalDateString(today);
+      to = from;
+    } else if (range === 'week') {
+      const start = new Date(today);
+      const dayOfWeek = today.getDay();
+      const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+      start.setDate(today.getDate() - diffToMonday);
+      from = getLocalDateString(start);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      to = getLocalDateString(end);
+    } else if (range === 'month') {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      from = getLocalDateString(start);
+      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      to = getLocalDateString(end);
+    } else if (range === 'custom') {
+      from = document.getElementById('receiptsFromDate')?.value;
+      to = document.getElementById('receiptsToDate')?.value;
+      if (!from || !to) return;
+    }
+    let url = `${APPS_SCRIPT_URL}?action=getReceipts&store=${store}&employeeId=${employeeId}`;
+    if (from) url += `&from=${encodeURIComponent(from)}`;
+    if (to) url += `&to=${encodeURIComponent(to)}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    if (result.success) {
+      cachedReceipts = result.receipts;
+      // If receipts modal is open, update it instantly
+      const receiptsModal = document.getElementById('receiptsModal');
+      if (receiptsModal && receiptsModal.style.display === 'flex') {
+        renderReceiptsList(cachedReceipts);
+      }
+    }
+  } catch (err) {
+    console.error('Background receipt fetch failed:', err);
+  }
+}
+
+// Start polling after login
+function startReceiptPolling() {
+  if (receiptPollingInterval) clearInterval(receiptPollingInterval);
+  fetchAndCacheReceipts(); // initial fetch
+  receiptPollingInterval = setInterval(fetchAndCacheReceipts, 30000); // every 30 sec
+}
+
+// Stop polling on logout (call inside logout button handler)
+function stopReceiptPolling() {
+  if (receiptPollingInterval) {
+    clearInterval(receiptPollingInterval);
+    receiptPollingInterval = null;
+  }
+  cachedReceipts = null;
+}
   // ==================== RECEIPTS ====================
   async function fetchReceipts(store, employeeId, from, to, search) {
     showLoading('Loading receipts...');
@@ -2792,7 +2894,7 @@ if (paperSizeSelect) {
         } else {
           settlementStoreSelect.disabled = false;
         }
-
+startReceiptPolling();
         updateCartUI();
         return true;
       } else {
@@ -2906,35 +3008,50 @@ if (paperSizeSelect) {
   }
 
   if (document.getElementById('receiptsButton')) {
-    document.getElementById('receiptsButton').addEventListener('click', async () => {
-      if (currentEmployee?.isAdmin) {
-        const employees = await fetchEmployees();
-        const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
-        if (receiptsEmpSelect) {
-          receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
-          employees.forEach(emp => {
-            const opt = document.createElement('option'); opt.value = emp.id; opt.textContent = `${emp.name} (ID: ${emp.id})`;
-            receiptsEmpSelect.appendChild(opt);
-          });
-        }
-        const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
-        const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
-        if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'flex';
-        if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'flex';
-      } else {
-        const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
-        const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
-        if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'none';
-        if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'none';
-        const receiptsStore = document.getElementById('receiptsStoreSelect');
-        if (receiptsStore) receiptsStore.value = currentStore;
+  document.getElementById('receiptsButton').addEventListener('click', async () => {
+    // Handle admin vs non‑admin filters
+    if (currentEmployee?.isAdmin) {
+      const employees = await fetchEmployees();
+      const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
+      if (receiptsEmpSelect) {
+        receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
+        employees.forEach(emp => {
+          const opt = document.createElement('option');
+          opt.value = emp.id;
+          opt.textContent = `${emp.name} (ID: ${emp.id})`;
+          receiptsEmpSelect.appendChild(opt);
+        });
       }
-      populateStoreSelects();
-      const modal = document.getElementById('receiptsModal');
-      if (modal) modal.style.display = 'flex';
+      const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
+      const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
+      if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'flex';
+      if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'flex';
+    } else {
+      const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
+      const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
+      if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'none';
+      if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'none';
+      const receiptsStore = document.getElementById('receiptsStoreSelect');
+      if (receiptsStore) receiptsStore.value = currentStore;
+    }
+    populateStoreSelects();
+
+    const modal = document.getElementById('receiptsModal');
+    if (modal) {
+      modal.style.display = 'flex';
+      // Show cached data instantly if available
+      if (cachedReceipts) {
+        renderReceiptsList(cachedReceipts);
+      } else {
+        // Fallback: show loading message
+        const container = document.getElementById('receiptsList');
+        if (container) container.innerHTML = '<div style="text-align:center; padding:30px;">Loading receipts...</div>';
+      }
+      // Then fetch fresh data (will update if needed)
       updateReceipts();
-    });
-  }
+    }
+  });
+}
 
   if (document.getElementById('closeReceiptsBtn')) {
     document.getElementById('closeReceiptsBtn').addEventListener('click', () => document.getElementById('receiptsModal').style.display = 'none');
@@ -3159,16 +3276,31 @@ if (paperSizeSelect) {
     categorySelect.addEventListener('change', renderProductGrid);
   }
   if (document.getElementById('logoutButton')) {
-    document.getElementById('logoutButton').addEventListener('click', () => {
-      currentEmployee = null;
-      document.getElementById('mainContent').style.display = 'none';
-      document.getElementById('loginModal').style.display = 'flex';
-      document.getElementById('pinInput').value = '';
-      document.getElementById('loginError').innerText = '';
-      cart = [];
-      products = [];
-    });
-  }
+  document.getElementById('logoutButton').addEventListener('click', () => {
+    // Stop background receipt polling
+    if (typeof stopReceiptPolling === 'function') stopReceiptPolling();
+
+    // Clear cached receipts
+    cachedReceipts = null;
+
+    // Reset current employee and UI
+    currentEmployee = null;
+    document.getElementById('mainContent').style.display = 'none';
+    document.getElementById('loginModal').style.display = 'flex';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('loginError').innerText = '';
+
+    // Clear cart and product list
+    cart = [];
+    products = [];
+
+    // Optionally clear any other global state (e.g., stock history)
+    if (typeof clearStockHistory === 'function') clearStockHistory();
+
+    // Refresh product grid (will show loading state)
+    renderProductGrid();
+  });
+}
   if (document.getElementById('closeLoginModal')) {
     document.getElementById('closeLoginModal').addEventListener('click', () => {});
   }
