@@ -2369,54 +2369,88 @@ function stopReceiptPolling() {
     tbody.innerHTML = html;
   }
 
-  async function updateAdminReport() {
-    let store, employeeId;
-    if (currentEmployee.isAdmin) {
-      store = document.getElementById('adminReportStoreSelect').value;
-      employeeId = document.getElementById('adminReportEmployeeSelect').value;
-    } else {
-      store = 'all';
-      employeeId = currentEmployee.id;
-    }
-    const range = document.getElementById('adminReportDateRangeSelect').value;
-    let from = null, to = null;
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    if (range === 'today') {
-      from = getLocalDateString(today);
-      to = from;
-    } else if (range === 'week') {
-      const start = new Date(today);
-      const dayOfWeek = today.getDay();
-      const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
-      start.setDate(today.getDate() - diffToMonday);
-      from = getLocalDateString(start);
-      const end = new Date(start);
-      end.setDate(start.getDate() + 6);
-      to = getLocalDateString(end);
-    } else if (range === 'month') {
-      const start = new Date(today.getFullYear(), today.getMonth(), 1);
-      from = getLocalDateString(start);
-      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      to = getLocalDateString(end);
-    } else if (range === 'custom') {
-      from = document.getElementById('adminReportFromDate').value;
-      to = document.getElementById('adminReportToDate').value;
-      if (!from || !to) return;
-    }
-    await fetchSalesReport(store, employeeId, from, to);
-    await fetchSalesChartData(store, employeeId, from, to);
-    if (currentEmployee.isAdmin) {
-      await fetchEmployeeSalesData(store, from, to);
-    }
-    lastProductData = await fetchProductSalesReport(store, employeeId, from, to);
+ async function updateAdminReport() {
+  let store, employeeId;
+  if (currentEmployee.isAdmin) {
+    store = document.getElementById('adminReportStoreSelect').value;
+    employeeId = document.getElementById('adminReportEmployeeSelect').value;
+  } else {
+    store = 'all';
+    employeeId = currentEmployee.id;
+  }
+  const range = document.getElementById('adminReportDateRangeSelect').value;
+  let from = null, to = null;
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  if (range === 'today') {
+    from = getLocalDateString(today);
+    to = from;
+  } else if (range === 'week') {
+    const start = new Date(today);
+    const dayOfWeek = today.getDay();
+    const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+    start.setDate(today.getDate() - diffToMonday);
+    from = getLocalDateString(start);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    to = getLocalDateString(end);
+  } else if (range === 'month') {
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    from = getLocalDateString(start);
+    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    to = getLocalDateString(end);
+  } else if (range === 'custom') {
+    from = document.getElementById('adminReportFromDate').value;
+    to = document.getElementById('adminReportToDate').value;
+    if (!from || !to) return;
+  }
+
+  // Fetch all required data in parallel for better performance
+  const [salesReport, chartData, employeeData, productData] = await Promise.all([
+    fetchSalesReport(store, employeeId, from, to),
+    fetchSalesChartData(store, employeeId, from, to),
+    currentEmployee.isAdmin ? fetchEmployeeSalesData(store, from, to) : null,
+    fetchProductSalesReport(store, employeeId, from, to)
+  ]);
+
+  if (salesReport) {
+    // Already updated by fetchSalesReport, but we need to ensure the UI is up to date
+    // (fetchSalesReport already updates the UI)
+  }
+  if (productData) {
+    lastProductData = productData;
     if (productDetailsVisible) {
       renderProductDetails(lastProductData);
     }
   }
 
+  // Hide loading indicator
+  const loadingMsg = document.getElementById('adminReportLoadingMsg');
+  if (loadingMsg) loadingMsg.style.display = 'none';
+}
+
   // ==================== SETTLEMENT & COLLECTION (simplified) ====================
-  async function openSettlementModal() {
+ async function openSettlementModal() {
+  const modal = document.getElementById('settlementModal');
+  modal.style.display = 'flex';
+
+  // Create or get loading message element inside modal
+  let loadingMsg = document.getElementById('settlementLoadingMsg');
+  if (!loadingMsg) {
+    loadingMsg = document.createElement('div');
+    loadingMsg.id = 'settlementLoadingMsg';
+    loadingMsg.style.textAlign = 'center';
+    loadingMsg.style.padding = '20px';
+    loadingMsg.style.background = '#f8fafc';
+    loadingMsg.style.borderRadius = '12px';
+    loadingMsg.style.margin = '10px 0';
+    loadingMsg.innerText = 'Loading settlement data...';
+    const systemTotalsDiv = document.getElementById('systemTotalsDisplay');
+    if (systemTotalsDiv) systemTotalsDiv.insertAdjacentElement('afterend', loadingMsg);
+  }
+  loadingMsg.style.display = 'block';
+
+  try {
     let store;
     if (!currentEmployee.isAdmin) {
       store = initialStore;
@@ -2426,16 +2460,26 @@ function stopReceiptPolling() {
       store = document.getElementById('settlementStoreSelect').value;
       document.getElementById('settlementStoreSelect').disabled = false;
     }
+
     const todayStr = getLocalDateString(new Date());
     const alreadySettled = await checkSettlementStatus(store, todayStr);
+
     if (alreadySettled) {
+      loadingMsg.style.display = 'none';
       await showAlertModal('Settlement Already Done', 'Settlement has already been recorded for today. No further settlement allowed.');
+      modal.style.display = 'none';
       return;
     }
-    await refreshSettlementTotals(store);
-    document.getElementById('settlementModal').style.display = 'flex';
-  }
 
+    await refreshSettlementTotals(store);
+    loadingMsg.style.display = 'none';
+  } catch (err) {
+    console.error(err);
+    loadingMsg.style.display = 'none';
+    await showAlertModal('Error', 'Failed to load settlement data.');
+    modal.style.display = 'none';
+  }
+}
   async function checkSettlementStatus(store, date) {
     try {
       const url = `${APPS_SCRIPT_URL}?action=getSettlementStatus&store=${store}&date=${date}`;
@@ -2944,43 +2988,66 @@ startReceiptPolling();
 
   // Additional listeners (reports, receipts, etc.) are included in the full version.
   // For completeness, we add them here (abbreviated).
-  if (document.getElementById('reportsButton')) {
-    document.getElementById('reportsButton').addEventListener('click', async () => {
-      if (currentEmployee?.isAdmin) {
-        const employees = await fetchEmployees();
-        const adminReportEmpSelect = document.getElementById('adminReportEmployeeSelect');
-        const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
-        if (adminReportEmpSelect && receiptsEmpSelect) {
-          adminReportEmpSelect.innerHTML = '<option value="all">All Employees</option>';
-          receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
-          employees.forEach(emp => {
-            const opt1 = document.createElement('option'); opt1.value = emp.id; opt1.textContent = `${emp.name} (ID: ${emp.id})`;
-            const opt2 = document.createElement('option'); opt2.value = emp.id; opt2.textContent = `${emp.name} (ID: ${emp.id})`;
-            adminReportEmpSelect.appendChild(opt1);
-            receiptsEmpSelect.appendChild(opt2);
-          });
-        }
-        const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
-        const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
-        if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'flex';
-        if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'flex';
-      } else {
-        const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
-        const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
-        if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'none';
-        if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'none';
-        const receiptsStore = document.getElementById('receiptsStoreSelect');
-        if (receiptsStore) receiptsStore.value = currentStore;
+if (document.getElementById('reportsButton')) {
+  document.getElementById('reportsButton').addEventListener('click', async () => {
+    // Handle admin vs non‑admin filters
+    if (currentEmployee?.isAdmin) {
+      const employees = await fetchEmployees();
+      const adminReportEmpSelect = document.getElementById('adminReportEmployeeSelect');
+      const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
+      if (adminReportEmpSelect && receiptsEmpSelect) {
+        adminReportEmpSelect.innerHTML = '<option value="all">All Employees</option>';
+        receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
+        employees.forEach(emp => {
+          const opt1 = document.createElement('option');
+          opt1.value = emp.id;
+          opt1.textContent = `${emp.name} (ID: ${emp.id})`;
+          const opt2 = document.createElement('option');
+          opt2.value = emp.id;
+          opt2.textContent = `${emp.name} (ID: ${emp.id})`;
+          adminReportEmpSelect.appendChild(opt1);
+          receiptsEmpSelect.appendChild(opt2);
+        });
       }
-      populateStoreSelects();
-      const modal = document.getElementById('adminReportModal');
-      if (modal) {
-        modal.style.display = 'flex';
-        setTimeout(() => updateAdminReport(), 200);
-      }
-    });
-  }
+      const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
+      const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
+      if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'flex';
+      if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'flex';
+    } else {
+      const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
+      const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
+      if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'none';
+      if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'none';
+      const receiptsStore = document.getElementById('receiptsStoreSelect');
+      if (receiptsStore) receiptsStore.value = currentStore;
+    }
+    populateStoreSelects();
 
+    const modal = document.getElementById('adminReportModal');
+    if (modal) {
+      modal.style.display = 'flex';
+
+      // Add loading indicator inside modal (if not already present)
+      let loadingMsg = document.getElementById('adminReportLoadingMsg');
+      if (!loadingMsg) {
+        loadingMsg = document.createElement('div');
+        loadingMsg.id = 'adminReportLoadingMsg';
+        loadingMsg.style.textAlign = 'center';
+        loadingMsg.style.padding = '20px';
+        loadingMsg.style.background = '#f8fafc';
+        loadingMsg.style.borderRadius = '12px';
+        loadingMsg.style.margin = '10px 0';
+        loadingMsg.innerText = 'Loading report data...';
+        const reportStats = document.querySelector('#adminReportModal .report-stats');
+        if (reportStats) reportStats.insertAdjacentElement('beforebegin', loadingMsg);
+      }
+      loadingMsg.style.display = 'block';
+
+      // Fetch fresh data (cached receipts will be shown instantly if needed)
+      setTimeout(() => updateAdminReport(), 200);
+    }
+  });
+}
   if (document.getElementById('closeAdminReportBtn')) {
     document.getElementById('closeAdminReportBtn').addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
   }
@@ -3436,8 +3503,30 @@ startReceiptPolling();
 let currentUnsettledCash = [];
 
 async function openCollectionModal() {
+  const modal = document.getElementById('collectionModal');
+  modal.style.display = 'flex';
+
+  // Create or get loading message element inside modal
+  let loadingMsg = document.getElementById('collectionLoadingMsg');
+  if (!loadingMsg) {
+    loadingMsg = document.createElement('div');
+    loadingMsg.id = 'collectionLoadingMsg';
+    loadingMsg.style.textAlign = 'center';
+    loadingMsg.style.padding = '20px';
+    loadingMsg.style.background = '#f8fafc';
+    loadingMsg.style.borderRadius = '12px';
+    loadingMsg.style.margin = '10px 0';
+    loadingMsg.innerText = 'Loading unsettled cash...';
+    const container = document.querySelector('#collectionModal .modal-container');
+    const collectionTotalDiv = document.getElementById('collectionTotal');
+    if (container && collectionTotalDiv) {
+      container.insertBefore(loadingMsg, collectionTotalDiv);
+    }
+  }
+  loadingMsg.style.display = 'block';
+
   await loadUnsettledCash();
-  document.getElementById('collectionModal').style.display = 'flex';
+  loadingMsg.style.display = 'none';
 }
 
 async function loadUnsettledCash() {
