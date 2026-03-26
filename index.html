@@ -1262,11 +1262,11 @@
   }
 
   // ==================== STOCK HISTORY (Grouped by product) ====================
+// ========== STOCK HISTORY FUNCTIONS ==========
 function logStockChange(productId, productName, category, oldStock, newStock, delta) {
   const now = Date.now();
   const formattedTime = new Date().toLocaleString();
   let existingIndex = -1;
-  // Look for existing entry for this product (group within 2 seconds)
   for (let i = 0; i < stockHistory.length; i++) {
     if (stockHistory[i].productId === productId) {
       existingIndex = i;
@@ -1279,9 +1279,7 @@ function logStockChange(productId, productName, category, oldStock, newStock, de
     entry.delta += delta;
     entry.timestamp = formattedTime;
     entry.timestampMs = now;
-    // Update category (in case it changed, though it won't)
     entry.category = category;
-    // Move to front (most recent at top)
     stockHistory.splice(existingIndex, 1);
     stockHistory.unshift(entry);
   } else {
@@ -1298,7 +1296,8 @@ function logStockChange(productId, productName, category, oldStock, newStock, de
   }
   renderStockHistory();
 }
- function renderStockHistory() {
+
+function renderStockHistory() {
   const historyList = document.getElementById('stockHistoryList');
   if (!historyList) return;
   if (stockHistory.length === 0) {
@@ -1322,6 +1321,11 @@ function logStockChange(productId, productName, category, oldStock, newStock, de
     `;
   }
   historyList.innerHTML = html;
+}
+
+function clearStockHistory() {
+  stockHistory = [];
+  renderStockHistory();
 }
   // ==================== INVENTORY MODE TOGGLE ====================
   function toggleInventoryMode() {
