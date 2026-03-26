@@ -1743,15 +1743,21 @@ if (paperSizeSelect) {
   }
 
 function applyBuy2Free1Perfume() {
-  // Eligible: category contains "perfume edp", excludes "humidifier"
+  console.log("=== Buy 2 Free 1 Perfume ===");
   const eligiblePrices = getUnitPricesFromFilter(item => {
     const cat = (item.product.category || "").trim().toLowerCase();
-    return cat.includes("perfume edp") && !cat.includes("humidifier machine");
+    const isPerfume = cat.includes("perfume edp");
+    const isHumidifier = cat.includes("humidifier machine");
+    const eligible = isPerfume && !isHumidifier;
+    console.log(`Item: ${item.product.name}, Category: ${cat}, Perfume: ${isPerfume}, Humidifier: ${isHumidifier}, Eligible: ${eligible}`);
+    return eligible;
   });
 
+  console.log("Eligible prices:", eligiblePrices);
   const totalUnits = eligiblePrices.length;
   const freeItems = Math.floor(totalUnits / 3);
-  
+  console.log(`Total units: ${totalUnits}, free items: ${freeItems}`);
+
   if (freeItems === 0) {
     const msgDiv = document.getElementById('promoMessage');
     msgDiv.innerText = `Need at least 3 items from Perfume EDP (50ml/100ml) category. Found ${totalUnits}.`;
@@ -1767,15 +1773,21 @@ function applyBuy2Free1Perfume() {
 }
 
 function applyBuy3Free1ExcludePerfume() {
-  // Eligible: excludes "perfume edp" AND excludes "humidifier"
+  console.log("=== Buy 3 Free 1 (Exclude Perfume) ===");
   const eligiblePrices = getUnitPricesFromFilter(item => {
     const cat = (item.product.category || "").trim().toLowerCase();
-    return !cat.includes("perfume edp") && !cat.includes("humidifier machine");
+    const isPerfume = cat.includes("perfume edp");
+    const isHumidifier = cat.includes("humidifier machine");
+    const eligible = !isPerfume && !isHumidifier;
+    console.log(`Item: ${item.product.name}, Category: ${cat}, Perfume: ${isPerfume}, Humidifier: ${isHumidifier}, Eligible: ${eligible}`);
+    return eligible;
   });
 
+  console.log("Eligible prices:", eligiblePrices);
   const totalUnits = eligiblePrices.length;
   const freeItems = Math.floor(totalUnits / 4);
-  
+  console.log(`Total units: ${totalUnits}, free items: ${freeItems}`);
+
   if (freeItems === 0) {
     const msgDiv = document.getElementById('promoMessage');
     msgDiv.innerText = `Need at least 4 items excluding Perfume and Humidifier categories. Found ${totalUnits}.`;
