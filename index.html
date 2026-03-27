@@ -1325,7 +1325,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxPrVqdu8a8W-XpXvZ4Dkj3BV2HqaU-mScwhNw5kfPV7Us0PTA30zBpLdIQDiFZbuV4/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxzustwOSlTbLU2sKXgR1iCmND7kovZigZ4nmhdF8WaktpY_PaMkbA9Q7YZzjNERVXyGg/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1561,14 +1561,7 @@ function displayStockHistory(history) {
 
   let html = `<table class="stock-history-table">
     <thead>
-      <tr>
-        <th>Time</th>
-        <th>Product</th>
-        <th>Category</th>
-        <th>Action</th>
-        <th>Employee</th>
-      </tr>
-    </thead>
+      <tr><th>Time</th><th>Product</th><th>Category</th><th>Action</th><th>Employee</th> </thead>
     <tbody>`;
 
   for (const adj of history) {
@@ -1585,7 +1578,7 @@ function displayStockHistory(history) {
       <td>${escapeHtml(category)}</td>
       <td>${escapeHtml(changeText)}</td>
       <td>${escapeHtml(adj.employeeName || "System")}</td>
-    </tr>`;
+     </tr>`;
   }
 
   html += '</tbody></table>';
