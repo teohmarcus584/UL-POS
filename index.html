@@ -2933,7 +2933,6 @@ function renderProductGrid() {
     const categoryHtml = `<div class="product-category">${escapeHtml(prod.category)}</div>`;
 
     if (inventoryMode) {
-      // No persistent net change indicator – we use temporary feedback on click
       html += `<div class="product-card">
         <div class="product-name">${escapeHtml(prod.name)}</div>
         ${categoryHtml}
@@ -2961,49 +2960,85 @@ function renderProductGrid() {
 
   // Attach event listeners for inventory mode
   if (inventoryMode) {
-  // Decrement button
-  document.querySelectorAll('.dec-stock').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const id = btn.dataset.id;
-      const product = products.find(p => p.id == id);
-      if (product && product.stock > 0) {
-        const oldStock = product.stock;
-        const newStock = oldStock - 1;
-        product.stock = newStock;
+    // Decrement button
+    document.querySelectorAll('.dec-stock').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const id = btn.dataset.id;
+        const product = products.find(p => p.id == id);
+        if (product && product.stock > 0) {
+          const oldStock = product.stock;
+          const newStock = oldStock - 1;
+          product.stock = newStock;
 
-        const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
-        if (displaySpan) displaySpan.innerText = newStock;
+          const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
+          if (displaySpan) displaySpan.innerText = newStock;
 
-        await updateStockOnServer(id, newStock);
-        await recordStockAdjustment(id, product.name, product.category, oldStock, newStock);
-        await refreshStockHistory();
+          await updateStockOnServer(id, newStock);
+          await recordStockAdjustment(id, product.name, product.category, oldStock, newStock);
+          await refreshStockHistory();
 
-        // Update session net change
-        sessionStockChanges[id] = (sessionStockChanges[id] || 0) - 1;
-        const net = sessionStockChanges[id];
+          // Update session net change
+          sessionStockChanges[id] = (sessionStockChanges[id] || 0) - 1;
+          const net = sessionStockChanges[id];
 
-        // Get or create the persistent indicator
-        const card = btn.closest('.product-card');
-        let indicator = card.querySelector('.stock-change-indicator');
-        if (!indicator) {
-          indicator = document.createElement('div');
-          indicator.className = 'stock-change-indicator';
-          card.appendChild(indicator);
+          // Get or create the persistent indicator
+          const card = btn.closest('.product-card');
+          let indicator = card.querySelector('.stock-change-indicator');
+          if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.className = 'stock-change-indicator';
+            card.appendChild(indicator);
+          }
+          if (net !== 0) {
+            indicator.className = `stock-change-indicator ${net > 0 ? 'positive' : 'negative'}`;
+            indicator.innerText = net > 0 ? `+${net}` : `${net}`;
+          } else {
+            indicator.remove();
+          }
         }
-        // Update indicator content and style
-        if (net !== 0) {
-          indicator.className = `stock-change-indicator ${net > 0 ? 'positive' : 'negative'}`;
-          indicator.innerText = net > 0 ? `+${net}` : `${net}`;
-        } else {
-          // If net becomes zero, remove indicator (user could cancel out changes)
-          indicator.remove();
-        }
-      }
-      e.stopPropagation();
+        e.stopPropagation();
+      });
     });
-  });
-}
-}
+
+    // Increment button
+    document.querySelectorAll('.inc-stock').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const id = btn.dataset.id;
+        const product = products.find(p => p.id == id);
+        if (product) {
+          const oldStock = product.stock;
+          const newStock = oldStock + 1;
+          product.stock = newStock;
+
+          const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
+          if (displaySpan) displaySpan.innerText = newStock;
+
+          await updateStockOnServer(id, newStock);
+          await recordStockAdjustment(id, product.name, product.category, oldStock, newStock);
+          await refreshStockHistory();
+
+          sessionStockChanges[id] = (sessionStockChanges[id] || 0) + 1;
+          const net = sessionStockChanges[id];
+
+          const card = btn.closest('.product-card');
+          let indicator = card.querySelector('.stock-change-indicator');
+          if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.className = 'stock-change-indicator';
+            card.appendChild(indicator);
+          }
+          if (net !== 0) {
+            indicator.className = `stock-change-indicator ${net > 0 ? 'positive' : 'negative'}`;
+            indicator.innerText = net > 0 ? `+${net}` : `${net}`;
+          } else {
+            indicator.remove();
+          }
+        }
+        e.stopPropagation();
+      });
+    });
+  }
+} // <-- This closing brace was missing earlier
   // Increment button
   document.querySelectorAll('.inc-stock').forEach(btn => {
     btn.addEventListener('click', async (e) => {
