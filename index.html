@@ -1325,7 +1325,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz4e-I8Y9LZ1HIw8OdDSMDZgu4CMzxKh4fbUBErRIrmewOIAlODzbhqeXN04m8oBqp3lQ/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw_ft7hHIdrJ8Xnt5ngNTQCHqCSthS-ncIdUvlRMUyVkmj8mX7JyB4xuzP6yznvOxhTAQ/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1518,12 +1518,13 @@
   }
 
 // Fire-and-forget: sends a single adjustment record to the backend
-async function recordStockAdjustment(productId, productName, oldStock, newStock) {
+async function recordStockAdjustment(productId, productName, category, oldStock, newStock) {
   try {
     const formData = new URLSearchParams();
     formData.append("action", "saveStockAdjustment");
     formData.append("productId", productId);
     formData.append("productName", productName);
+    formData.append("category", category || "—");
     formData.append("oldStock", oldStock);
     formData.append("newStock", newStock);
     formData.append("store", currentStore);
@@ -1560,24 +1561,9 @@ async function refreshStockHistory() {
     return;
   }
 
-  // Build a quick map from product name to category using the global products array
-  const productCategoryMap = {};
-  products.forEach(p => {
-    productCategoryMap[p.name] = p.category || '—';
-  });
-
   let html = `<table class="stock-history-table">
     <thead>
-      <tr>
-        <th>Time</th>
-        <th>Product</th>
-        <th>Category</th>
-        <th>Change</th>
-        <th>Old Stock</th>
-        <th>New Stock</th>
-        <th>Employee</th>
-      </tr>
-    </thead>
+      <tr><th>Time</th><th>Product</th><th>Category</th><th>Change</th><th>Old Stock</th><th>New Stock</th><th>Employee</th> </thead>
     <tbody>`;
 
   for (const adj of history) {
@@ -1585,18 +1571,17 @@ async function refreshStockHistory() {
     const changeSign = change > 0 ? `+${change}` : `${change}`;
     const changeStyle = change > 0 ? 'color: #2c7a4b;' : 'color: #dc2626;';
     const date = new Date(adj.timestamp).toLocaleString();
-    const category = productCategoryMap[adj.productName] || '—';
+    const category = adj.category || '—';
 
-    html += `
-      <tr>
-        <td>${date}</td>
-        <td>${escapeHtml(adj.productName)}</td>
-        <td>${escapeHtml(category)}</td>
-        <td style="${changeStyle}">${changeSign}</td>
-        <td>${adj.oldStock}</td>
-        <td>${adj.newStock}</td>
-        <td>${escapeHtml(adj.employeeName)}</td>
-      </tr>`;
+    html += `<tr>
+      <td>${date}</td>
+      <td>${escapeHtml(adj.productName)}</td>
+      <td>${escapeHtml(category)}</td>
+      <td style="${changeStyle}">${changeSign}</td>
+      <td>${adj.oldStock}</td>
+      <td>${adj.newStock}</td>
+      <td>${escapeHtml(adj.employeeName)}</td>
+    </tr>`;
   }
 
   html += '</tbody></table>';
