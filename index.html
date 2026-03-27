@@ -1093,29 +1093,29 @@
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw60AqV_BG63t1CILWvrZ2VVwwfmcg8MASBgB8fxYcGUmL9YECvlOIplsI7l8ixlmnm2w/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
-   let products = [];
-  let cart = [];
-  let currentStore = "queens";
-  let currentEmployee = null;
-  let viewMode = "grid";
-  let productDetailsVisible = false;
-  let lastProductData = null;
-  let employeeNameMap = {};
-  let initialStore = null;
-  let pendingTransaction = null;
-  let searchTimeout = null;
-  let initialDataPromise = null;
-  let discountAmount = 0;
-  let buy2Free1Discount = 0;
-  let buy3Free1Discount = 0;
-  let customDiscount = 0;
-  let claimedReceiptInfo = null;
-  let pendingPrize = null;
-  let pendingClaimReceipt = null;
-  let loadingTimeout = null;
-  let inventoryMode = false;
-  let updateStockTimeout = null;
-  let stockHistory = []; // Stock adjustment log (array of entries)
+  let products = [];
+let cart = [];
+let currentStore = "queens";
+let currentEmployee = null;
+let viewMode = "grid";
+let productDetailsVisible = false;
+let lastProductData = null;
+let employeeNameMap = {};
+let initialStore = null;
+let pendingTransaction = null;
+let searchTimeout = null;
+let initialDataPromise = null;
+let discountAmount = 0;
+let buy2Free1Discount = 0;
+let buy3Free1Discount = 0;
+let customDiscount = 0;
+let claimedReceiptInfo = null;
+let pendingPrize = null;
+let pendingClaimReceipt = null;
+let loadingTimeout = null;
+let inventoryMode = false;
+let updateStockTimeout = null;
+let stockHistory = []; // Stock adjustment log (array of entries)
 
   // DOM elements
   const productGridEl = document.getElementById('productGrid');
@@ -1279,128 +1279,147 @@ function hideLoading() {
   }
 
   // ==================== STOCK HISTORY (Grouped by product) ====================
-// ========== STOCK HISTORY FUNCTIONS ==========
- function logStockChange(productId, productName, category, oldStock, newStock, delta) {
-    const now = Date.now();
-    const formattedTime = new Date().toLocaleString();
-    let existingIndex = -1;
-    for (let i = 0; i < stockHistory.length; i++) {
-      if (stockHistory[i].productId === productId) {
-        existingIndex = i;
-        break;
-      }
+function logStockChange(productId, productName, category, oldStock, newStock, delta) {
+  const now = Date.now();
+  const formattedTime = new Date().toLocaleString();
+  let existingIndex = -1;
+  for (let i = 0; i < stockHistory.length; i++) {
+    if (stockHistory[i].productId === productId) {
+      existingIndex = i;
+      break;
     }
-    if (existingIndex !== -1) {
-      const entry = stockHistory[existingIndex];
-      entry.newStock = newStock;
-      entry.delta += delta;
-      entry.timestamp = formattedTime;
-      entry.timestampMs = now;
-      entry.category = category;
-      stockHistory.splice(existingIndex, 1);
-      stockHistory.unshift(entry);
-    } else {
-      stockHistory.unshift({
-        productId,
-        productName,
-        category,
-        oldStock,
-        newStock,
-        delta,
-        timestamp: formattedTime,
-        timestampMs: now
-      });
-    }
-    renderStockHistory();
   }
-
+  if (existingIndex !== -1) {
+    const entry = stockHistory[existingIndex];
+    entry.newStock = newStock;
+    entry.delta += delta;
+    entry.timestamp = formattedTime;
+    entry.timestampMs = now;
+    entry.category = category;
+    stockHistory.splice(existingIndex, 1);
+    stockHistory.unshift(entry);
+  } else {
+    stockHistory.unshift({
+      productId,
+      productName,
+      category,
+      oldStock,
+      newStock,
+      delta,
+      timestamp: formattedTime,
+      timestampMs: now
+    });
+  }
+  renderStockHistory();
+}
 
 function renderStockHistory() {
-    const historyList = document.getElementById('stockHistoryList');
-    if (!historyList) return;
-    if (stockHistory.length === 0) {
-      historyList.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 20px;">No adjustments yet.</div>';
-      return;
-    }
-    let html = '';
-    for (const entry of stockHistory) {
-      const deltaClass = entry.delta > 0 ? 'delta' : 'delta negative';
-      const deltaSymbol = entry.delta > 0 ? `+${entry.delta}` : `${entry.delta}`;
-      html += `
-        <div class="history-entry">
-          <div class="delta-badge ${deltaClass}">${deltaSymbol}</div>
-          <div class="history-main">
-            <div class="product-name">${escapeHtml(entry.productName)}</div>
-            <div class="product-category" style="font-size:0.7rem; color:#64748b; margin-bottom:4px;">${escapeHtml(entry.category)}</div>
-            <div class="stock-change">Stock: ${entry.oldStock} → ${entry.newStock}</div>
-            <div class="timestamp">${entry.timestamp}</div>
-          </div>
+  const historyList = document.getElementById('stockHistoryList');
+  if (!historyList) return;
+  if (stockHistory.length === 0) {
+    historyList.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 20px;">No adjustments yet.</div>';
+    return;
+  }
+  let html = '';
+  for (const entry of stockHistory) {
+    const deltaClass = entry.delta > 0 ? 'delta' : 'delta negative';
+    const deltaSymbol = entry.delta > 0 ? `+${entry.delta}` : `${entry.delta}`;
+    html += `
+      <div class="history-entry">
+        <div class="delta-badge ${deltaClass}">${deltaSymbol}</div>
+        <div class="history-main">
+          <div class="product-name">${escapeHtml(entry.productName)}</div>
+          <div class="product-category" style="font-size:0.7rem; color:#64748b; margin-bottom:4px;">${escapeHtml(entry.category)}</div>
+          <div class="stock-change">Stock: ${entry.oldStock} → ${entry.newStock}</div>
+          <div class="timestamp">${entry.timestamp}</div>
         </div>
-      `;
-    }
-    historyList.innerHTML = html;
+      </div>
+    `;
   }
+  historyList.innerHTML = html;
+}
 
-  function clearStockHistory() {
-    stockHistory = [];
-    renderStockHistory();
-  }
+function clearStockHistory() {
+  stockHistory = [];
+  renderStockHistory();
+}
 
-  // NEW: Save stock history to Google Sheets
-  async function saveStockHistoryToSheet() {
-    if (stockHistory.length === 0) {
-      await showAlertModal('No History', 'There is no stock adjustment history to save.');
-      return;
-    }
-    showLoading('Saving stock history...');
-    try {
-      const formData = new URLSearchParams();
-      formData.append('action', 'saveStockHistory');
-      formData.append('history', JSON.stringify(stockHistory));
-      formData.append('store', currentStore);
-      formData.append('employee_id', currentEmployee.id);
-      formData.append('employee_name', currentEmployee.name);
-      const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
-      const result = await response.json();
-      if (result.success) {
-        await showAlertModal('Saved', `Stock history (${stockHistory.length} entries) saved to Google Sheet.`);
-      } else {
-        throw new Error(result.error || 'Unknown error');
-      }
-    } catch (err) {
-      console.error(err);
-      await showAlertModal('Error', 'Failed to save stock history: ' + err.message);
-    } finally {
-      hideLoading();
-    }
+// SAVE stock history to Google Sheet (with employee info)
+async function saveStockHistoryToSheet() {
+  if (stockHistory.length === 0) {
+    await showAlertModal('No History', 'There is no stock adjustment history to save.');
+    return;
   }
-  // ==================== INVENTORY MODE TOGGLE ====================
-  function toggleInventoryMode() {
-    inventoryMode = !inventoryMode;
-    if (inventoryMode) {
-      // Enter inventory mode: hide cart content, show stock history, change title
-      cartNormalContent.style.display = 'none';
-      stockHistoryContainerDiv.style.display = 'flex';
-      cartPanelTitle.innerText = '📦 Inventory Mode';
-      inventoryModeBtn.innerText = '🛍️ Exit Inventory';
-      if (updateStockTimeout) clearTimeout(updateStockTimeout);
-      renderProductGrid();
+  showLoading('Saving stock history...');
+  try {
+    const formData = new URLSearchParams();
+    formData.append('action', 'saveStockHistory');
+    formData.append('history', JSON.stringify(stockHistory));
+    formData.append('store', currentStore);
+    formData.append('employee_id', currentEmployee.id);
+    formData.append('employee_name', currentEmployee.name);
+    const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
+    const result = await response.json();
+    if (result.success) {
+      await showAlertModal('Saved', `Stock history (${stockHistory.length} entries) saved to Google Sheet.`);
     } else {
-      // Exit inventory mode: restore cart, clear history, hide stock panel
-      cartNormalContent.style.display = 'block';
-      stockHistoryContainerDiv.style.display = 'none';
-      cartPanelTitle.innerText = '🧾 Current Sale';
-      inventoryModeBtn.innerText = '📦 Inventory Mode';
-      clearStockHistory(); // Reset history on exit
-      updateCartUI(); // Restore cart display
-      renderProductGrid();
+      throw new Error(result.error || 'Unknown error');
     }
+  } catch (err) {
+    console.error(err);
+    await showAlertModal('Error', 'Failed to save stock history: ' + err.message);
+  } finally {
+    hideLoading();
   }
- // Add event listener for Save History button
-  const saveStockHistoryBtn = document.getElementById('saveStockHistoryBtn');
-  if (saveStockHistoryBtn) {
-    saveStockHistoryBtn.addEventListener('click', saveStockHistoryToSheet);
+}
+
+// LOAD stock history from Google Sheet (optional, call this when entering inventory mode)
+async function loadStockHistoryFromSheet() {
+  showLoading('Loading saved stock history...');
+  try {
+    const url = `${APPS_SCRIPT_URL}?action=getStockHistory&store=${currentStore}&_=${Date.now()}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    if (result.success && result.history) {
+      stockHistory = result.history;
+      renderStockHistory();
+    } else {
+      // No saved history – start fresh
+      stockHistory = [];
+      renderStockHistory();
+    }
+  } catch (err) {
+    console.error(err);
+    await showAlertModal('Error', 'Failed to load saved stock history.');
+  } finally {
+    hideLoading();
   }
+}
+ // ==================== INVENTORY MODE TOGGLE ====================
+function toggleInventoryMode() {
+  inventoryMode = !inventoryMode;
+  if (inventoryMode) {
+    // Enter inventory mode
+    cartNormalContent.style.display = 'none';
+    stockHistoryContainerDiv.style.display = 'flex';
+    cartPanelTitle.innerText = '📦 Inventory Mode';
+    inventoryModeBtn.innerText = '🛍️ Exit Inventory';
+    if (updateStockTimeout) clearTimeout(updateStockTimeout);
+    // Optional: load previously saved history
+    loadStockHistoryFromSheet();
+    renderProductGrid();
+  } else {
+    // Exit inventory mode
+    cartNormalContent.style.display = 'block';
+    stockHistoryContainerDiv.style.display = 'none';
+    cartPanelTitle.innerText = '🧾 Current Sale';
+    inventoryModeBtn.innerText = '📦 Inventory Mode';
+    clearStockHistory(); // Reset history on exit
+    updateCartUI();
+    renderProductGrid();
+  }
+}
+ 
   // ==================== INITIAL DATA LOAD ====================
   async function loadInitialData() {
     try {
@@ -2931,7 +2950,11 @@ if (paperSizeSelect) {
     document.getElementById('loginModal').style.display = 'flex';
     document.getElementById('pinInput').focus();
   });
-
+// Add event listener for Save History button
+  const saveStockHistoryBtn = document.getElementById('saveStockHistoryBtn');
+  if (saveStockHistoryBtn) {
+    saveStockHistoryBtn.addEventListener('click', saveStockHistoryToSheet);
+  }
   async function verifyEmployeeByPin(pin) {
     showLoading('Verifying...');
     try {
