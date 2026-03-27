@@ -1027,15 +1027,35 @@
   background: #f1f5f9;
   border: none;
   border-radius: 30px;
-  padding: 6px 12px;
+  padding: 6px 14px;
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
-  transition: 0.1s;
+  transition: all 0.2s ease;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #1e293b;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.free-toggle-btn.active {
+  background: #10b981;
+  color: white;
+  box-shadow: 0 2px 4px rgba(16,185,129,0.2);
+}
+.free-toggle-btn.active::before {
+  content: "🎁 ";
+  font-size: 0.9rem;
 }
 .free-toggle-btn:active {
   transform: scale(0.95);
+}
+.free-toggle-btn:hover {
+  background: #e2e8f0;
+}
+.free-toggle-btn.active:hover {
+  background: #059669;
 }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -1738,6 +1758,8 @@ let preloadedStores = [];    // List of stores that have been preloaded
     const categoryDisplay = item.product.category
       ? `<div class="cart-item-category">${escapeHtml(item.product.category)}</div>`
       : '';
+    const freeClass = item.freeQuantity > 0 ? 'active' : '';
+    const buttonText = item.freeQuantity > 0 ? `${item.freeQuantity} Free` : 'Free';
     html += `
       <div class="cart-item" data-index="${idx}">
         <div class="cart-item-info">
@@ -1746,7 +1768,7 @@ let preloadedStores = [];    // List of stores that have been preloaded
           <div class="cart-item-price">RM ${item.product.price.toFixed(2)}</div>
         </div>
         <div class="cart-item-free">
-          <button class="free-toggle-btn" data-index="${idx}">Free: ${item.freeQuantity}</button>
+          <button class="free-toggle-btn ${freeClass}" data-index="${idx}">${buttonText}</button>
         </div>
         <div class="cart-item-qty">
           <button class="qty-btn" data-index="${idx}" data-delta="-1">−</button>
@@ -1795,7 +1817,7 @@ let preloadedStores = [];    // List of stores that have been preloaded
 
   totalSpan.innerText = `RM ${total.toFixed(2)}`;
 
-  // Attach event listeners for quantity and remove
+  // Attach event listeners
   document.querySelectorAll('.qty-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const idx = parseInt(btn.dataset.index);
