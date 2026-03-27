@@ -1325,7 +1325,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbweqv_YnQsDncP2h4TSwa4xjMiQXVvt2v7Frw04_L8eGalq9Iy8fIToU8XifqM2T41N/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyaoaq60dEdxOydh6yNZmq0O38pBuBgA_ZOiLQ896w0gzttb59JXtv2HTHpQ83zLfDFWA/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1552,50 +1552,6 @@ async function refreshStockHistory() {
   }
 }
 function displayStockHistory(history) {
-  const container = document.getElementById('stockHistoryList');
-  if (!container) return;
-  if (!history || history.length === 0) {
-    container.innerHTML = '<div class="stock-history-empty">No stock adjustments recorded yet.</div>';
-    return;
-  }
-
-  let html = `<table class="stock-history-table">
-    <thead>
-      <tr><th>Time</th><th>Product</th><th>Category</th><th>Action</th><th>Employee</th> </thead>
-    <tbody>`;
-
-  for (const adj of history) {
-    const date = adj.timestamp ? new Date(adj.timestamp).toLocaleString() : "Unknown date";
-    const category = adj.category && adj.category !== "undefined" ? adj.category : "—";
-    
-    // Extract numeric movement (e.g., from "+3", "-2", or "1")
-    let movementValue = 0;
-    if (adj.movement) {
-      const match = adj.movement.match(/([+-]?\d+)/);
-      if (match) movementValue = parseInt(match[1], 10);
-    }
-    
-    let action = "";
-    if (movementValue > 0) {
-      action = `ADDED +${movementValue}`;
-    } else if (movementValue < 0) {
-      action = `REMOVED ${movementValue}`;
-    } else {
-      action = "—";
-    }
-
-    html += `<tr>
-      <td>${escapeHtml(date)}</td>
-      <td>${escapeHtml(adj.productName || "Unknown")}</td>
-      <td>${escapeHtml(category)}</td>
-      <td>${escapeHtml(action)}</td>
-      <td>${escapeHtml(adj.employeeName || "System")}</td>
-     </tr>`;
-  }
-
-  html += '</tbody></table>';
-  container.innerHTML = html;
-}
   // ==================== INITIAL DATA LOAD ====================
   async function loadInitialData() {
     try {
