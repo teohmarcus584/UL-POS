@@ -3341,56 +3341,66 @@ if (systemTotalsDiv) {
       }
     });
   }
-  if (document.getElementById('checkSettlementBtn')) {
-    document.getElementById('checkSettlementBtn').addEventListener('click', async () => {
-      const actualCash = parseFloat(document.getElementById('actualCash').value);
-      const actualCard = parseFloat(document.getElementById('actualCard').value);
-      const actualQR = parseFloat(document.getElementById('actualQR').value);
-      const errors = [];
-      if (isNaN(actualCash)) errors.push('Cash Count');
-      if (isNaN(actualCard)) errors.push('Card Settlement');
-      if (isNaN(actualQR)) errors.push('QR Settlement');
-      if (errors.length > 0) {
-        const settlementError = document.getElementById('settlementError');
-        if (settlementError) {
-          settlementError.innerText = `Please enter valid numbers for: ${errors.join(', ')}`;
-          settlementError.style.display = 'block';
-        }
-        return;
+if (document.getElementById('checkSettlementBtn')) {
+  document.getElementById('checkSettlementBtn').addEventListener('click', async () => {
+    const actualCash = parseFloat(document.getElementById('actualCash').value);
+    const actualCard = parseFloat(document.getElementById('actualCard').value);
+    const actualQR = parseFloat(document.getElementById('actualQR').value);
+    const errors = [];
+    if (isNaN(actualCash)) errors.push('Cash Count');
+    if (isNaN(actualCard)) errors.push('Card Settlement');
+    if (isNaN(actualQR)) errors.push('QR Settlement');
+    if (errors.length > 0) {
+      const settlementError = document.getElementById('settlementError');
+      if (settlementError) {
+        settlementError.innerText = `Please enter valid numbers for: ${errors.join(', ')}`;
+        settlementError.style.display = 'block';
       }
-      const cashOk = Math.abs(actualCash - currentSettlementTotals.cash) < 0.01;
-      const cardOk = Math.abs(actualCard - currentSettlementTotals.card) < 0.01;
-      const qrOk = Math.abs(actualQR - currentSettlementTotals.qr) < 0.01;
-      const actualCashEl = document.getElementById('actualCash');
-      const actualCardEl = document.getElementById('actualCard');
-      const actualQREl = document.getElementById('actualQR');
-      if (actualCashEl) actualCashEl.classList.toggle('error-field', !cashOk);
-      if (actualCardEl) actualCardEl.classList.toggle('error-field', !cardOk);
-      if (actualQREl) actualQREl.classList.toggle('error-field', !qrOk);
-      if (cashOk && cardOk && qrOk) {
-        const settlementError = document.getElementById('settlementError');
-        if (settlementError) settlementError.style.display = 'none';
-        setSettlementFieldsEnabled(false);
-        const checkBtn = document.getElementById('checkSettlementBtn');
-        const recordBtn = document.getElementById('recordSettlementBtn');
-        if (checkBtn) checkBtn.style.display = 'none';
-        if (recordBtn) {
-          recordBtn.style.display = 'block';
-          recordBtn.disabled = false;
-        }
-      } else {
-        const errorMessages = [];
-        if (!cashOk) errorMessages.push(`Cash (System: RM ${currentSettlementTotals.cash.toFixed(2)}, Entered: RM ${actualCash.toFixed(2)})`);
-        if (!cardOk) errorMessages.push(`Card (System: RM ${currentSettlementTotals.card.toFixed(2)}, Entered: RM ${actualCard.toFixed(2)})`);
-        if (!qrOk) errorMessages.push(`QR (System: RM ${currentSettlementTotals.qr.toFixed(2)}, Entered: RM ${actualQR.toFixed(2)})`);
-        const settlementError = document.getElementById('settlementError');
-        if (settlementError) {
+      return;
+    }
+
+    const cashOk = Math.abs(actualCash - currentSettlementTotals.cash) < 0.01;
+    const cardOk = Math.abs(actualCard - currentSettlementTotals.card) < 0.01;
+    const qrOk = Math.abs(actualQR - currentSettlementTotals.qr) < 0.01;
+
+    const actualCashEl = document.getElementById('actualCash');
+    const actualCardEl = document.getElementById('actualCard');
+    const actualQREl = document.getElementById('actualQR');
+    if (actualCashEl) actualCashEl.classList.toggle('error-field', !cashOk);
+    if (actualCardEl) actualCardEl.classList.toggle('error-field', !cardOk);
+    if (actualQREl) actualQREl.classList.toggle('error-field', !qrOk);
+
+    if (cashOk && cardOk && qrOk) {
+      const settlementError = document.getElementById('settlementError');
+      if (settlementError) settlementError.style.display = 'none';
+      setSettlementFieldsEnabled(false);
+      const checkBtn = document.getElementById('checkSettlementBtn');
+      const recordBtn = document.getElementById('recordSettlementBtn');
+      if (checkBtn) checkBtn.style.display = 'none';
+      if (recordBtn) {
+        recordBtn.style.display = 'block';
+        recordBtn.disabled = false;
+      }
+    } else {
+      // Build error message based on user role
+      const settlementError = document.getElementById('settlementError');
+      if (settlementError) {
+        if (currentEmployee && currentEmployee.isAdmin) {
+          // Admin: detailed mismatch
+          const errorMessages = [];
+          if (!cashOk) errorMessages.push(`Cash (System: RM ${currentSettlementTotals.cash.toFixed(2)}, Entered: RM ${actualCash.toFixed(2)})`);
+          if (!cardOk) errorMessages.push(`Card (System: RM ${currentSettlementTotals.card.toFixed(2)}, Entered: RM ${actualCard.toFixed(2)})`);
+          if (!qrOk) errorMessages.push(`QR (System: RM ${currentSettlementTotals.qr.toFixed(2)}, Entered: RM ${actualQR.toFixed(2)})`);
           settlementError.innerHTML = `❌ Mismatch in:<br>${errorMessages.join('<br>')}<br>Please correct and try again.`;
-          settlementError.style.display = 'block';
+        } else {
+          // Non-admin: generic message
+          settlementError.innerHTML = `❌ Mismatch detected! Count properly and try again.`;
         }
+        settlementError.style.display = 'block';
       }
-    });
-  }
+    }
+  });
+}
   if (document.getElementById('recordSettlementBtn')) {
     document.getElementById('recordSettlementBtn').addEventListener('click', async () => {
       const store = document.getElementById('settlementStoreSelect').value;
