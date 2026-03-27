@@ -1357,7 +1357,7 @@
     const confirmed = await showConfirmModal('Clear History', `Are you sure you want to permanently delete all stock history for store "${currentStore}"? This action cannot be undone.`);
     if (!confirmed) return;
 
-    showLoading('Deleting history from sheet...');
+   
     try {
       const formData = new URLSearchParams();
       formData.append('action', 'clearStockHistory');
@@ -1369,7 +1369,7 @@
         // Clear local array and re-render
         stockHistory = [];
         renderStockHistory();
-        await showAlertModal('Success', `All stock history for store "${currentStore}" has been deleted.`);
+       
       } else {
         throw new Error(result.error || 'Unknown error');
       }
