@@ -1219,7 +1219,11 @@
   let inventoryMode = false;
   let updateStockTimeout = null;
   let stockHistory = []; // Stock adjustment log (array of entries)
-
+let preloadedProducts = null;      // Preloaded products for the default store
+let preloadedStore = null;         // Store for which products were preloaded
+let preloadedEmployees = null;     // Preloaded employees list
+let preloadedDataMap = {};   // Stores preloaded data for each store
+let preloadedStores = [];    // List of stores that have been preloaded
   // DOM elements
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -2386,7 +2390,42 @@
       hideLoading();
     }
   }
-
+async function preloadProductsForStore(store) {
+  try {
+    const cacheKey = `products_${store}`;
+    const now = Date.now();
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      const { timestamp, products: cachedProducts } = JSON.parse(cached);
+      if (now - timestamp < 5 * 60 * 1000) {
+        // Use cached products, but still need employees from API
+        const empResponse = await fetch(`${APPS_SCRIPT_URL}?action=getEmployees`);
+        const empResult = await empResponse.json();
+        if (empResult.success) {
+          preloadedDataMap[store] = {
+            products: cachedProducts,
+            employees: empResult.employees
+          };
+        } else {
+          preloadedDataMap[store] = { products: cachedProducts, employees: [] };
+        }
+        return;
+      }
+    }
+    const url = `${APPS_SCRIPT_URL}?action=getInitialData&store=${store}&_=${now}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    if (result.success) {
+      preloadedDataMap[store] = {
+        products: result.products,
+        employees: result.employees
+      };
+      localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, products: result.products }));
+    }
+  } catch (err) {
+    console.error(`Preload failed for ${store}:`, err);
+  }
+}
   // ==================== REPORTS ====================
   async function fetchSalesReport(store, employeeId, from, to, unsettledOnly) {
     showLoading('Loading report...');
@@ -3032,14 +3071,65 @@
 
   // ==================== EVENT LISTENERS ====================
   document.getElementById('confirmStoreBtn').addEventListener('click', () => {
-    initialStore = document.getElementById('initialStoreSelect').value;
-    currentStore = initialStore;
-    storeSelect.value = initialStore;
-    document.getElementById('storeSelectModal').style.display = 'none';
+  initialStore = document.getElementById('initialStoreSelect').value;
+  currentStore = initialStore;
+  storeSelect.value = initialStore;
+  document.getElementById('storeSelectModal').style.display = 'none';
+
+  // Check if data is already preloaded for this store
+  const preloaded = preloadedDataMap[initialStore];
+  if (preloaded && preloaded.products && preloaded.products.length > 0) {
+    // Use preloaded data directly
+    products = preloaded.products;
+    const categories = [...new Set(products.map(p => p.category))].sort();
+    categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
+    categories.forEach(cat => {
+      const option = document.createElement('option');
+      option.value = cat;
+      option.textContent = cat;
+      categorySelect.appendChild(option);
+    });
+    renderProductGrid();
+
+    // Load employees (if not already loaded)
+    if (preloaded.employees && preloaded.employees.length > 0) {
+      employeeNameMap = {};
+      soldBySelect.innerHTML = '';
+      preloaded.employees.forEach(emp => {
+        employeeNameMap[emp.id] = emp.name;
+        const option = document.createElement('option');
+        option.value = emp.id;
+        option.textContent = `${emp.name} (ID: ${emp.id})`;
+        if (currentEmployee && emp.id == currentEmployee.id) option.selected = true;
+        soldBySelect.appendChild(option);
+      });
+    } else {
+      // Fallback: fetch employees if not preloaded
+      fetchEmployees().then(employees => {
+        employeeNameMap = {};
+        soldBySelect.innerHTML = '';
+        employees.forEach(emp => {
+          employeeNameMap[emp.id] = emp.name;
+          const option = document.createElement('option');
+          option.value = emp.id;
+          option.textContent = `${emp.name} (ID: ${emp.id})`;
+          if (currentEmployee && emp.id == currentEmployee.id) option.selected = true;
+          soldBySelect.appendChild(option);
+        });
+      });
+    }
+
+    initialDataPromise = Promise.resolve(true);
+    // Show login modal immediately
+    document.getElementById('loginModal').style.display = 'flex';
+    document.getElementById('pinInput').focus();
+  } else {
+    // No preloaded data – fetch on demand
     initialDataPromise = loadInitialData();
     document.getElementById('loginModal').style.display = 'flex';
     document.getElementById('pinInput').focus();
-  });
+  }
+});
 
   async function verifyEmployeeByPin(pin) {
     showLoading('Verifying...');
@@ -3772,6 +3862,9 @@ if (document.getElementById('checkSettlementBtn')) {
       });
     }
   })();
+ // Preload all stores in the background
+const allStores = ["queens", "sunshine", "gurney_paragon"];
+allStores.forEach(store => preloadProductsForStore(store));
 </script>
 </body>
 </html>
