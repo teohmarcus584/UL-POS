@@ -1087,7 +1087,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby_znIN3bet70r8elQjtRAr5gqIxpp8jIFEV2BGnS9zaFxTUEl3JSXMHTYPGtWbOtmjOQ/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNuBBgVjHf0-SNp6e2mSM-2rWlEGIEc7BcekaR05dVq8dZF5RJUtJyUhvWQf46IEvwCA/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1113,12 +1113,7 @@ let loadingTimeout = null;
   let inventoryMode = false;
   let updateStockTimeout = null;
   let stockHistory = []; // Stock adjustment log (array of entries)
-let cachedEmployees = [];      // Array of employee objects { id, name, pin, is_admin }
-let employeeRefreshInterval = null; // Interval ID for background refresh
-let initialDataLoadPromise = null; // Store the initial data load promise
-let pendingStockChanges = new Map(); // productId -> newStock
-let serverStockHistory = [];
-let originalStockMap = new Map(); // for exit comparison
+
   // DOM elements
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -1342,167 +1337,76 @@ function renderStockHistory() {
 }
   // ==================== INVENTORY MODE TOGGLE ====================
   function toggleInventoryMode() {
-  if (inventoryMode) {
-    // Exiting inventory mode
-    if (pendingStockChanges.size > 0) {
-      // Ask to save
-      showConfirmModal('Unsaved Changes', 'You have unsaved stock changes. Do you want to save them before exiting?').then(async (save) => {
-        if (save) {
-          await saveInventoryChanges();
-        }
-        // After saving or if cancel, proceed to exit
-        completeExitInventoryMode();
-      });
-    } else {
-      completeExitInventoryMode();
-    }
-  } else {
-    // Entering inventory mode
-    // Save original stock values
-    originalStockMap.clear();
-    products.forEach(p => originalStockMap.set(p.id, p.stock));
-    pendingStockChanges.clear();
-    // Load stock history from server
-    loadStockHistoryFromServer().then(() => {
-      // Switch UI
+    inventoryMode = !inventoryMode;
+    if (inventoryMode) {
+      // Enter inventory mode: hide cart content, show stock history, change title
       cartNormalContent.style.display = 'none';
       stockHistoryContainerDiv.style.display = 'flex';
       cartPanelTitle.innerText = '📦 Inventory Mode';
       inventoryModeBtn.innerText = '🛍️ Exit Inventory';
-      inventoryMode = true;
+      if (updateStockTimeout) clearTimeout(updateStockTimeout);
       renderProductGrid();
-    });
-  }
-}
-
-function completeExitInventoryMode() {
-  // Reset UI
-  cartNormalContent.style.display = 'block';
-  stockHistoryContainerDiv.style.display = 'none';
-  cartPanelTitle.innerText = '🧾 Current Sale';
-  inventoryModeBtn.innerText = '📦 Inventory Mode';
-  inventoryMode = false;
-  pendingStockChanges.clear();
-  originalStockMap.clear();
-  // Reload products to ensure stock matches server (in case any changes were saved)
-  fetchProductsFromSheet(true).then(() => {
-    updateCartUI();
-    renderProductGrid();
-  });
-}
-
-async function saveInventoryChanges() {
-  if (pendingStockChanges.size === 0) return true;
-  showLoading('Saving inventory changes...');
-  try {
-    const updates = Array.from(pendingStockChanges.entries()).map(([productId, newStock]) => {
-      const product = products.find(p => p.id == productId);
-      const oldStock = product ? product.stock : 0;
-      return { productId, newStock, oldStock, delta: newStock - oldStock };
-    });
-    const formData = new URLSearchParams();
-    formData.append("action", "bulkUpdateStock");
-    formData.append("updates", JSON.stringify(updates));
-    formData.append("store", currentStore);
-    formData.append("employeeId", currentEmployee.id);
-    formData.append("employeeName", currentEmployee.name);
-    const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
-    const result = await response.json();
-    if (result.success) {
-      // After successful update, clear pending changes and reload products/history
-      pendingStockChanges.clear();
-      await fetchProductsFromSheet(true);
-      await loadStockHistoryFromServer();
-      // Update local product stock to match server (already done by fetch)
+    } else {
+      // Exit inventory mode: restore cart, clear history, hide stock panel
+      cartNormalContent.style.display = 'block';
+      stockHistoryContainerDiv.style.display = 'none';
+      cartPanelTitle.innerText = '🧾 Current Sale';
+      inventoryModeBtn.innerText = '📦 Inventory Mode';
+      clearStockHistory(); // Reset history on exit
+      updateCartUI(); // Restore cart display
       renderProductGrid();
-      return true;
-    } else {
-      throw new Error(result.error);
     }
-  } catch (err) {
-    console.error(err);
-    await showAlertModal('Error', 'Failed to save inventory changes: ' + err.message);
-    return false;
-  } finally {
-    hideLoading();
   }
-}
 
-async function loadStockHistoryFromServer() {
-  try {
-    const url = `${APPS_SCRIPT_URL}?action=getStockHistory&store=${currentStore}`;
-    const response = await fetch(url);
-    const result = await response.json();
-    if (result.success) {
-      serverStockHistory = result.history;
-      if (inventoryMode) {
-        renderStockHistory();
-      }
-    } else {
-      console.error('Failed to load stock history:', result.error);
-    }
-  } catch (err) {
-    console.error('Error loading stock history:', err);
-  }
-}
   // ==================== INITIAL DATA LOAD ====================
- async function loadInitialData() {
-  try {
-    const url = `${APPS_SCRIPT_URL}?action=getInitialData&store=${currentStore}`;
-    const response = await fetch(url);
-    const result = await response.json();
-    if (result.success) {
-      // Process products
-      products = result.products.map(p => ({
-        id: p.id,
-        name: p.name,
-        price: parseFloat(p.price),
-        stock: parseInt(p.stock) || 0,
-        category: p.category || "Uncategorized"
-      })).sort((a, b) => a.name.localeCompare(b.name));
+  async function loadInitialData() {
+    try {
+      const url = `${APPS_SCRIPT_URL}?action=getInitialData&store=${currentStore}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        products = result.products.map(p => ({
+          id: p.id,
+          name: p.name,
+          price: parseFloat(p.price),
+          stock: parseInt(p.stock) || 0,
+          category: p.category || "Uncategorized"
+        })).sort((a, b) => a.name.localeCompare(b.name));
 
-      const categories = [...new Set(products.map(p => p.category))].sort();
-      categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
-      categories.forEach(cat => {
-        const option = document.createElement('option');
-        option.value = cat;
-        option.textContent = cat;
-        categorySelect.appendChild(option);
-      });
-      renderProductGrid();
+        const categories = [...new Set(products.map(p => p.category))].sort();
+        categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
+        categories.forEach(cat => {
+          const option = document.createElement('option');
+          option.value = cat;
+          option.textContent = cat;
+          categorySelect.appendChild(option);
+        });
+        renderProductGrid();
 
-      // Cache employees (includes PIN and is_admin)
-      cachedEmployees = result.employees;
-      // Update the name map for receipt display
-      updateEmployeeNameMap();
-
-      // Populate soldBy select
-      populateSoldBySelect();
-
-      return true;
-    } else {
-      throw new Error('Failed to load initial data');
+        employeeNameMap = {};
+        const employees = result.employees;
+        soldBySelect.innerHTML = '';
+        employees.forEach(emp => {
+          employeeNameMap[emp.id] = emp.name;
+          const option = document.createElement('option');
+          option.value = emp.id;
+          option.textContent = `${emp.name} (ID: ${emp.id})`;
+          if (currentEmployee && emp.id == currentEmployee.id) option.selected = true;
+          soldBySelect.appendChild(option);
+        });
+        return true;
+      } else {
+        throw new Error('Failed to load initial data');
+      }
+    } catch (err) {
+      console.error(err);
+      await showAlertModal('Error', 'Failed to load initial data. Check URL & sheet.');
+      return false;
+    } finally {
+      hideLoading();
     }
-  } catch (err) {
-    console.error(err);
-    await showAlertModal('Error', 'Failed to load initial data. Check URL & sheet.');
-    return false;
-  } finally {
-    hideLoading();
   }
-}
-// Helper to populate the Sold By dropdown (called after employee data loaded)
-function populateSoldBySelect() {
-  if (!soldBySelect) return;
-  soldBySelect.innerHTML = '';
-  cachedEmployees.forEach(emp => {
-    const option = document.createElement('option');
-    option.value = emp.id;
-    option.textContent = `${emp.name} (ID: ${emp.id})`;
-    if (currentEmployee && emp.id == currentEmployee.id) option.selected = true;
-    soldBySelect.appendChild(option);
-  });
-}
+
   async function fetchProductsFromSheet(force = false) {
     showLoading('Fetching products...');
     try {
@@ -2918,36 +2822,25 @@ if (paperSizeSelect) {
   productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
 
   if (inventoryMode) {
-  document.querySelectorAll('.dec-stock').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const id = btn.dataset.id;
-      const product = products.find(p => p.id == id);
-      if (product && product.stock > 0) {
-        const newStock = product.stock - 1;
-        product.stock = newStock;
-        pendingStockChanges.set(id, newStock);
-        const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
-        if (displaySpan) displaySpan.innerText = newStock;
-        // No immediate server update
-      }
-      e.stopPropagation();
+    document.querySelectorAll('.dec-stock').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = btn.dataset.id;
+        const product = products.find(p => p.id == id);
+        if (product && product.stock > 0) {
+          const oldStock = product.stock;
+          const newStock = product.stock - 1;
+          product.stock = newStock;
+          const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
+          if (displaySpan) displaySpan.innerText = newStock;
+          scheduleStockUpdate(id, newStock);
+          logStockChange(product.id, product.name, product.category, oldStock, newStock, -1);
+          btn.dataset.current = newStock;
+          const incBtn = document.querySelector(`.inc-stock[data-id="${id}"]`);
+          if (incBtn) incBtn.dataset.current = newStock;
+        }
+        e.stopPropagation();
+      });
     });
-  });
-  document.querySelectorAll('.inc-stock').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const id = btn.dataset.id;
-      const product = products.find(p => p.id == id);
-      if (product) {
-        const newStock = product.stock + 1;
-        product.stock = newStock;
-        pendingStockChanges.set(id, newStock);
-        const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
-        if (displaySpan) displaySpan.innerText = newStock;
-      }
-      e.stopPropagation();
-    });
-  });
-}
     document.querySelectorAll('.inc-stock').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = btn.dataset.id;
@@ -2986,186 +2879,82 @@ if (paperSizeSelect) {
   }
 
   // ==================== EVENT LISTENERS ====================
-document.getElementById('confirmStoreBtn').addEventListener('click', () => {
-  initialStore = document.getElementById('initialStoreSelect').value;
-  currentStore = initialStore;
-  storeSelect.value = initialStore;
-  document.getElementById('storeSelectModal').style.display = 'none';
-
-  initialDataLoadPromise = loadInitialData(); // store the promise
-
-  document.getElementById('loginModal').style.display = 'flex';
-  document.getElementById('pinInput').focus();
-});
-
-// ==================== LOCAL PIN VERIFICATION ====================
-async function verifyEmployeeByPin(pin) {
-  // Wait for initial load if in progress
-  if (cachedEmployees.length === 0 && initialDataLoadPromise) {
-    console.warn('Waiting for initial data load...');
-    await initialDataLoadPromise;
-  }
-  // Fallback: fetch employees directly if still empty
-  if (cachedEmployees.length === 0) {
-    console.warn('Fetching employees directly...');
-    const response = await fetch(`${APPS_SCRIPT_URL}?action=getEmployeesFull`);
-    const result = await response.json();
-    if (result.success) {
-      cachedEmployees = result.employees;
-    } else {
-      return { success: false, error: 'Could not load employee data.' };
-    }
-  }
-
-  console.log('Checking PIN:', pin);
-  console.log('Cached employees:', cachedEmployees);
-
-  const employee = cachedEmployees.find(e => String(e.pin).trim() === String(pin).trim());
-  if (employee) {
-    return {
-      success: true,
-      employee: {
-        id: employee.id,
-        name: employee.name,
-        isAdmin: employee.is_admin
-      }
-    };
-  } else {
-    return { success: false, error: 'Invalid PIN' };
-  }
-}
-// ==================== POPULATE EMPLOYEE SELECTS IN ADMIN MODALS ====================
-function populateAdminEmployeeSelect() {
-  const select = document.getElementById('adminReportEmployeeSelect');
-  if (!select) return;
-  select.innerHTML = '<option value="all">All Employees</option>';
-  cachedEmployees.forEach(emp => {
-    const opt = document.createElement('option');
-    opt.value = emp.id;
-    opt.textContent = `${emp.name} (ID: ${emp.id})`;
-    select.appendChild(opt);
+  document.getElementById('confirmStoreBtn').addEventListener('click', () => {
+    initialStore = document.getElementById('initialStoreSelect').value;
+    currentStore = initialStore;
+    storeSelect.value = initialStore;
+    document.getElementById('storeSelectModal').style.display = 'none';
+    initialDataPromise = loadInitialData();
+    document.getElementById('loginModal').style.display = 'flex';
+    document.getElementById('pinInput').focus();
   });
-}
 
-function populateReceiptsEmployeeSelect() {
-  const select = document.getElementById('receiptsEmployeeSelect');
-  if (!select) return;
-  select.innerHTML = '<option value="all">All Employees</option>';
-  cachedEmployees.forEach(emp => {
-    const opt = document.createElement('option');
-    opt.value = emp.id;
-    opt.textContent = `${emp.name} (ID: ${emp.id})`;
-    select.appendChild(opt);
-  });
-}
-// ==================== BACKGROUND REFRESH OF EMPLOYEE DATA ====================
-function startEmployeeBackgroundRefresh() {
-  // Clear any existing interval to avoid duplicates
-  if (employeeRefreshInterval) clearInterval(employeeRefreshInterval);
-  
-  // Initial fetch (optional, but ensures data is fresh)
-  refreshEmployeesInBackground();
-  
-  // Refresh every 5 minutes
-  employeeRefreshInterval = setInterval(refreshEmployeesInBackground, 5 * 60 * 1000);
-}
+  async function verifyEmployeeByPin(pin) {
+    showLoading('Verifying...');
+    try {
+      const url = `${APPS_SCRIPT_URL}?action=verifyByPin&pin=${encodeURIComponent(pin)}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        currentEmployee = result.employee;
+        document.getElementById('employeeName').innerText = currentEmployee.name;
+        document.getElementById('loginModal').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
 
-async function refreshEmployeesInBackground() {
-  try {
-    const response = await fetch(`${APPS_SCRIPT_URL}?action=getEmployeesFull`);
-    const result = await response.json();
-    if (result.success) {
-      cachedEmployees = result.employees;
-      // Update the name map
-      updateEmployeeNameMap();
+        if (initialDataPromise) await initialDataPromise;
+        else await loadInitialData();
 
-      // Update any open selects that use employee data
-      populateSoldBySelect();
-      if (currentEmployee?.isAdmin) {
-        populateAdminEmployeeSelect();
-        populateReceiptsEmployeeSelect();
-      }
-    }
-  } catch (err) {
-    console.error('Background employee refresh failed', err);
-  }
-}
-function stopEmployeeBackgroundRefresh() {
-  if (employeeRefreshInterval) {
-    clearInterval(employeeRefreshInterval);
-    employeeRefreshInterval = null;
-  }
-}
-// When the user enters the 4th digit or presses Enter
-async function handlePinEntry() {
-  const pinInput = document.getElementById('pinInput');
-  const pin = pinInput.value.trim();
-  if (pin.length === 4) {
-    const result = await verifyEmployeeByPin(pin);
-    if (result.success) {
-      currentEmployee = result.employee;
-      document.getElementById('employeeName').innerText = currentEmployee.name;
-      document.getElementById('loginModal').style.display = 'none';
-      document.getElementById('mainContent').style.display = 'block';
-
-      const soldBySelect = document.getElementById('soldBySelect');
-      if (soldBySelect && currentEmployee) {
         soldBySelect.value = currentEmployee.id;
-      }
 
-      startEmployeeBackgroundRefresh();
+        if (!currentEmployee.isAdmin) {
+          storeSelect.disabled = true;
+          inventoryModeBtn.style.display = 'none';
+        } else {
+          storeSelect.disabled = false;
+          inventoryModeBtn.style.display = 'flex';
+        }
 
-      if (!currentEmployee.isAdmin) {
-        storeSelect.disabled = true;
-        inventoryModeBtn.style.display = 'none';
+        const reportStoreFilter = document.getElementById('reportStoreFilterGroup');
+        const employeeFilterGroup = document.getElementById('employeeFilterGroup');
+        const storeChartContainer = document.getElementById('storeChartContainer');
+        const employeeChartContainer = document.getElementById('employeeChartContainer');
+        const collectionBtn = document.getElementById('collectionBtn');
+        if (currentEmployee.isAdmin) {
+          reportStoreFilter.style.display = 'flex';
+          employeeFilterGroup.style.display = 'flex';
+          storeChartContainer.style.display = 'block';
+          employeeChartContainer.style.display = 'block';
+          collectionBtn.style.display = 'flex';
+        } else {
+          reportStoreFilter.style.display = 'none';
+          employeeFilterGroup.style.display = 'none';
+          storeChartContainer.style.display = 'none';
+          employeeChartContainer.style.display = 'none';
+          collectionBtn.style.display = 'none';
+        }
+
+        const settlementStoreSelect = document.getElementById('settlementStoreSelect');
+        if (!currentEmployee.isAdmin) {
+          settlementStoreSelect.value = initialStore;
+          settlementStoreSelect.disabled = true;
+        } else {
+          settlementStoreSelect.disabled = false;
+        }
+startReceiptPolling();
+        updateCartUI();
+        return true;
       } else {
-        storeSelect.disabled = false;
-        inventoryModeBtn.style.display = 'flex';
+        document.getElementById('loginError').innerText = result.error || 'Invalid PIN';
+        return false;
       }
-
-      if (currentEmployee.isAdmin) {
-        populateAdminEmployeeSelect();
-        populateReceiptsEmployeeSelect();
-      }
-
-      if (products.length === 0) {
-        await fetchProductsFromSheet();
-      }
-
-      updateCartUI();
-    } else {
-      document.getElementById('loginError').innerText = result.error;
-      pinInput.value = '';
+    } catch (err) {
+      console.error(err);
+      document.getElementById('loginError').innerText = 'Connection error';
+      return false;
+    } finally {
+      hideLoading();
     }
   }
-}
-
-// Attach event listeners for keypad and input field
-// ========== PIN EVENT LISTENERS ==========
-const pinInput = document.getElementById('pinInput');
-
-// Keypad buttons
-document.querySelectorAll('.keypad-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    if (btn.dataset.digit && pinInput.value.length < 4) {
-      pinInput.value += btn.dataset.digit;
-    } else if (btn.dataset.action === 'clear') {
-      pinInput.value = pinInput.value.slice(0, -1);
-    } else if (btn.dataset.action === 'enter') {
-      handlePinEntry();
-    }
-    document.getElementById('loginError').innerText = '';
-  });
-});
-
-// Direct input
-pinInput.addEventListener('input', () => {
-  if (pinInput.value.length === 4) {
-    handlePinEntry();
-  } else {
-    document.getElementById('loginError').innerText = '';
-  }
-});
 
   // Attach other event listeners (reports, receipts, etc.) - abbreviated for brevity but fully functional in final code
   const gridBtn = document.getElementById('gridViewBtn');
@@ -3184,7 +2973,20 @@ pinInput.addEventListener('input', () => {
     clearStockHistoryBtn.addEventListener('click', clearStockHistory);
   }
 
-  
+  const pinInput = document.getElementById('pinInput');
+  if (pinInput) {
+    document.querySelectorAll('.keypad-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.digit && pinInput.value.length < 4) pinInput.value += btn.dataset.digit;
+        else if (btn.dataset.action === 'clear') pinInput.value = pinInput.value.slice(0, -1);
+        else if (btn.dataset.action === 'enter' && pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value);
+        else if (btn.dataset.action === 'enter') document.getElementById('loginError').innerText = 'Please enter 4-digit PIN';
+      });
+    });
+    pinInput.addEventListener('input', () => {
+      if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value);
+    });
+  }
 
   // Additional listeners (reports, receipts, etc.) are included in the full version.
   // For completeness, we add them here (abbreviated).
