@@ -1325,7 +1325,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzomSSp8PKJjVBbqKRyuUs58mMNhoQPKWhlV2DpFfNTuzT3dn8qZzIUi7yBt2jcKW5l0A/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbweqv_YnQsDncP2h4TSwa4xjMiQXVvt2v7Frw04_L8eGalq9Iy8fIToU8XifqM2T41N/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1567,14 +1567,19 @@ function displayStockHistory(history) {
   for (const adj of history) {
     const date = adj.timestamp ? new Date(adj.timestamp).toLocaleString() : "Unknown date";
     const category = adj.category && adj.category !== "undefined" ? adj.category : "—";
-    // Convert movement to "ADDED +X" or "REMOVED -X"
-    let action = adj.movement;
-    if (action.startsWith('+')) {
-      action = `ADDED ${action}`;
-    } else if (action.startsWith('-')) {
-      action = `REMOVED ${action}`;
-    } else if (action !== "") {
-      action = `CHANGED ${action}`; // fallback
+    
+    // Extract numeric movement (e.g., from "+3", "-2", or "1")
+    let movementValue = 0;
+    if (adj.movement) {
+      const match = adj.movement.match(/([+-]?\d+)/);
+      if (match) movementValue = parseInt(match[1], 10);
+    }
+    
+    let action = "";
+    if (movementValue > 0) {
+      action = `ADDED +${movementValue}`;
+    } else if (movementValue < 0) {
+      action = `REMOVED ${movementValue}`;
     } else {
       action = "—";
     }
