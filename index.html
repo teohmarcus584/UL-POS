@@ -1325,7 +1325,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw_ft7hHIdrJ8Xnt5ngNTQCHqCSthS-ncIdUvlRMUyVkmj8mX7JyB4xuzP6yznvOxhTAQ/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxPrVqdu8a8W-XpXvZ4Dkj3BV2HqaU-mScwhNw5kfPV7Us0PTA30zBpLdIQDiFZbuV4/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1553,7 +1553,7 @@ async function refreshStockHistory() {
     hideLoading();
   }
 }
- function displayStockHistory(history) {
+function displayStockHistory(history) {
   const container = document.getElementById('stockHistoryList');
   if (!container) return;
   if (!history || history.length === 0) {
@@ -1567,21 +1567,24 @@ async function refreshStockHistory() {
     <tbody>`;
 
   for (const adj of history) {
-    const change = adj.newStock - adj.oldStock;
+    // Safely parse numbers
+    const oldStock = isNaN(adj.oldStock) ? 0 : adj.oldStock;
+    const newStock = isNaN(adj.newStock) ? 0 : adj.newStock;
+    const change = newStock - oldStock;
     const changeSign = change > 0 ? `+${change}` : `${change}`;
     const changeStyle = change > 0 ? 'color: #2c7a4b;' : 'color: #dc2626;';
-    const date = new Date(adj.timestamp).toLocaleString();
-    const category = adj.category || '—';
+    const date = adj.timestamp ? new Date(adj.timestamp).toLocaleString() : "Unknown date";
+    const category = adj.category && adj.category !== "undefined" ? adj.category : "—";
 
     html += `<tr>
-      <td>${date}</td>
-      <td>${escapeHtml(adj.productName)}</td>
+      <td>${escapeHtml(date)}</td>
+      <td>${escapeHtml(adj.productName || "Unknown")}</td>
       <td>${escapeHtml(category)}</td>
       <td style="${changeStyle}">${changeSign}</td>
-      <td>${adj.oldStock}</td>
-      <td>${adj.newStock}</td>
-      <td>${escapeHtml(adj.employeeName)}</td>
-    </tr>`;
+      <td>${oldStock}</td>
+      <td>${newStock}</td>
+      <td>${escapeHtml(adj.employeeName || "System")}</td>
+     </tr>`;
   }
 
   html += '</tbody></table>';
@@ -3528,7 +3531,28 @@ function renderProductGrid() {
       });
     }
   }
-
+function saveStockAdjustment(params) {
+  try {
+    ensureStockHistorySheet();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName("StockHistory");
+    const now = new Date();
+    sheet.appendRow([
+      now.toISOString(),
+      params.productId,
+      params.productName,
+      params.category || "—",        // fallback if missing
+      params.oldStock,
+      params.newStock,
+      params.store,
+      params.employeeId,
+      params.employeeName
+    ]);
+    return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
   function updateReceipts() {
     let store;
     if (currentEmployee?.isAdmin) {
