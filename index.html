@@ -2900,17 +2900,20 @@ if (paperSizeSelect) {
 
 // ==================== LOCAL PIN VERIFICATION ====================
 async function verifyEmployeeByPin(pin) {
-  // If we haven't loaded employees yet (e.g., first load), fall back to fetching them
+  // If employees are not yet cached, wait for the ongoing initial load
   if (cachedEmployees.length === 0) {
-    console.warn('Employees not cached, fetching initial data...');
-    await loadInitialData(); // loadInitialData now populates cachedEmployees
+    if (initialDataPromise) {
+      console.warn('Waiting for initial data to finish...');
+      await initialDataPromise;
+    } else {
+      console.warn('Employees not cached, fetching initial data...');
+      await loadInitialData();
+    }
   }
 
-  // Find the employee with the matching PIN
   const employee = cachedEmployees.find(e => String(e.pin) === String(pin));
 
   if (employee) {
-    // Success: return employee data (without exposing PIN)
     return {
       success: true,
       employee: {
@@ -2920,10 +2923,7 @@ async function verifyEmployeeByPin(pin) {
       }
     };
   } else {
-    return {
-      success: false,
-      error: 'Invalid PIN'
-    };
+    return { success: false, error: 'Invalid PIN' };
   }
 }
 // ==================== POPULATE EMPLOYEE SELECTS IN ADMIN MODALS ====================
