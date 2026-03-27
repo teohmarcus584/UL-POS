@@ -1758,29 +1758,29 @@ let preloadedStores = [];    // List of stores that have been preloaded
     const categoryDisplay = item.product.category
       ? `<div class="cart-item-category">${escapeHtml(item.product.category)}</div>`
       : '';
-    const freeClass = item.freeQuantity > 0 ? 'active' : '';
-    const buttonText = item.freeQuantity > 0 
-      ? `🎁 ${item.freeQuantity} Free` 
-      : '🎁 Activate Free Gift';
-    html += `
-      <div class="cart-item" data-index="${idx}">
-        <div class="cart-item-info">
-          <div class="cart-item-name">${escapeHtml(item.product.name)}</div>
-          ${categoryDisplay}
-          <div class="cart-item-price">RM ${item.product.price.toFixed(2)}</div>
-        </div>
-        <div class="cart-item-free">
-          <button class="free-toggle-btn ${freeClass}" data-index="${idx}">${buttonText}</button>
-        </div>
-        <div class="cart-item-qty">
-          <button class="qty-btn" data-index="${idx}" data-delta="-1">−</button>
-          <span>${item.quantity}</span>
-          <button class="qty-btn" data-index="${idx}" data-delta="1">+</button>
-        </div>
-        <div class="cart-item-total">RM ${itemTotal.toFixed(2)}</div>
-        <button class="remove-item" data-index="${idx}">✕</button>
-      </div>
-    `;
+   const freeClass = item.freeQuantity > 0 ? 'active' : '';
+const buttonText = item.freeQuantity > 0 
+  ? `🎁 ${item.freeQuantity} Free` 
+  : 'Activate Free Gift';
+html += `
+  <div class="cart-item" data-index="${idx}">
+    <div class="cart-item-info">
+      <div class="cart-item-name">${escapeHtml(item.product.name)}</div>
+      ${categoryDisplay}
+      <div class="cart-item-price">RM ${item.product.price.toFixed(2)}</div>
+    </div>
+    <div class="cart-item-free">
+      <button class="free-toggle-btn ${freeClass}" data-index="${idx}">${buttonText}</button>
+    </div>
+    <div class="cart-item-qty">
+      <button class="qty-btn" data-index="${idx}" data-delta="-1">−</button>
+      <span>${item.quantity}</span>
+      <button class="qty-btn" data-index="${idx}" data-delta="1">+</button>
+    </div>
+    <div class="cart-item-total">RM ${itemTotal.toFixed(2)}</div>
+    <button class="remove-item" data-index="${idx}">✕</button>
+  </div>
+`;
   });
   cartContainer.innerHTML = html;
 
