@@ -1561,15 +1561,21 @@ function displayStockHistory(history) {
 
   let html = `<table class="stock-history-table">
     <thead>
-      <tr><th>Time</th><th>Product</th><th>Category</th><th>Change</th><th>Old Stock</th><th>New Stock</th><th>Employee</th> </thead>
+      <tr>
+        <th>Time</th>
+        <th>Product</th>
+        <th>Category</th>
+        <th>Action</th>
+        <th>Employee</th>
+      </tr>
+    </thead>
     <tbody>`;
 
   for (const adj of history) {
     const oldStock = isNaN(adj.oldStock) ? 0 : adj.oldStock;
     const newStock = isNaN(adj.newStock) ? 0 : adj.newStock;
     const change = newStock - oldStock;
-    const changeSign = change > 0 ? `+${change}` : `${change}`;
-    const changeStyle = change > 0 ? 'color: #2c7a4b;' : 'color: #dc2626;';
+    const changeText = change > 0 ? `ADDED +${change}` : `REMOVED ${change}`;
     const date = adj.timestamp ? new Date(adj.timestamp).toLocaleString() : "Unknown date";
     const category = adj.category && adj.category !== "undefined" ? adj.category : "—";
 
@@ -1577,11 +1583,9 @@ function displayStockHistory(history) {
       <td>${escapeHtml(date)}</td>
       <td>${escapeHtml(adj.productName || "Unknown")}</td>
       <td>${escapeHtml(category)}</td>
-      <td style="${changeStyle}">${changeSign}</td>
-      <td>${oldStock}</td>
-      <td>${newStock}</td>
+      <td>${escapeHtml(changeText)}</td>
       <td>${escapeHtml(adj.employeeName || "System")}</td>
-     </tr>`;
+    </tr>`;
   }
 
   html += '</tbody></table>';
