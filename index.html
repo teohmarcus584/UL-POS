@@ -1023,7 +1023,7 @@
       font-size: 0.75rem;
       min-width: 100px;
     }
-    .free-toggle-btn {
+   .free-toggle-btn {
   background: #f1f5f9;
   border: none;
   border-radius: 30px;
@@ -1043,10 +1043,6 @@
   background: #10b981;
   color: white;
   box-shadow: 0 2px 4px rgba(16,185,129,0.2);
-}
-.free-toggle-btn.active::before {
-  content: "🎁 ";
-  font-size: 0.9rem;
 }
 .free-toggle-btn:active {
   transform: scale(0.95);
@@ -1761,7 +1757,7 @@ let preloadedStores = [];    // List of stores that have been preloaded
    const freeClass = item.freeQuantity > 0 ? 'active' : '';
 const buttonText = item.freeQuantity > 0 
   ? `🎁 ${item.freeQuantity} Free` 
-  : 'Activate Free Gift';
+  : '🎁Activate Free Gift';
 html += `
   <div class="cart-item" data-index="${idx}">
     <div class="cart-item-info">
