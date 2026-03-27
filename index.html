@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes, viewport-fit=cover">
   <title>POS System | PIN Login</title>
   <style>
-    /* ========== ALL EXISTING STYLES (kept intact) ========== */
+    /* ========== ALL EXISTING STYLES ========== */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -306,63 +306,70 @@
     #clearCartBtn, #refreshProductsBtn { /* handled by .cart-header-btn */ }
     button:active { transform: scale(0.97); }
 
-    /* Stock History Panel */
-    #stockHistoryContainer {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-    }
-    #stockHistoryList {
-      max-height: 55vh;
+    /* Stock History Table Styles */
+    .stock-history-container {
+      max-height: 65vh;
       overflow-y: auto;
       margin: 16px 0;
-      border-top: 1px solid #e2e8f0;
-      padding-top: 12px;
     }
-    .history-entry {
-      background: #f8fafc;
-      border-radius: 16px;
-      padding: 12px;
-      margin-bottom: 10px;
-      border-left: 4px solid #8b5cf6;
+    .stock-history-table {
+      width: 100%;
+      border-collapse: collapse;
       font-size: 0.85rem;
     }
-    .history-entry .product-name {
-      font-weight: 700;
-      margin-bottom: 4px;
-      font-size: 0.9rem;
+    .stock-history-table th,
+    .stock-history-table td {
+      padding: 10px 6px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
     }
-    .history-entry .stock-change {
-      display: flex;
-      gap: 16px;
-      margin: 6px 0;
-      flex-wrap: wrap;
+    .stock-history-table th {
+      background: #f1f5f9;
+      position: sticky;
+      top: 0;
+      font-weight: 600;
     }
-    .history-entry .delta {
-  font-size: 1.3rem;
-  font-weight: 800;
-  display: inline-block;
-  min-width: 3rem;
-  text-align: right;
-}
-    .history-entry .delta.negative {
-      color: #ef4444;
+    .stock-history-table tr:hover {
+      background: #f8fafc;
     }
-    .history-entry .timestamp {
-      font-size: 0.7rem;
-      color: #64748b;
+    .stock-history-table td:nth-child(3) {
+      text-align: center;
+    }
+    .stock-history-table td:nth-child(4) {
       text-align: right;
-      margin-top: 6px;
+      font-weight: 500;
     }
-    #clearStockHistoryBtn {
-      background: #ef4444;
-      color: white;
+    .stock-history-table td:nth-child(5) {
+      text-align: right;
+      font-weight: 500;
+      color: #2c7a4b;
+    }
+    .stock-history-empty {
+      text-align: center;
+      color: #94a3b8;
+      padding: 40px;
+      font-style: italic;
+    }
+    .stock-history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .stock-history-header h3 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+    .refresh-history-btn {
+      background: #f1f5f9;
       border: none;
-      width: fit-content;
-      align-self: flex-end;
+      border-radius: 40px;
+      padding: 6px 12px;
+      font-size: 0.75rem;
+      cursor: pointer;
     }
-    #clearStockHistoryBtn:hover {
-      background: #dc2626;
+    .refresh-history-btn:hover {
+      background: #e2e8f0;
     }
 
     .modal-overlay {
@@ -646,6 +653,8 @@
     .collection-table td:nth-child(4) {
       text-align: right;
     }
+
+    /* Discount rows styling */
     .summary-row.discount-row {
       background: #f9fafb;
       border-radius: 12px;
@@ -672,6 +681,8 @@
     .summary-row.discount-row span:last-child::before {
       content: "-";
     }
+
+    /* Special Promo Modal Enhancements */
     .promo-option-btn {
       width: 100%;
       margin-bottom: 12px;
@@ -881,6 +892,8 @@
       cursor: not-allowed;
       opacity: 0.7;
     }
+
+    /* Inventory mode controls */
     .inventory-controls {
       display: flex;
       align-items: center;
@@ -911,15 +924,6 @@
       min-width: 40px;
       text-align: center;
     }
-    .product-category {
-  font-size: 0.7rem;
-  color: #64748b;
-  margin: 4px 0;
-}
-.product-list .product-category {
-  font-size: 0.75rem;
-  min-width: 100px;
-}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -938,6 +942,7 @@
   </div>
 </div>
 
+<!-- PIN Login Modal (hidden initially) -->
 <div id="loginModal" class="modal-overlay" style="display: none;">
   <div class="modal-container" style="max-width: 400px;">
     <span class="close-modal" id="closeLoginModal">×</span>
@@ -980,10 +985,6 @@
       <button id="reportsButton">📊 Reports</button>
       <button id="receiptsButton">📜 Receipts</button>
       <button id="connectPrinterButton">🖨️ Connect Printer</button>
-      <select id="paperSizeSelect" style="background: #f1f5f9; border-radius: 40px; padding: 10px 16px; font-size: 0.9rem; border: none; cursor: pointer;">
-  <option value="58">58mm</option>
-  <option value="80">80mm</option>
-</select>
       <button id="inventoryModeBtn">📦 Inventory Mode</button>
       <div id="printerStatus">⚪ Not connected</div>
     </div>
@@ -1023,15 +1024,15 @@
     <div class="cart-panel">
       <div class="cart-header">
         <div class="cart-title" id="cartPanelTitle">🧾 Current Sale</div>
-        <div class="cart-header-buttons">
+        <div class="cart-header-buttons" id="cartHeaderButtons">
           <button id="clearCartBtn" class="cart-header-btn">🗑️ Clear</button>
           <button id="refreshProductsBtn" class="cart-header-btn">🔄 Refresh</button>
         </div>
       </div>
-      <!-- Normal cart content (visible by default) -->
-      <div id="cartNormalContent">
+      <!-- Normal Cart Sections -->
+      <div id="normalCartSections">
         <div id="cartItemsContainer" class="cart-items">Cart is empty</div>
-        <div class="cart-summary" id="cartSummary">
+        <div class="cart-summary">
           <div class="summary-row"><span>Subtotal</span><span id="subtotal">RM 0.00</span></div>
           <div id="discountRow" class="summary-row discount-row" style="display: none;">
             <span><i>🎲</i> Lucky Draw</span>
@@ -1057,29 +1058,230 @@
           <button id="specialPromoBtn">🎁 Special Promo</button>
         </div>
       </div>
-      <!-- Stock History Panel (hidden by default) -->
+      <!-- Stock History Container (initially hidden) -->
       <div id="stockHistoryContainer" style="display: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div class="cart-title">📋 Stock Adjustment History</div>
-          <button id="clearStockHistoryBtn" class="cart-header-btn">🗑️ Clear History</button>
+        <div class="stock-history-header">
+          <h3>📦 Stock Addition History</h3>
+          <button id="refreshStockHistoryBtn" class="refresh-history-btn">🔄 Refresh</button>
         </div>
-        <div id="stockHistoryList" style="max-height: 55vh; overflow-y: auto; margin-top: 16px;">
-          <div style="text-align: center; color: #94a3b8; padding: 20px;">No adjustments yet.</div>
+        <div id="stockHistoryList" class="stock-history-container">
+          <div class="stock-history-empty">Loading stock history...</div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- All modals (unchanged for brevity, but fully functional) -->
-<div id="paymentModal" class="modal-overlay"><div class="modal-container" style="max-width: 400px;"><span class="close-modal" id="closePaymentModal">×</span><div class="modal-title">💳 Select Payment Method</div><div class="payment-buttons"><button class="payment-btn" data-method="Cash">💵 Cash</button><button class="payment-btn" data-method="Card">💳 Card</button><button class="payment-btn" data-method="QR Pay">📱 QR Pay</button></div><div id="cashOptions" style="display: none;"><div class="suggestions" id="suggestionsContainer"></div><input type="number" id="customCashInput" class="custom-cash-input" placeholder="Enter amount received (RM)" step="0.01"><div class="modal-buttons"><button id="confirmCashBtn" class="modal-btn modal-btn-primary">Confirm</button><button id="cancelPaymentBtn" class="modal-btn modal-btn-secondary">Cancel</button></div></div><div id="otherPaymentOptions" style="display: none;"><div class="modal-buttons"><button id="confirmOtherBtn" class="modal-btn modal-btn-primary">Confirm</button><button id="cancelOtherBtn" class="modal-btn modal-btn-secondary">Cancel</button></div></div></div></div>
-<div id="luckyDrawModal" class="modal-overlay"><div class="modal-container" style="max-width: 400px;"><span class="close-modal" id="closeLuckyDrawModal">×</span><div class="modal-title">🎲 Lucky Draw</div><p>Transaction ID: <strong id="luckyTxId"></strong></p><p>Click below to enter the Lucky Draw with this receipt number.</p><div class="modal-buttons"><button id="openLuckyDrawBtn" class="modal-btn modal-btn-primary">🎁 Go to Lucky Draw</button><button id="closeLuckyDrawBtn" class="modal-btn modal-btn-secondary">Close</button></div></div></div>
-<div id="claimPrizeModal" class="modal-overlay"><div class="modal-container" style="max-width: 400px;"><span class="close-modal" id="closeClaimPrizeModal">×</span><div class="modal-title">🎁 Claim Prize</div><div id="claimStep1"><p>Enter the receipt number from your Lucky Draw:</p><input type="text" id="claimReceiptInput" class="modal-input" placeholder="e.g., TXN-1234567890-123" style="width: 100%; margin: 12px 0; padding: 12px;"><div class="modal-buttons"><button id="checkReceiptBtn" class="modal-btn modal-btn-primary">Check</button><button id="cancelClaimBtn" class="modal-btn modal-btn-secondary">Cancel</button></div></div><div id="claimStep2" style="display: none;"><p>Receipt: <strong id="validReceiptId"></strong></p><p>Select your prize:</p><select id="prizeSelect" class="modal-input" style="width: 100%; margin: 12px 0; padding: 12px;"><option value="38">CAR AROMATIC - RM 38</option><option value="75">15ML TRAVEL PERFUME - RM 75</option><option value="109">300ML LOTION - RM 109</option><option value="75">100ML PILLOW MIST - RM 75</option></select><div class="modal-buttons"><button id="applyPrizeBtn" class="modal-btn modal-btn-primary">Apply Discount</button><button id="cancelClaimStep2Btn" class="modal-btn modal-btn-secondary">Cancel</button></div></div><div id="claimError" style="color:#ef4444; margin-top: 12px; display: none;"></div></div></div>
-<div id="specialPromoModal" class="modal-overlay"><div class="modal-container" style="max-width: 400px;"><span class="close-modal" id="closeSpecialPromoModal">×</span><div class="modal-title">🎁 Special Promo</div><div id="promoOptions"><button id="promoBuy2Free1Perfume" class="modal-btn modal-btn-primary promo-option-btn">🎯 Buy 2 Free 1 (100ml Perfume EDP)</button><button id="promoBuy3Free1ExcludePerfume" class="modal-btn modal-btn-primary promo-option-btn">🎯 Buy 3 Free 1 (Excluding Perfume)</button><div class="custom-discount-section"><label>Custom Discount (RM)</label><div class="currency-input"><span class="currency-symbol">RM</span><input type="number" id="customPromoValue" class="modal-input currency-field" placeholder="0.00" step="0.01" min="0"></div><button id="applyCustomPromoBtn" class="modal-btn modal-btn-primary apply-btn">💰 Apply Custom Discount</button></div></div><div id="promoMessage" style="color:#ef4444; margin-top:12px; display:none;"></div><div class="modal-buttons"><button id="closeSpecialPromoModalBtn" class="modal-btn modal-btn-secondary">Close</button></div></div></div>
-<div id="adminReportModal" class="modal-overlay"><div class="modal-container"><span class="close-modal" id="closeAdminReportModal">×</span><div class="modal-title">📊 Sales Report</div><div class="report-filters"><div class="filter-group" id="reportStoreFilterGroup" style="display: none;"><label>Store</label><select id="adminReportStoreSelect"><option value="all">All Stores</option><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div><div class="filter-group" id="employeeFilterGroup" style="display: none;"><label>Employee</label><select id="adminReportEmployeeSelect"><option value="all">All Employees</option></select></div><div class="filter-group"><label>Date Range</label><select id="adminReportDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div><div id="adminReportCustomDateRange" style="display: none;" class="date-range"><input type="date" id="adminReportFromDate"><input type="date" id="adminReportToDate"></div></div><div class="report-stats"><div class="stat-item">Total Sales: <span id="adminReportTotalSales" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">💵 Cash: <span id="adminReportCashTotal" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">💳 Card: <span id="adminReportCardTotal" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">📱 Other: <span id="adminReportOtherTotal" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">💰 Refunds: <span id="adminReportRefundTotal" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">📄 Refunded Bills: <span id="adminReportRefundedBills" class="stat-value">0</span></div><div class="stat-item">Transactions: <span id="adminReportTransactionCount" class="stat-value">0</span></div><div class="stat-item">Items Sold: <span id="adminReportTotalItems" class="stat-value">0</span></div></div><div class="chart-container" id="storeChartContainer" style="display: none;"><canvas id="storeChart" width="400" height="200"></canvas></div><div class="chart-container"><canvas id="dayChart" width="400" height="200"></canvas></div><div class="chart-container" id="employeeChartContainer" style="display: none;"><canvas id="employeeChart" width="400" height="200"></canvas></div><div class="modal-section"><button id="toggleProductDetailsBtn" class="modal-btn modal-btn-secondary" style="margin-bottom: 12px;">📦 Show Product Details</button><div id="productDetailsContainer" style="display: none;"><h3 style="margin: 0 0 12px 0;">Product Sales Breakdown</h3><div id="productDetailsTable" style="max-height: 300px; overflow-y: auto;"><table class="product-details-table"><thead>...</thead><tbody id="productDetailsBody"></tbody>  </table></div></div></div><div class="modal-buttons"><button id="closeAdminReportBtn" class="modal-btn modal-btn-secondary">Close</button></div></div></div>
-<div id="settlementModal" class="modal-overlay"><div class="modal-container" style="max-width: 500px;"><span class="close-modal" id="closeSettlementModal">×</span><div class="modal-title">💰 Daily Settlement</div><div class="filter-group"><label>Store Location</label><select id="settlementStoreSelect"><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div><div class="filter-group"><label>Petty Cash Float (Starting Cash)</label><input type="number" id="pettyCashFloat" class="modal-input" placeholder="Enter starting cash float" step="0.01" value="0.00"></div><div class="settlement-stats" id="systemTotalsDisplay"><p>📊 System totals for today (all employees):</p><p>💵 Cash: <strong id="sysCash">RM 0.00</strong></p><p>💳 Card: <strong id="sysCard">RM 0.00</strong></p><p>📱 QR Pay: <strong id="sysQR">RM 0.00</strong></p><p>💰 Refunds: <strong id="sysRefund">RM 0.00</strong></p></div><div class="filter-group"><label>Cash Count (Actual)</label><input type="number" id="actualCash" class="modal-input" placeholder="Enter actual cash count" step="0.01"></div><div class="filter-group"><label>Card Settlement (Actual)</label><input type="number" id="actualCard" class="modal-input" placeholder="Enter actual card settlement" step="0.01"></div><div class="filter-group"><label>QR Settlement (Actual)</label><input type="number" id="actualQR" class="modal-input" placeholder="Enter actual QR settlement" step="0.01"></div><div id="settlementError" style="color:#ef4444; margin: 12px 0; display: none;"></div><div class="modal-buttons"><button id="checkSettlementBtn" class="modal-btn modal-btn-primary">Check</button><button id="recordSettlementBtn" class="modal-btn modal-btn-primary" style="display: none;">Record Settlement</button><button id="closeSettlementModalBtn" class="modal-btn modal-btn-secondary">Cancel</button></div></div></div>
-<div id="collectionModal" class="modal-overlay"><div class="modal-container" style="max-width: 800px;"><span class="close-modal" id="closeCollectionModal">×</span><div class="modal-title">💵 Cash Collection</div><div class="filter-group"><label>Store</label><select id="collectionStoreSelect"><option value="all">All Stores</option><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div><div id="collectionTotal" class="settlement-stats" style="margin-top: 12px;"><p>💰 Total Outstanding Cash: <strong id="totalOutstandingCash">RM 0.00</strong></p></div><div style="overflow-x: auto;"><table class="collection-table" id="collectionTable"><thead> <tr><th><input type="checkbox" id="selectAllCheckbox"></th><th>Date</th><th>Employee</th><th>Amount</th></tr> </thead><tbody id="collectionTableBody"></tbody> </table></div><div class="modal-buttons" style="margin-top: 16px;"><button id="collectSelectedBtn" class="modal-btn modal-btn-primary" disabled>Collect Selected</button><button id="closeCollectionModalBtn" class="modal-btn modal-btn-secondary">Close</button></div></div></div>
-<div id="receiptsModal" class="modal-overlay"><div class="modal-container"><span class="close-modal" id="closeReceiptsModal">×</span><div class="modal-title">📜 Receipt History</div><div class="receipts-filters"><div class="filter-group" id="receiptsStoreFilterGroup"><label>Store</label><select id="receiptsStoreSelect"><option value="all">All Stores</option></select></div><div id="receiptsEmployeeFilter" class="filter-group" style="display: none;"><label>Employee</label><select id="receiptsEmployeeSelect"><option value="all">All Employees</option></select></div><div class="filter-group"><label>Date Range</label><select id="receiptsDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div><div id="receiptsCustomDateRange" style="display: none;" class="date-range"><input type="date" id="receiptsFromDate"><input type="date" id="receiptsToDate"></div><div class="filter-group" style="flex: 2;"><label>Search (Receipt # or Product)</label><input type="text" id="receiptsSearch" placeholder="Type to filter..."></div></div><div id="receiptsList" class="receipts-list">Loading receipts...</div><div class="modal-buttons"><button id="closeReceiptsBtn" class="modal-btn modal-btn-secondary">Close</button></div></div></div>
+<!-- Payment Modal -->
+<div id="paymentModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 400px;">
+    <span class="close-modal" id="closePaymentModal">×</span>
+    <div class="modal-title">💳 Select Payment Method</div>
+    <div class="payment-buttons">
+      <button class="payment-btn" data-method="Cash">💵 Cash</button>
+      <button class="payment-btn" data-method="Card">💳 Card</button>
+      <button class="payment-btn" data-method="QR Pay">📱 QR Pay</button>
+    </div>
+    <div id="cashOptions" style="display: none;">
+      <div class="suggestions" id="suggestionsContainer"></div>
+      <input type="number" id="customCashInput" class="custom-cash-input" placeholder="Enter amount received (RM)" step="0.01">
+      <div class="modal-buttons">
+        <button id="confirmCashBtn" class="modal-btn modal-btn-primary">Confirm</button>
+        <button id="cancelPaymentBtn" class="modal-btn modal-btn-secondary">Cancel</button>
+      </div>
+    </div>
+    <div id="otherPaymentOptions" style="display: none;">
+      <div class="modal-buttons">
+        <button id="confirmOtherBtn" class="modal-btn modal-btn-primary">Confirm</button>
+        <button id="cancelOtherBtn" class="modal-btn modal-btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Lucky Draw Modal (after sale) -->
+<div id="luckyDrawModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 400px;">
+    <span class="close-modal" id="closeLuckyDrawModal">×</span>
+    <div class="modal-title">🎲 Lucky Draw</div>
+    <p>Transaction ID: <strong id="luckyTxId"></strong></p>
+    <p>Click below to enter the Lucky Draw with this receipt number.</p>
+    <div class="modal-buttons">
+      <button id="openLuckyDrawBtn" class="modal-btn modal-btn-primary">🎁 Go to Lucky Draw</button>
+      <button id="closeLuckyDrawBtn" class="modal-btn modal-btn-secondary">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Claim Prize Modal -->
+<div id="claimPrizeModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 400px;">
+    <span class="close-modal" id="closeClaimPrizeModal">×</span>
+    <div class="modal-title">🎁 Claim Prize</div>
+    <div id="claimStep1">
+      <p>Enter the receipt number from your Lucky Draw:</p>
+      <input type="text" id="claimReceiptInput" class="modal-input" placeholder="e.g., TXN-1234567890-123" style="width: 100%; margin: 12px 0; padding: 12px;">
+      <div class="modal-buttons">
+        <button id="checkReceiptBtn" class="modal-btn modal-btn-primary">Check</button>
+        <button id="cancelClaimBtn" class="modal-btn modal-btn-secondary">Cancel</button>
+      </div>
+    </div>
+    <div id="claimStep2" style="display: none;">
+      <p>Receipt: <strong id="validReceiptId"></strong></p>
+      <p>Select your prize:</p>
+      <select id="prizeSelect" class="modal-input" style="width: 100%; margin: 12px 0; padding: 12px;">
+        <option value="38">CAR AROMATIC - RM 38</option>
+        <option value="75">15ML TRAVEL PERFUME - RM 75</option>
+        <option value="109">300ML LOTION - RM 109</option>
+        <option value="75">100ML PILLOW MIST - RM 75</option>
+      </select>
+      <div class="modal-buttons">
+        <button id="applyPrizeBtn" class="modal-btn modal-btn-primary">Apply Discount</button>
+        <button id="cancelClaimStep2Btn" class="modal-btn modal-btn-secondary">Cancel</button>
+      </div>
+    </div>
+    <div id="claimError" style="color:#ef4444; margin-top: 12px; display: none;"></div>
+  </div>
+</div>
+
+<!-- Special Promo Modal (Enhanced) -->
+<div id="specialPromoModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 400px;">
+    <span class="close-modal" id="closeSpecialPromoModal">×</span>
+    <div class="modal-title">🎁 Special Promo</div>
+    <div id="promoOptions">
+      <button id="promoBuy2Free1Perfume" class="modal-btn modal-btn-primary promo-option-btn">
+        🎯 Buy 2 Free 1 (100ml Perfume EDP)
+      </button>
+      <button id="promoBuy3Free1ExcludePerfume" class="modal-btn modal-btn-primary promo-option-btn">
+        🎯 Buy 3 Free 1 (Excluding Perfume)
+      </button>
+      <div class="custom-discount-section">
+        <label>Custom Discount (RM)</label>
+        <div class="currency-input">
+          <span class="currency-symbol">RM</span>
+          <input type="number" id="customPromoValue" class="modal-input currency-field" placeholder="0.00" step="0.01" min="0">
+        </div>
+        <button id="applyCustomPromoBtn" class="modal-btn modal-btn-primary apply-btn">
+          💰 Apply Custom Discount
+        </button>
+      </div>
+    </div>
+    <div id="promoMessage" style="color:#ef4444; margin-top:12px; display:none;"></div>
+    <div class="modal-buttons">
+      <button id="closeSpecialPromoModalBtn" class="modal-btn modal-btn-secondary">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Unified Report Modal -->
+<div id="adminReportModal" class="modal-overlay">
+  <div class="modal-container">
+    <span class="close-modal" id="closeAdminReportModal">×</span>
+    <div class="modal-title">📊 Sales Report</div>
+    <div class="report-filters">
+      <div class="filter-group" id="reportStoreFilterGroup" style="display: none;">
+        <label>Store</label>
+        <select id="adminReportStoreSelect">
+          <option value="all">All Stores</option>
+          <option value="queens">Queens</option>
+          <option value="sunshine">Sunshine</option>
+          <option value="gurney_paragon">Gurney Paragon</option>
+        </select>
+      </div>
+      <div class="filter-group" id="employeeFilterGroup" style="display: none;">
+        <label>Employee</label>
+        <select id="adminReportEmployeeSelect"><option value="all">All Employees</option></select>
+      </div>
+      <div class="filter-group"><label>Date Range</label><select id="adminReportDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div>
+      <div id="adminReportCustomDateRange" style="display: none;" class="date-range"><input type="date" id="adminReportFromDate"><input type="date" id="adminReportToDate"></div>
+    </div>
+    <div class="report-stats">
+      <div class="stat-item">Total Sales: <span id="adminReportTotalSales" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item breakdown">💵 Cash: <span id="adminReportCashTotal" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item breakdown">💳 Card: <span id="adminReportCardTotal" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item breakdown">📱 Other: <span id="adminReportOtherTotal" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item breakdown">💰 Refunds: <span id="adminReportRefundTotal" class="stat-value">RM 0.00</span></div>
+      <div class="stat-item breakdown">📄 Refunded Bills: <span id="adminReportRefundedBills" class="stat-value">0</span></div>
+      <div class="stat-item">Transactions: <span id="adminReportTransactionCount" class="stat-value">0</span></div>
+      <div class="stat-item">Items Sold: <span id="adminReportTotalItems" class="stat-value">0</span></div>
+    </div>
+    <div class="chart-container" id="storeChartContainer" style="display: none;">
+      <canvas id="storeChart" width="400" height="200"></canvas>
+    </div>
+    <div class="chart-container"><canvas id="dayChart" width="400" height="200"></canvas></div>
+    <div class="chart-container" id="employeeChartContainer" style="display: none;">
+      <canvas id="employeeChart" width="400" height="200"></canvas>
+    </div>
+    <div class="modal-section">
+      <button id="toggleProductDetailsBtn" class="modal-btn modal-btn-secondary" style="margin-bottom: 12px;">📦 Show Product Details</button>
+      <div id="productDetailsContainer" style="display: none;">
+        <h3 style="margin: 0 0 12px 0;">Product Sales Breakdown</h3>
+        <div id="productDetailsTable" style="max-height: 300px; overflow-y: auto;">
+          <table class="product-details-table">
+            <thead>   </thead>
+            <tbody id="productDetailsBody">   </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="modal-buttons"><button id="closeAdminReportBtn" class="modal-btn modal-btn-secondary">Close</button></div>
+  </div>
+</div>
+
+<!-- Settlement Modal -->
+<div id="settlementModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 500px;">
+    <span class="close-modal" id="closeSettlementModal">×</span>
+    <div class="modal-title">💰 Daily Settlement</div>
+    <div class="filter-group"><label>Store Location</label><select id="settlementStoreSelect"><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div>
+    <div class="filter-group"><label>Petty Cash Float (Starting Cash)</label><input type="number" id="pettyCashFloat" class="modal-input" placeholder="Enter starting cash float" step="0.01" value="0.00"></div>
+    <div class="settlement-stats" id="systemTotalsDisplay"><p>📊 System totals for today (all employees):</p><p>💵 Cash: <strong id="sysCash">RM 0.00</strong></p><p>💳 Card: <strong id="sysCard">RM 0.00</strong></p><p>📱 QR Pay: <strong id="sysQR">RM 0.00</strong></p><p>💰 Refunds: <strong id="sysRefund">RM 0.00</strong></p></div>
+    <div class="filter-group"><label>Cash Count (Actual)</label><input type="number" id="actualCash" class="modal-input" placeholder="Enter actual cash count" step="0.01"></div>
+    <div class="filter-group"><label>Card Settlement (Actual)</label><input type="number" id="actualCard" class="modal-input" placeholder="Enter actual card settlement" step="0.01"></div>
+    <div class="filter-group"><label>QR Settlement (Actual)</label><input type="number" id="actualQR" class="modal-input" placeholder="Enter actual QR settlement" step="0.01"></div>
+    <div id="settlementError" style="color:#ef4444; margin: 12px 0; display: none;"></div>
+    <div class="modal-buttons"><button id="checkSettlementBtn" class="modal-btn modal-btn-primary">Check</button><button id="recordSettlementBtn" class="modal-btn modal-btn-primary" style="display: none;">Record Settlement</button><button id="closeSettlementModalBtn" class="modal-btn modal-btn-secondary">Cancel</button></div>
+  </div>
+</div>
+
+<!-- Cash Collection Modal -->
+<div id="collectionModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 800px;">
+    <span class="close-modal" id="closeCollectionModal">×</span>
+    <div class="modal-title">💵 Cash Collection</div>
+    <div class="filter-group"><label>Store</label><select id="collectionStoreSelect"><option value="all">All Stores</option><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div>
+    <div id="collectionTotal" class="settlement-stats" style="margin-top: 12px;"><p>💰 Total Outstanding Cash: <strong id="totalOutstandingCash">RM 0.00</strong></p></div>
+    <div style="overflow-x: auto;">
+      <table class="collection-table" id="collectionTable">
+        <thead>
+          <tr><th><input type="checkbox" id="selectAllCheckbox"></th><th>Date</th><th>Employee</th><th>Amount</th></tr>
+        </thead>
+        <tbody id="collectionTableBody"></tbody>
+      </table>
+    </div>
+    <div class="modal-buttons" style="margin-top: 16px;"><button id="collectSelectedBtn" class="modal-btn modal-btn-primary" disabled>Collect Selected</button><button id="closeCollectionModalBtn" class="modal-btn modal-btn-secondary">Close</button></div>
+  </div>
+</div>
+
+<!-- Receipts Modal -->
+<div id="receiptsModal" class="modal-overlay">
+  <div class="modal-container">
+    <span class="close-modal" id="closeReceiptsModal">×</span>
+    <div class="modal-title">📜 Receipt History</div>
+    <div class="receipts-filters">
+      <div class="filter-group" id="receiptsStoreFilterGroup"><label>Store</label><select id="receiptsStoreSelect"><option value="all">All Stores</option></select></div>
+      <div id="receiptsEmployeeFilter" class="filter-group" style="display: none;"><label>Employee</label><select id="receiptsEmployeeSelect"><option value="all">All Employees</option></select></div>
+      <div class="filter-group"><label>Date Range</label><select id="receiptsDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div>
+      <div id="receiptsCustomDateRange" style="display: none;" class="date-range"><input type="date" id="receiptsFromDate"><input type="date" id="receiptsToDate"></div>
+      <div class="filter-group" style="flex: 2;"><label>Search (Receipt # or Product)</label><input type="text" id="receiptsSearch" placeholder="Type to filter..."></div>
+    </div>
+    <div id="receiptsList" class="receipts-list">Loading receipts...</div>
+    <div class="modal-buttons"><button id="closeReceiptsBtn" class="modal-btn modal-btn-secondary">Close</button></div>
+  </div>
+</div>
+
+<!-- Generic modals -->
 <div id="alertModal" class="modal-overlay"><div class="modal-container"><span class="close-modal" id="closeAlertModal">×</span><div class="modal-title" id="alertModalTitle"></div><div class="modal-message" id="alertModalMessage"></div><div class="modal-buttons"><button class="modal-btn modal-btn-primary" id="alertModalOk">OK</button></div></div></div>
 <div id="inputModal" class="modal-overlay"><div class="modal-container"><span class="close-modal" id="closeInputModal">×</span><div class="modal-title" id="inputModalTitle"></div><input type="text" id="inputModalField" class="modal-input" placeholder=""><div class="modal-buttons"><button class="modal-btn modal-btn-secondary" id="inputModalCancel">Cancel</button><button class="modal-btn modal-btn-primary" id="inputModalOk">OK</button></div></div></div>
 <div id="selectModal" class="modal-overlay"><div class="modal-container"><span class="close-modal" id="closeSelectModal">×</span><div class="modal-title" id="selectModalTitle"></div><select id="selectModalField" class="modal-select"></select><div class="modal-buttons"><button class="modal-btn modal-btn-secondary" id="selectModalCancel">Cancel</button><button class="modal-btn modal-btn-primary" id="selectModalOk">OK</button></div></div></div>
@@ -1087,7 +1289,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHVORJFdF2rJLyUhKlVUPJiaXstl0KTHssIaDQT-kZdowLMYKAVLAodxbmxtGW7j1gEw/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz4e-I8Y9LZ1HIw8OdDSMDZgu4CMzxKh4fbUBErRIrmewOIAlODzbhqeXN04m8oBqp3lQ/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1102,17 +1304,18 @@
   let pendingTransaction = null;
   let searchTimeout = null;
   let initialDataPromise = null;
-  let discountAmount = 0;
-  let buy2Free1Discount = 0;
-  let buy3Free1Discount = 0;
-  let customDiscount = 0;
+  let discountAmount = 0;          // Lucky Draw discount
+  let buy2Free1Discount = 0;      // discount from Buy 2 Free 1 (Perfume)
+  let buy3Free1Discount = 0;      // discount from Buy 3 Free 1 (Excluding Perfume)
+  let customDiscount = 0;          // manually entered custom discount
   let claimedReceiptInfo = null;
-  let pendingPrize = null;
-  let pendingClaimReceipt = null; // added for claim flow
-let loadingTimeout = null;
+  let pendingPrize = null;          // { receipt, value, name }
+// Stock adjustment aggregation (inventory mode)
+let pendingStockChanges = {};      // productId -> net change (e.g., +3, -2)
+let productOriginalStock = {};     // productId -> stock at first change
+let stockUpdateTimeout = null;      // debounce timer
   let inventoryMode = false;
-  let updateStockTimeout = null;
-  let stockHistory = []; // Stock adjustment log (array of entries)
+  
 
   // DOM elements
   const productGridEl = document.getElementById('productGrid');
@@ -1132,33 +1335,12 @@ let loadingTimeout = null;
   const storeSelect = document.getElementById('storeSelect');
   const soldBySelect = document.getElementById('soldBySelect');
   const inventoryModeBtn = document.getElementById('inventoryModeBtn');
-  const cartNormalContent = document.getElementById('cartNormalContent');
-  const stockHistoryContainerDiv = document.getElementById('stockHistoryContainer');
-  const cartPanelTitle = document.getElementById('cartPanelTitle');
+  const cartPanel = document.querySelector('.cart-panel');
+  const normalCartSections = document.getElementById('normalCartSections');
+  const stockHistoryContainer = document.getElementById('stockHistoryContainer');
+  const refreshStockHistoryBtn = document.getElementById('refreshStockHistoryBtn');
 
   // ==================== HELPER FUNCTIONS ====================
- function showLoading(msg = 'Loading...') {
-  // Clear any existing timeout to avoid multiple timers
-  if (loadingTimeout) clearTimeout(loadingTimeout);
-  const msgEl = document.getElementById('loadingMessage');
-  const overlay = document.getElementById('loadingOverlay');
-  if (msgEl) msgEl.innerText = msg;
-  if (overlay) overlay.style.display = 'flex';
-  // Auto‑hide after 30 seconds (30000 ms)
-  loadingTimeout = setTimeout(() => {
-    hideLoading();
-  }, 30000);
-}
-
-function hideLoading() {
-  if (loadingTimeout) {
-    clearTimeout(loadingTimeout);
-    loadingTimeout = null;
-  }
-  const overlay = document.getElementById('loadingOverlay');
-  if (overlay) overlay.style.display = 'none';
-}
-
   function showAlertModal(title, message) {
     return new Promise((resolve) => {
       const overlay = document.getElementById('alertModal');
@@ -1259,6 +1441,15 @@ function hideLoading() {
     });
   }
 
+  function showLoading(msg = 'Loading...') {
+    document.getElementById('loadingMessage').innerText = msg;
+    document.getElementById('loadingOverlay').style.display = 'flex';
+  }
+
+  function hideLoading() {
+    document.getElementById('loadingOverlay').style.display = 'none';
+  }
+
   function getLocalDateString(date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -1274,89 +1465,116 @@ function hideLoading() {
     return employeeNameMap[employeeId] || employeeId;
   }
 
-  // ==================== STOCK HISTORY (Grouped by product) ====================
-// ========== STOCK HISTORY FUNCTIONS ==========
-function logStockChange(productId, productName, category, oldStock, newStock, delta) {
-  const now = Date.now();
-  const formattedTime = new Date().toLocaleString();
-  let existingIndex = -1;
-  for (let i = 0; i < stockHistory.length; i++) {
-    if (stockHistory[i].productId === productId) {
-      existingIndex = i;
-      break;
+  // ==================== STOCK HISTORY FUNCTIONS ====================
+  async function fetchStockHistory(store) {
+    try {
+      const url = `${APPS_SCRIPT_URL}?action=getStockHistory&store=${encodeURIComponent(store)}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        return result.history || [];
+      } else {
+        console.error('Failed to fetch stock history:', result.error);
+        return [];
+      }
+    } catch (err) {
+      console.error('Error fetching stock history:', err);
+      return [];
     }
   }
-  if (existingIndex !== -1) {
-    const entry = stockHistory[existingIndex];
-    entry.newStock = newStock;
-    entry.delta += delta;
-    entry.timestamp = formattedTime;
-    entry.timestampMs = now;
-    entry.category = category;
-    stockHistory.splice(existingIndex, 1);
-    stockHistory.unshift(entry);
-  } else {
-    stockHistory.unshift({
-      productId,
-      productName,
-      category,
-      oldStock,
-      newStock,
-      delta,
-      timestamp: formattedTime,
-      timestampMs: now
-    });
+// Called after the debounce timer to apply all pending changes
+async function applyPendingStockUpdates() {
+  const productsToUpdate = Object.keys(pendingStockChanges);
+  if (productsToUpdate.length === 0) return;
+
+  showLoading('Committing stock changes...');
+
+  for (const productId of productsToUpdate) {
+    const netChange = pendingStockChanges[productId];
+    const originalStock = productOriginalStock[productId];
+    const newStock = originalStock + netChange;
+
+    const product = products.find(p => p.id == productId);
+    if (product) {
+      // Record one aggregated adjustment
+      await recordStockAdjustment(productId, product.name, originalStock, newStock);
+      // Update server stock
+      await updateStockOnServer(productId, newStock);
+      // Ensure local product stock matches final (already updated)
+    }
   }
-  renderStockHistory();
+
+  // Clear pending data
+  pendingStockChanges = {};
+  productOriginalStock = {};
+
+  // Refresh history after commit
+  await refreshStockHistory();
+  hideLoading();
+  showAlertModal('Success', 'All stock changes have been recorded.');
 }
 
-function renderStockHistory() {
-  const historyList = document.getElementById('stockHistoryList');
-  if (!historyList) return;
-  if (stockHistory.length === 0) {
-    historyList.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 20px;">No adjustments yet.</div>';
+// Fire-and-forget: sends a single adjustment record to the backend
+async function recordStockAdjustment(productId, productName, oldStock, newStock) {
+  try {
+    const formData = new URLSearchParams();
+    formData.append("action", "saveStockAdjustment");
+    formData.append("productId", productId);
+    formData.append("productName", productName);
+    formData.append("oldStock", oldStock);
+    formData.append("newStock", newStock);
+    formData.append("store", currentStore);
+    formData.append("employeeId", currentEmployee.id);
+    formData.append("employeeName", currentEmployee.name);
+    await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+  } catch (err) {
+    console.error("Error recording stock adjustment:", err);
+  }
+}
+
+
+
+// Refresh the stock history table (call this when needed)
+async function refreshStockHistory() {
+  if (!inventoryMode) return;
+  showLoading('Loading stock history...');
+  try {
+    const history = await fetchStockHistory(currentStore);
+    displayStockHistory(history);
+  } catch (err) {
+    console.error(err);
+    const container = document.getElementById('stockHistoryList');
+    if (container) container.innerHTML = '<div class="stock-history-empty">Error loading history.</div>';
+  } finally {
+    hideLoading();
+  }
+}
+  function displayStockHistory(history) {
+  const container = document.getElementById('stockHistoryList');
+  if (!container) return;
+  if (!history || history.length === 0) {
+    container.innerHTML = '<div class="stock-history-empty">No stock adjustments recorded yet.</div>';
     return;
   }
-  let html = '';
-  for (const entry of stockHistory) {
-    const deltaClass = entry.delta > 0 ? 'delta' : 'delta negative';
-    const deltaSymbol = entry.delta > 0 ? `+${entry.delta}` : `${entry.delta}`;
-    html += `
-      <div class="history-entry">
-        <div class="delta-badge ${deltaClass}">${deltaSymbol}</div>
-        <div class="history-main">
-          <div class="product-name">${escapeHtml(entry.productName)}</div>
-          <div class="product-category" style="font-size:0.7rem; color:#64748b; margin-bottom:4px;">${escapeHtml(entry.category)}</div>
-          <div class="stock-change">Stock: ${entry.oldStock} → ${entry.newStock}</div>
-          <div class="timestamp">${entry.timestamp}</div>
-        </div>
-      </div>
-    `;
+  let html = '<table class="stock-history-table"><thead><tr><th>Time</th><th>Product</th><th>Change</th><th>Old Stock</th><th>New Stock</th><th>Employee</th></tr></thead><tbody>';
+  for (const adj of history) {
+    const change = adj.newStock - adj.oldStock;
+    const changeClass = change > 0 ? 'positive' : 'negative';
+    const changeSign = change > 0 ? `+${change}` : `${change}`;
+    const changeStyle = change > 0 ? 'color: #2c7a4b;' : 'color: #dc2626;';
+    const date = new Date(adj.timestamp).toLocaleString();
+    html += `<tr>
+      <td>${date}</td>
+      <td>${escapeHtml(adj.productName)}</td>
+      <td style="${changeStyle}">${changeSign}</td>
+      <td>${adj.oldStock}</td>
+      <td>${adj.newStock}</td>
+      <td>${escapeHtml(adj.employeeName)}</td>
+    </tr>`;
   }
-  historyList.innerHTML = html;
+  html += '</tbody></table>';
+  container.innerHTML = html;
 }
-  // ==================== INVENTORY MODE TOGGLE ====================
-  function toggleInventoryMode() {
-    inventoryMode = !inventoryMode;
-    if (inventoryMode) {
-      // Enter inventory mode: hide cart content, show stock history, change title
-      cartNormalContent.style.display = 'none';
-      stockHistoryContainerDiv.style.display = 'flex';
-      cartPanelTitle.innerText = '📦 Inventory Mode';
-      inventoryModeBtn.innerText = '🛍️ Exit Inventory';
-      if (updateStockTimeout) clearTimeout(updateStockTimeout);
-      renderProductGrid();
-    } else {
-      // Exit inventory mode: restore cart, clear history, hide stock panel
-      cartNormalContent.style.display = 'block';
-      stockHistoryContainerDiv.style.display = 'none';
-      cartPanelTitle.innerText = '🧾 Current Sale';
-      inventoryModeBtn.innerText = '📦 Inventory Mode';
-      clearStockHistory(); // Reset history on exit
-      updateCartUI(); // Restore cart display
-      renderProductGrid();
-    }
-  }
 
   // ==================== INITIAL DATA LOAD ====================
   async function loadInitialData() {
@@ -1473,35 +1691,66 @@ function renderStockHistory() {
     }
   }
 
-  // ==================== STOCK UPDATE ====================
+  // ==================== STOCK UPDATE (with history) ====================
   async function updateStockOnServer(productId, newStock) {
-    try {
-      const formData = new URLSearchParams();
-      formData.append("action", "updateStock");
-      formData.append("productId", productId);
-      formData.append("newStock", newStock);
-      formData.append("store", currentStore);
-      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
-      const result = await response.json();
-      if (!result.success) {
-        console.error("Stock update failed:", result.error);
-      } else {
-        const product = products.find(p => p.id == productId);
-        if (product) product.stock = newStock;
-        localStorage.removeItem(`products_${currentStore}`);
-      }
-    } catch (err) {
-      console.error("Error updating stock:", err);
+  try {
+    const formData = new URLSearchParams();
+    formData.append("action", "updateStock");
+    formData.append("productId", productId);
+    formData.append("newStock", newStock);
+    formData.append("store", currentStore);
+    const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+    const result = await response.json();
+    if (!result.success) {
+      console.error("Stock update failed:", result.error);
+    } else {
+      localStorage.removeItem(`products_${currentStore}`);
     }
+  } catch (err) {
+    console.error("Error updating stock:", err);
   }
+}
 
-  function scheduleStockUpdate(productId, newStock) {
-    if (updateStockTimeout) clearTimeout(updateStockTimeout);
-    updateStockTimeout = setTimeout(() => {
-      updateStockOnServer(productId, newStock);
-    }, 500);
+ let updateStockTimeout = null; // global debounce timer
+
+function scheduleStockUpdate(productId, newStock, oldStock, productName) {
+  // Clear any existing timer
+  if (updateStockTimeout) clearTimeout(updateStockTimeout);
+
+  // Set a new timer to update the server after 500ms of inactivity
+  updateStockTimeout = setTimeout(() => {
+    // Update the server with the final stock
+    updateStockOnServer(productId, newStock);
+    // Record the adjustment in history (this was the old way – now removed)
+    // recordStockAdjustment(productId, productName, oldStock, newStock);
+  }, 500);
+}
+
+  // ==================== INVENTORY MODE TOGGLE ====================
+  function toggleInventoryMode() {
+  if (inventoryMode) {
+    // Exit inventory mode: commit all pending changes
+    if (Object.keys(pendingStockChanges).length > 0) {
+      applyPendingStockUpdates();
+    }
+    // Switch UI
+    normalCartSections.style.display = 'block';
+    stockHistoryContainer.style.display = 'none';
+    inventoryModeBtn.innerText = '📦 Inventory Mode';
+    inventoryMode = false;
+  } else {
+    // Enter inventory mode: reset pending data
+    pendingStockChanges = {};
+    productOriginalStock = {};
+    // Switch UI
+    normalCartSections.style.display = 'none';
+    stockHistoryContainer.style.display = 'block';
+    inventoryModeBtn.innerText = '🛍️ Exit Inventory';
+    inventoryMode = true;
+    refreshStockHistory(); // load existing history
   }
-
+  renderProductGrid();
+}
   // ==================== CART FUNCTIONS ====================
   function updateCartUI() {
     if (!cartContainer) return;
@@ -1584,6 +1833,7 @@ function renderStockHistory() {
 
     totalSpan.innerText = `RM ${total.toFixed(2)}`;
 
+    // Reattach quantity and remove buttons
     document.querySelectorAll('.qty-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const idx = parseInt(btn.dataset.index);
@@ -1678,6 +1928,41 @@ function renderStockHistory() {
     errorDiv.style.display = 'block';
   }
 
+  function parseSpinDate(timestamp) {
+    if (!timestamp) return null;
+    let dateStr = timestamp;
+    if (timestamp.includes(',')) {
+      dateStr = timestamp.split(',')[0].trim();
+    }
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+      const d = new Date(year, month, day);
+      if (d.getFullYear() === year && d.getMonth() === month && d.getDate() === day) {
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      }
+    }
+    let d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+    console.warn('Failed to parse timestamp:', timestamp);
+    return null;
+  }
+
+  function getExpiryInfo(timestamp) {
+    const spinDate = parseSpinDate(timestamp);
+    if (!spinDate) return { valid: false, message: 'Invalid date format' };
+    const now = new Date();
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (spinDate > todayMidnight) return { valid: false, message: 'Creation date is in the future (invalid)' };
+    const diffDays = Math.floor((todayMidnight - spinDate) / (1000 * 60 * 60 * 24));
+    const expiryDate = new Date(spinDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+    return { valid: true, spinDate, diffDays, expired: diffDays > 30, expiryDate };
+  }
+
   async function checkReceiptForClaim() {
     const receipt = document.getElementById('claimReceiptInput').value.trim();
     if (!receipt) {
@@ -1689,17 +1974,47 @@ function renderStockHistory() {
       const url = `${APPS_SCRIPT_URL}?action=get&receipt=${encodeURIComponent(receipt)}`;
       const response = await fetch(url);
       const result = await response.json();
+
       if (result.success) {
         const data = result.data;
+
         if (data.claimed) {
-          showClaimError('This prize has already been claimed.');
+          let claimMessage = 'This prize has already been claimed.';
+          if (data.claimed_at) {
+            const claimedDate = new Date(data.claimed_at);
+            const formattedDate = claimedDate.toLocaleString(undefined, {
+              year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+            claimMessage += `\nClaimed on: ${formattedDate}`;
+          }
+          showClaimError(claimMessage);
           return;
         }
-        // Store the receipt data for later use
-        window.pendingClaimReceipt = data;
-        document.getElementById('validReceiptId').innerText = data.receipt;
-        document.getElementById('claimStep1').style.display = 'none';
-        document.getElementById('claimStep2').style.display = 'block';
+
+        const expiry = getExpiryInfo(data.timestamp);
+        if (!expiry.valid || expiry.expired) {
+          const expiryDateStr = expiry.expiryDate ? expiry.expiryDate.toLocaleDateString() : 'unknown date';
+          showClaimError(`This prize expired on ${expiryDateStr} (30 days after creation). Claims are not allowed after 30 days.`);
+          return;
+        }
+
+        const prizeName = data.prize;
+        const match = prizeName.match(/\b(\d+(?:\.\d+)?)\b/);
+        const discountValue = match ? parseFloat(match[1]) : 0;
+
+        if (discountValue === 0) {
+          showClaimError('Could not determine discount amount from prize name.');
+          return;
+        }
+
+        pendingPrize = { receipt: data.receipt, value: discountValue, name: prizeName };
+        discountAmount = discountValue;
+        claimedReceiptInfo = pendingPrize;
+        updateCartUI();
+
+        showAlertModal('Prize Applied', `Discount of RM ${discountValue.toFixed(2)} has been applied to this sale.\nThe prize will be marked as claimed only after successful payment.`);
+        document.getElementById('claimPrizeModal').style.display = 'none';
+
       } else {
         showClaimError(result.error || 'Receipt not found.');
       }
@@ -1733,7 +2048,11 @@ function renderStockHistory() {
       formData.append("receipt", receipt);
       formData.append("value", prizeValue);
       formData.append("finalTotal", finalTotal);
-      await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+      const result = await response.json();
+      if (!result.success) {
+        console.warn('Prize claim failed after sale:', result.error);
+      }
     } catch (err) {
       console.error('Error claiming prize after sale:', err);
     }
@@ -1750,45 +2069,73 @@ function renderStockHistory() {
     const prices = [];
     for (let item of cart) {
       if (filterCallback(item)) {
-        for (let i = 0; i < item.quantity; i++) prices.push(item.product.price);
+        for (let i = 0; i < item.quantity; i++) {
+          prices.push(item.product.price);
+        }
       }
     }
     return prices;
   }
 
   function applyBuy2Free1Perfume() {
+    console.log("Cart items:", cart.map(item => ({
+      name: item.product.name,
+      category: item.product.category,
+      quantity: item.quantity,
+      price: item.product.price
+    })));
+
     const perfumePrices = getUnitPricesFromFilter(item => {
       const cat = (item.product.category || "").trim().toLowerCase();
       return cat.includes("100ml perfume edp");
     });
+
     const totalUnits = perfumePrices.length;
     const freeItems = Math.floor(totalUnits / 3);
+    console.log(`Total perfume units: ${totalUnits}, free items: ${freeItems}`);
+
     if (freeItems === 0) {
-      document.getElementById('promoMessage').innerText = `Need at least 3 items in '100ML PERFUME EDP' category. Found ${totalUnits}.`;
-      document.getElementById('promoMessage').style.display = 'block';
+      const msgDiv = document.getElementById('promoMessage');
+      msgDiv.innerText = `Need at least 3 items in '100ML PERFUME EDP' category. Found ${totalUnits}.`;
+      msgDiv.style.display = 'block';
       return;
     }
+
     perfumePrices.sort((a, b) => a - b);
     const discount = perfumePrices.slice(0, freeItems).reduce((sum, p) => sum + p, 0);
+
     buy2Free1Discount = discount;
     updateCartUI();
     document.getElementById('specialPromoModal').style.display = 'none';
   }
 
   function applyBuy3Free1ExcludePerfume() {
+    console.log("Cart items:", cart.map(item => ({
+      name: item.product.name,
+      category: item.product.category,
+      quantity: item.quantity,
+      price: item.product.price
+    })));
+
     const nonPerfumePrices = getUnitPricesFromFilter(item => {
       const cat = (item.product.category || "").trim().toLowerCase();
       return !cat.includes("100ml perfume edp");
     });
+
     const totalUnits = nonPerfumePrices.length;
     const freeItems = Math.floor(totalUnits / 4);
+    console.log(`Total non‑perfume units: ${totalUnits}, free items: ${freeItems}`);
+
     if (freeItems === 0) {
-      document.getElementById('promoMessage').innerText = `Need at least 4 items excluding Perfume category. Found ${totalUnits}.`;
-      document.getElementById('promoMessage').style.display = 'block';
+      const msgDiv = document.getElementById('promoMessage');
+      msgDiv.innerText = `Need at least 4 items excluding Perfume category. Found ${totalUnits}.`;
+      msgDiv.style.display = 'block';
       return;
     }
+
     nonPerfumePrices.sort((a, b) => a - b);
     const discount = nonPerfumePrices.slice(0, freeItems).reduce((sum, p) => sum + p, 0);
+
     buy3Free1Discount = discount;
     updateCartUI();
     document.getElementById('specialPromoModal').style.display = 'none';
@@ -1811,33 +2158,34 @@ function renderStockHistory() {
       await showAlertModal('Empty Cart', 'No items to checkout.');
       return;
     }
+
     showLoading('Refreshing stock data...');
     const refreshed = await fetchProductsFromSheet(true);
     hideLoading();
+
     if (!refreshed) {
-      await showAlertModal('Error', 'Failed to refresh product data.');
+      await showAlertModal('Error', 'Failed to refresh product data. Please check your connection and try again.');
       return;
     }
+
     for (let item of cart) {
       const originalProduct = products.find(p => p.id === item.product.id);
       if (!originalProduct) {
-        await showAlertModal('Product Missing', `${item.product.name} no longer exists.`);
+        await showAlertModal('Product Missing', `${item.product.name} no longer exists. Please remove it from the cart.`);
         return;
       }
       if (originalProduct.stock < item.quantity) {
-        await showAlertModal('Stock Changed', `${item.product.name} stock is now only ${originalProduct.stock} units.`);
+        await showAlertModal('Stock Changed', `${item.product.name} stock is now only ${originalProduct.stock} units. Please adjust your cart.`);
         return;
       }
     }
+
     const subtotal = cart.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
     const totalAmount = subtotal - discountAmount - (buy2Free1Discount + buy3Free1Discount + customDiscount);
     pendingTransaction = { totalAmount };
     showPaymentModal(totalAmount);
   }
-function clearStockHistory() {
-  stockHistory = [];
-  renderStockHistory();
-}
+
   function showPaymentModal(totalAmount) {
     const modal = document.getElementById('paymentModal');
     const cashOptionsDiv = document.getElementById('cashOptions');
@@ -1932,7 +2280,9 @@ function clearStockHistory() {
         await claimPrizeAfterSale(pendingPrize.receipt, pendingPrize.value, totalAmount);
         pendingPrize = null;
       }
+
       localStorage.removeItem(`products_${currentStore}`);
+
       if (window.printerAPI?.isConnected && window.printerAPI.printReceipt) {
         const transactionWithName = { ...transaction, employee_name: currentEmployee.name };
         await window.printerAPI.printReceipt(transactionWithName);
@@ -1946,7 +2296,9 @@ function clearStockHistory() {
       document.getElementById('openLuckyDrawBtn').onclick = () => { openLuckyDraw(transactionId); luckyModal.style.display = 'none'; };
       document.getElementById('closeLuckyDrawBtn').onclick = () => luckyModal.style.display = 'none';
       document.getElementById('closeLuckyDrawModal').onclick = () => luckyModal.style.display = 'none';
+      hideLoading();
       await fetchProductsFromSheet();
+      hideLoading();
       clearCart();
     } else {
       await showAlertModal('Error', 'Failed to record sale. Check network / Apps Script.');
@@ -1983,112 +2335,10 @@ function clearStockHistory() {
       hideLoading();
     }
   }
-// Global variables (add near other let declarations)
-let cachedReceipts = null;
-let receiptPollingInterval = null;
 
-
-// Helper: clear loading overlay after timeout
-function showLoading(msg = 'Loading...') {
-  if (loadingTimeout) clearTimeout(loadingTimeout);
-  const msgEl = document.getElementById('loadingMessage');
-  const overlay = document.getElementById('loadingOverlay');
-  if (msgEl) msgEl.innerText = msg;
-  if (overlay) overlay.style.display = 'flex';
-  loadingTimeout = setTimeout(() => hideLoading(), 30000);
-}
-
-function hideLoading() {
-  if (loadingTimeout) {
-    clearTimeout(loadingTimeout);
-    loadingTimeout = null;
-  }
-  const overlay = document.getElementById('loadingOverlay');
-  if (overlay) overlay.style.display = 'none';
-}
-
-// Stock history clear function
-function clearStockHistory() {
-  stockHistory = [];
-  renderStockHistory();
-}
-
-// Background receipt fetcher
-async function fetchAndCacheReceipts() {
-  try {
-    let store, employeeId;
-    if (currentEmployee?.isAdmin) {
-      store = document.getElementById('receiptsStoreSelect')?.value || 'all';
-      employeeId = document.getElementById('receiptsEmployeeSelect')?.value || 'all';
-    } else {
-      store = currentStore;
-      employeeId = 'all';
-    }
-    const rangeSelect = document.getElementById('receiptsDateRangeSelect');
-    const range = rangeSelect ? rangeSelect.value : 'today';
-    const search = document.getElementById('receiptsSearch')?.value || '';
-    let from = null, to = null;
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    if (range === 'today') {
-      from = getLocalDateString(today);
-      to = from;
-    } else if (range === 'week') {
-      const start = new Date(today);
-      const dayOfWeek = today.getDay();
-      const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
-      start.setDate(today.getDate() - diffToMonday);
-      from = getLocalDateString(start);
-      const end = new Date(start);
-      end.setDate(start.getDate() + 6);
-      to = getLocalDateString(end);
-    } else if (range === 'month') {
-      const start = new Date(today.getFullYear(), today.getMonth(), 1);
-      from = getLocalDateString(start);
-      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      to = getLocalDateString(end);
-    } else if (range === 'custom') {
-      from = document.getElementById('receiptsFromDate')?.value;
-      to = document.getElementById('receiptsToDate')?.value;
-      if (!from || !to) return;
-    }
-    let url = `${APPS_SCRIPT_URL}?action=getReceipts&store=${store}&employeeId=${employeeId}`;
-    if (from) url += `&from=${encodeURIComponent(from)}`;
-    if (to) url += `&to=${encodeURIComponent(to)}`;
-    if (search) url += `&search=${encodeURIComponent(search)}`;
-    const response = await fetch(url);
-    const result = await response.json();
-    if (result.success) {
-      cachedReceipts = result.receipts;
-      // If receipts modal is open, update it instantly
-      const receiptsModal = document.getElementById('receiptsModal');
-      if (receiptsModal && receiptsModal.style.display === 'flex') {
-        renderReceiptsList(cachedReceipts);
-      }
-    }
-  } catch (err) {
-    console.error('Background receipt fetch failed:', err);
-  }
-}
-
-// Start polling after login
-function startReceiptPolling() {
-  if (receiptPollingInterval) clearInterval(receiptPollingInterval);
-  fetchAndCacheReceipts(); // initial fetch
-  receiptPollingInterval = setInterval(fetchAndCacheReceipts, 30000); // every 30 sec
-}
-
-// Stop polling on logout (call inside logout button handler)
-function stopReceiptPolling() {
-  if (receiptPollingInterval) {
-    clearInterval(receiptPollingInterval);
-    receiptPollingInterval = null;
-  }
-  cachedReceipts = null;
-}
   // ==================== RECEIPTS ====================
   async function fetchReceipts(store, employeeId, from, to, search) {
-    
+    showLoading('Loading receipts...');
     try {
       let url = `${APPS_SCRIPT_URL}?action=getReceipts&store=${store}&employeeId=${employeeId}`;
       if (from) url += `&from=${encodeURIComponent(from)}`;
@@ -2106,34 +2356,27 @@ function stopReceiptPolling() {
     }
   }
 
- function renderReceiptsList(receipts) {
-  const container = document.getElementById('receiptsList');
-  if (!receipts.length) {
-    container.innerHTML = '<div style="text-align:center; padding:30px;">No receipts found.</div>';
-    return;
-  }
-  let html = '';
-  receipts.forEach(rec => {
-    const date = new Date(rec.timestamp).toLocaleString();
-    const itemsSummary = rec.items.map(i => {
-      const displayName = i.category ? `${i.category}: ${i.name}` : i.name;
-      return `${displayName} x${i.quantity}`;
-    }).join(', ');
-    const employeeName = getEmployeeName(rec.employee_id);
-    const isRefund = rec.total < 0;
-    const isRefundedOriginal = rec.refunded === true && !isRefund;
-    const refundClass = isRefund ? 'refund-receipt' : '';
-    const receiptIdHtml = isRefund
-      ? `<span class="receipt-id">[REFUND] ${rec.transaction_id}</span>`
-      : `<span class="receipt-id">${rec.transaction_id}</span>`;
-
-    // Actions: always Reprint, Refund only if not already refunded
-    let actionsHtml = `<button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>🖨️ Reprint</button>`;
-    if (!isRefund && !isRefundedOriginal) {
-      actionsHtml += `<button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">💰 Refund</button>`;
+  function renderReceiptsList(receipts) {
+    const container = document.getElementById('receiptsList');
+    if (!receipts.length) {
+      container.innerHTML = '<div style="text-align:center; padding:30px;">No receipts found.</div>';
+      return;
     }
-
-    html += `<div class="receipt-item ${refundClass}" data-receipt='${JSON.stringify(rec)}'>
+    let html = '';
+    receipts.forEach(rec => {
+      const date = new Date(rec.timestamp).toLocaleString();
+      const itemsSummary = rec.items.map(i => {
+        const displayName = i.category ? `${i.category}: ${i.name}` : i.name;
+        return `${displayName} x${i.quantity}`;
+      }).join(', ');
+      const employeeName = getEmployeeName(rec.employee_id);
+      const isRefund = rec.total < 0;
+      const isRefundedOriginal = rec.refunded === true && !isRefund;
+      const refundClass = isRefund ? 'refund-receipt' : '';
+      const receiptIdHtml = isRefund
+        ? `<span class="receipt-id">[REFUND] ${rec.transaction_id}</span>`
+        : `<span class="receipt-id">${rec.transaction_id}</span>`;
+      html += `<div class="receipt-item ${refundClass}" data-receipt='${JSON.stringify(rec)}'>
         <div class="receipt-header">
           ${receiptIdHtml}
           <span class="receipt-date">${date}</span>
@@ -2144,31 +2387,41 @@ function stopReceiptPolling() {
           <div>Items: ${itemsSummary}</div>
         </div>
         <div class="receipt-actions">
-          ${actionsHtml}
-        </div>
-      </div>`;
-  });
-  container.innerHTML = html;
-
-  // Attach event listeners
-  document.querySelectorAll('.reprint-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      reprintReceipt(JSON.parse(btn.dataset.receipt));
-      e.stopPropagation();
-    });
-  });
-  document.querySelectorAll('.refund-btn').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const transactionId = btn.dataset.txid;
-      const store = btn.dataset.store;
-      e.stopPropagation();
-      const confirm = await showConfirmModal('Refund Transaction', `Are you sure you want to refund transaction ${transactionId}? This will reverse the sale and restore stock.`);
-      if (confirm) {
-        await processRefund(transactionId, store);
+          <button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>🖨️ Reprint</button>`;
+      if (!isRefund && !isRefundedOriginal) {
+        html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>
+                 <button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">💰 Refund</button>`;
+      } else if (!isRefund && isRefundedOriginal) {
+        html += `<button class="lucky-btn" data-txid="${rec.transaction_id}">🎲 Lucky Draw</button>`;
       }
+      html += `</div></div>`;
     });
-  });
-}
+    container.innerHTML = html;
+
+    document.querySelectorAll('.reprint-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        reprintReceipt(JSON.parse(btn.dataset.receipt));
+        e.stopPropagation();
+      });
+    });
+    document.querySelectorAll('.lucky-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        openLuckyDraw(btn.dataset.txid);
+        e.stopPropagation();
+      });
+    });
+    document.querySelectorAll('.refund-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const transactionId = btn.dataset.txid;
+        const store = btn.dataset.store;
+        e.stopPropagation();
+        const confirm = await showConfirmModal('Refund Transaction', `Are you sure you want to refund transaction ${transactionId}? This will reverse the sale and restore stock.`);
+        if (confirm) {
+          await processRefund(transactionId, store);
+        }
+      });
+    });
+  }
 
   async function reprintReceipt(receipt) {
     if (!window.printerAPI || !window.printerAPI.isConnected) {
@@ -2193,10 +2446,12 @@ function stopReceiptPolling() {
       const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
       const result = await response.json();
       if (result.success) {
+        hideLoading();
         await showAlertModal('Refund Successful', `Refund ID: ${result.refundId}\nStock restored.`);
         updateReceipts();
         localStorage.removeItem(`products_${currentStore}`);
         await fetchProductsFromSheet();
+        hideLoading();
       } else {
         await showAlertModal('Refund Failed', result.error || 'Unknown error');
       }
@@ -2208,7 +2463,7 @@ function stopReceiptPolling() {
     }
   }
 
-  // ==================== REPORTS (simplified) ====================
+  // ==================== REPORTS ====================
   async function fetchSalesReport(store, employeeId, from, to, unsettledOnly) {
     showLoading('Loading report...');
     try {
@@ -2369,119 +2624,55 @@ function stopReceiptPolling() {
     tbody.innerHTML = html;
   }
 
-async function updateAdminReport() {
-  let store, employeeId;
-  if (currentEmployee.isAdmin) {
-    store = document.getElementById('adminReportStoreSelect').value;
-    employeeId = document.getElementById('adminReportEmployeeSelect').value;
-  } else {
-    store = 'all';
-    employeeId = currentEmployee.id;
-  }
-
-  const range = document.getElementById('adminReportDateRangeSelect').value;
-  let from = null, to = null;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  if (range === 'today') {
-    from = getLocalDateString(today);
-    to = from;
-  } else if (range === 'week') {
-    const start = new Date(today);
-    const dayOfWeek = today.getDay();
-    const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
-    start.setDate(today.getDate() - diffToMonday);
-    from = getLocalDateString(start);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    to = getLocalDateString(end);
-  } else if (range === 'month') {
-    const start = new Date(today.getFullYear(), today.getMonth(), 1);
-    from = getLocalDateString(start);
-    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    to = getLocalDateString(end);
-  } else if (range === 'custom') {
-    from = document.getElementById('adminReportFromDate').value;
-    to = document.getElementById('adminReportToDate').value;
-    if (!from || !to) return;
-  }
-
-  // Build array of promises for all data we need
-  const promises = [
-    fetchSalesReport(store, employeeId, from, to),
-    fetchSalesChartData(store, employeeId, from, to),
-    fetchProductSalesReport(store, employeeId, from, to)
-  ];
-  if (currentEmployee.isAdmin) {
-    promises.push(fetchEmployeeSalesData(store, from, to));
-  }
-
-  // Wait for all fetches to complete
-  const results = await Promise.all(promises);
-  const productData = results[2]; // third item = product sales report
-
-  if (productData) {
-    lastProductData = productData;
-    if (productDetailsVisible) renderProductDetails(lastProductData);
-  }
-
-  // Hide loading indicator (created by the Reports button click)
-  const loadingMsg = document.getElementById('adminReportLoadingMsg');
-  if (loadingMsg) loadingMsg.style.display = 'none';
-}
-
-  // ==================== SETTLEMENT & COLLECTION (simplified) ====================
- async function openSettlementModal() {
-  const modal = document.getElementById('settlementModal');
-  modal.style.display = 'flex';
-
-  // Create or get loading message element inside modal
-  let loadingMsg = document.getElementById('settlementLoadingMsg');
-  if (!loadingMsg) {
-    loadingMsg = document.createElement('div');
-    loadingMsg.id = 'settlementLoadingMsg';
-    loadingMsg.style.textAlign = 'center';
-    loadingMsg.style.padding = '20px';
-    loadingMsg.style.background = '#f8fafc';
-    loadingMsg.style.borderRadius = '12px';
-    loadingMsg.style.margin = '10px 0';
-    loadingMsg.innerText = 'Loading settlement data...';
-    const systemTotalsDiv = document.getElementById('systemTotalsDisplay');
-    if (systemTotalsDiv) systemTotalsDiv.insertAdjacentElement('afterend', loadingMsg);
-  }
-  loadingMsg.style.display = 'block';
-
-  try {
-    let store;
-    if (!currentEmployee.isAdmin) {
-      store = initialStore;
-      document.getElementById('settlementStoreSelect').value = store;
-      document.getElementById('settlementStoreSelect').disabled = true;
+  async function updateAdminReport() {
+    let store, employeeId;
+    if (currentEmployee.isAdmin) {
+      store = document.getElementById('adminReportStoreSelect').value;
+      employeeId = document.getElementById('adminReportEmployeeSelect').value;
     } else {
-      store = document.getElementById('settlementStoreSelect').value;
-      document.getElementById('settlementStoreSelect').disabled = false;
+      store = 'all';
+      employeeId = currentEmployee.id;
     }
-
-    const todayStr = getLocalDateString(new Date());
-    const alreadySettled = await checkSettlementStatus(store, todayStr);
-
-    if (alreadySettled) {
-      loadingMsg.style.display = 'none';
-      await showAlertModal('Settlement Already Done', 'Settlement has already been recorded for today. No further settlement allowed.');
-      modal.style.display = 'none';
-      return;
+    const range = document.getElementById('adminReportDateRangeSelect').value;
+    let from = null, to = null;
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    if (range === 'today') {
+      from = getLocalDateString(today);
+      to = from;
+    } else if (range === 'week') {
+      const start = new Date(today);
+      const dayOfWeek = today.getDay();
+      const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+      start.setDate(today.getDate() - diffToMonday);
+      from = getLocalDateString(start);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      to = getLocalDateString(end);
+    } else if (range === 'month') {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      from = getLocalDateString(start);
+      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      to = getLocalDateString(end);
+    } else if (range === 'custom') {
+      from = document.getElementById('adminReportFromDate').value;
+      to = document.getElementById('adminReportToDate').value;
+      if (!from || !to) return;
     }
-
-    await refreshSettlementTotals(store);
-    loadingMsg.style.display = 'none';
-  } catch (err) {
-    console.error(err);
-    loadingMsg.style.display = 'none';
-    await showAlertModal('Error', 'Failed to load settlement data.');
-    modal.style.display = 'none';
+    await fetchSalesReport(store, employeeId, from, to);
+    await fetchSalesChartData(store, employeeId, from, to);
+    if (currentEmployee.isAdmin) {
+      await fetchEmployeeSalesData(store, from, to);
+    }
+    lastProductData = await fetchProductSalesReport(store, employeeId, from, to);
+    if (productDetailsVisible) {
+      renderProductDetails(lastProductData);
+    }
   }
-}
+
+  // ==================== SETTLEMENT ====================
+  let currentSettlementTotals = null;
+
   async function checkSettlementStatus(store, date) {
     try {
       const url = `${APPS_SCRIPT_URL}?action=getSettlementStatus&store=${store}&date=${date}`;
@@ -2532,8 +2723,6 @@ async function updateAdminReport() {
     }
   }
 
-  let currentSettlementTotals = null;
-
   function setSettlementFieldsEnabled(enabled) {
     const fields = ['settlementStoreSelect', 'pettyCashFloat', 'actualCash', 'actualCard', 'actualQR'];
     const isNonAdmin = !currentEmployee?.isAdmin;
@@ -2549,241 +2738,226 @@ async function updateAdminReport() {
     });
   }
 
-  // ==================== PRINTER SETUP ====================
- // ==================== PRINTER SETUP (with chunked writing) ====================
-(function setupPrinter() {
-  let gattServer = null, printerCharacteristic = null, isConnected = false;
-  const connectBtn = document.getElementById('connectPrinterButton');
-  const printerStatusDiv = document.getElementById('printerStatus');
-  const openDrawerBtn = document.getElementById('openDrawerBtn');
-
-  function formatDateForReceipt(date) {
-    const d = date.getDate().toString().padStart(2, '0');
-    const m = (date.getMonth() + 1).toString().padStart(2, '0');
-    const y = date.getFullYear();
-    const h = date.getHours().toString().padStart(2, '0');
-    const min = date.getMinutes().toString().padStart(2, '0');
-    return `${d}/${m}/${y} ${h}:${min}`;
-  }
-function generateReceiptData(transaction, openDrawer = false) {
-  const encoder = new TextEncoder();
-  const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
-  const storeLocation = transaction.store ? transaction.store.charAt(0).toUpperCase() + transaction.store.slice(1) : 'Queens';
-  
-  // Get paper size setting (default 80mm)
-  const paperSize = localStorage.getItem('printerPaperSize') || '80';
-  const maxChars = paperSize === '58' ? 32 : 48; // 58mm ~32 chars, 80mm ~48 chars
-  
-  // Helper to pad/truncate text for fixed width
-  function formatLine(left, right = null) {
-    if (right === null) {
-      // Single line, truncate if needed
-      return left.length > maxChars ? left.substring(0, maxChars - 3) + '...' : left;
+  async function openSettlementModal() {
+    let store;
+    if (!currentEmployee.isAdmin) {
+      store = initialStore;
+      document.getElementById('settlementStoreSelect').value = store;
+      document.getElementById('settlementStoreSelect').disabled = true;
+    } else {
+      store = document.getElementById('settlementStoreSelect').value;
+      document.getElementById('settlementStoreSelect').disabled = false;
     }
-    // Two columns
-    const leftMax = Math.floor(maxChars * 0.6);
-    const rightMax = maxChars - leftMax - 2;
-    let leftText = left.length > leftMax ? left.substring(0, leftMax - 3) + '...' : left;
-    let rightText = right.length > rightMax ? right.substring(0, rightMax - 3) + '...' : right;
-    return leftText.padEnd(leftMax) + ' ' + rightText.padStart(rightMax);
-  }
-  
-  // Group items by category
-  const grouped = {};
-  for (const item of transaction.items) {
-    const cat = item.category || 'Uncategorized';
-    if (!grouped[cat]) grouped[cat] = [];
-    grouped[cat].push(item);
-  }
-  
-  const lines = [];
-  const separator = '-'.repeat(maxChars);
-  
-  // Header
-  lines.push('', '    UL PERFUMERY', separator);
-  lines.push(formatLine(`STORE LOCATION : ${storeLocation}`));
-  lines.push(formatLine(`EMPLOYEE : ${employeeName}`));
-  lines.push(separator);
-  
-  // Items by category
-  for (const [category, items] of Object.entries(grouped)) {
-    let categoryTotal = 0;
-    for (const item of items) {
-      categoryTotal += item.price * item.quantity;
+    const todayStr = getLocalDateString(new Date());
+    const alreadySettled = await checkSettlementStatus(store, todayStr);
+    if (alreadySettled) {
+      await showAlertModal('Settlement Already Done', 'Settlement has already been recorded for today. No further settlement allowed.');
+      return;
     }
-    lines.push(formatLine(category, `RM ${categoryTotal.toFixed(2)}`));
-    
-    for (const item of items) {
-      lines.push(`  ${item.name}`);
-      lines.push(`  ${item.quantity} x RM ${item.price.toFixed(2)}`);
-    }
-  }
-  
-  lines.push(separator);
-  
-  // Total
-  const totalAmount = transaction.total;
-  lines.push(formatLine('TOTAL', `RM ${totalAmount.toFixed(2)}`));
-  
-  // Payment method
-  lines.push(formatLine('PAYMENT METHOD', transaction.payment_method));
-  
-  // Change if cash
-  if (transaction.cash_received && transaction.payment_method === 'Cash') {
-    const change = transaction.cash_received - totalAmount;
-    lines.push(formatLine('CHANGE', `RM ${change.toFixed(2)}`));
-  }
-  
-  lines.push(separator);
-  lines.push('THANK YOU FOR YOUR PURCHASE');
-  lines.push('ANY ENQUIRY PLEASE CONTACT');
-  lines.push('+60134665831 ( MARCUS )');
-  lines.push('GOODS SOLD ARE NOT REFUNDABLE');
-  lines.push(separator);
-  
-  // Transaction details
-  const date = new Date(transaction.timestamp);
-  const formattedDate = `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
-  lines.push(formatLine(`TXN   : ${transaction.transaction_id}`));
-  lines.push(formatLine(`DATE  : ${formattedDate}`));
-  lines.push('');
-  
-  const text = lines.join('\n');
-  
-  let commands = [];
-  commands.push(0x1B, 0x40); // Initialize printer
-  commands.push(0x1B, 0x61, 0x01); // Center alignment
-  commands.push(...encoder.encode(text));
-  commands.push(0x1B, 0x64, 0x03); // Feed 3 lines
-  commands.push(0x1D, 0x56, 0x41, 0x00); // Cut paper
-  if (openDrawer) {
-    const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
-    commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
-  }
-  return new Uint8Array(commands);
-}
-// Paper size selector handling
-const paperSizeSelect = document.getElementById('paperSizeSelect');
-if (paperSizeSelect) {
-  // Load saved setting
-  const savedSize = localStorage.getItem('printerPaperSize');
-  if (savedSize) paperSizeSelect.value = savedSize;
-  else paperSizeSelect.value = '80';
-  
-  // Save on change
-  paperSizeSelect.addEventListener('change', () => {
-    localStorage.setItem('printerPaperSize', paperSizeSelect.value);
-    showAlertModal('Settings', `Paper size set to ${paperSizeSelect.value}mm.`);
-  });
-}
-  // Helper to send data in chunks
-  async function sendChunkedData(data, chunkSize = 500) {
-    if (!printerCharacteristic) return false;
-    let offset = 0;
-    while (offset < data.length) {
-      const chunk = data.slice(offset, offset + chunkSize);
-      try {
-        await printerCharacteristic.writeValue(chunk);
-        // Small delay to allow printer to process chunk (optional)
-        await new Promise(resolve => setTimeout(resolve, 50));
-      } catch (err) {
-        console.error('Chunk write failed:', err);
-        throw err;
-      }
-      offset += chunkSize;
-    }
-    return true;
+    await refreshSettlementTotals(store);
+    document.getElementById('settlementModal').style.display = 'flex';
   }
 
-  async function openCashDrawer() {
-    if (!isConnected || !printerCharacteristic) {
-      printerStatusDiv.innerText = '❌ Printer not connected';
-      return false;
-    }
+  // ==================== CASH COLLECTION ====================
+  let currentUnsettledCash = [];
+
+  async function openCollectionModal() {
+    await loadUnsettledCash();
+    document.getElementById('collectionModal').style.display = 'flex';
+  }
+
+  async function loadUnsettledCash() {
+    const store = document.getElementById('collectionStoreSelect').value;
+    showLoading('Loading unsettled cash...');
     try {
-      const drawerCommand = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]);
-      await printerCharacteristic.writeValue(drawerCommand);
-      printerStatusDiv.innerText = '💰 Drawer opened';
-      setTimeout(() => { if (isConnected) printerStatusDiv.innerText = '✅ Printer ready'; }, 2000);
-      return true;
+      let url = `${APPS_SCRIPT_URL}?action=getUnsettledCash&store=${store}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        currentUnsettledCash = result.records;
+        renderCollectionTable();
+        updateTotalOutstanding();
+        document.getElementById('collectSelectedBtn').disabled = true;
+        const selectAll = document.getElementById('selectAllCheckbox');
+        if (selectAll) selectAll.checked = false;
+      } else {
+        await showAlertModal('Error', 'Failed to load unsettled cash: ' + (result.error || 'Unknown error'));
+      }
     } catch (err) {
       console.error(err);
-      printerStatusDiv.innerText = `❌ Drawer error`;
-      return false;
-    }
-  }
-
-  async function printReceipt(transaction) {
-    if (!isConnected || !printerCharacteristic) {
-      printerStatusDiv.innerText = '❌ Printer not connected';
-      return false;
-    }
-    try {
-      const openDrawer = (transaction.payment_method === 'Cash');
-      const data = generateReceiptData(transaction, openDrawer);
-      // Send data in chunks to avoid exceeding characteristic's write limit
-      await sendChunkedData(data, 500);
-      printerStatusDiv.innerText = '✅ Receipt printed';
-      return true;
-    } catch (err) {
-      console.error(err);
-      printerStatusDiv.innerText = `❌ Print error: ${err.message}`;
-      return false;
-    }
-  }
-
-  async function connectPrinter() {
-    try {
-      printerStatusDiv.innerText = '🔍 Scanning...';
-      connectBtn.disabled = true;
-      const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] });
-      gattServer = await device.gatt.connect();
-      const services = await gattServer.getPrimaryServices();
-      let foundChar = null;
-      for (const service of services) {
-        const chars = await service.getCharacteristics();
-        for (const char of chars) {
-          if (char.properties.write || char.properties.writeWithoutResponse) {
-            foundChar = char;
-            break;
-          }
-        }
-        if (foundChar) break;
-      }
-      if (!foundChar) throw new Error('No writable characteristic');
-      printerCharacteristic = foundChar;
-      isConnected = true;
-      window.printerAPI.isConnected = true;
-      printerStatusDiv.innerText = '✅ Printer ready';
-      connectBtn.innerText = '🔌 Disconnect';
-      openDrawerBtn.disabled = false;
-    } catch (err) {
-      printerStatusDiv.innerText = `❌ ${err.message}`;
-      gattServer = null;
-      printerCharacteristic = null;
+      await showAlertModal('Error', 'Connection error while loading unsettled cash.');
     } finally {
-      connectBtn.disabled = false;
+      hideLoading();
     }
   }
 
-  async function disconnectPrinter() {
-    if (gattServer) { gattServer.disconnect(); gattServer = null; printerCharacteristic = null; }
-    isConnected = false;
-    window.printerAPI.isConnected = false;
-    printerStatusDiv.innerText = '⚪ Not connected';
-    connectBtn.innerText = '🖨️ Connect Printer';
-    openDrawerBtn.disabled = true;
+  function renderCollectionTable() {
+    const tbody = document.getElementById('collectionTableBody');
+    if (!currentUnsettledCash.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No unsettled cash records found.</td></tr>';
+      return;
+    }
+    let html = '';
+    currentUnsettledCash.forEach(rec => {
+      const date = new Date(rec.timestamp).toLocaleDateString();
+      html += `<tr data-id="${rec.id}">
+        <td><input type="checkbox" class="collection-checkbox" value="${rec.id}"></td>
+        <td>${date}</td>
+        <td>${getEmployeeName(rec.employee_id)}</td>
+        <td style="text-align: right;">RM ${rec.cash_actual.toFixed(2)}</td>
+      </tr>`;
+    });
+    tbody.innerHTML = html;
+    document.querySelectorAll('.collection-checkbox').forEach(cb => {
+      cb.addEventListener('change', updateCollectionButtonState);
+    });
   }
 
-  connectBtn.addEventListener('click', () => { if (!isConnected) connectPrinter(); else disconnectPrinter(); });
-  openDrawerBtn.addEventListener('click', async () => {
-    if (!isConnected) { await showAlertModal('Printer not connected', 'Please connect a printer first.'); return; }
-    await openCashDrawer();
-  });
-  window.printerAPI = { isConnected: false, printReceipt: printReceipt };
-})();
-  // ==================== RENDER PRODUCT GRID (with inventory mode and logging) ====================
- function renderProductGrid() {
+  function updateTotalOutstanding() {
+    const total = currentUnsettledCash.reduce((sum, rec) => sum + rec.cash_actual, 0);
+    document.getElementById('totalOutstandingCash').innerText = `RM ${total.toFixed(2)}`;
+  }
+
+  function updateCollectionButtonState() {
+    const anyChecked = document.querySelectorAll('.collection-checkbox:checked').length > 0;
+    document.getElementById('collectSelectedBtn').disabled = !anyChecked;
+  }
+
+  // ==================== PRINTER SETUP ====================
+  (function setupPrinter() {
+    let gattServer = null, printerCharacteristic = null, isConnected = false;
+    const connectBtn = document.getElementById('connectPrinterButton');
+    const printerStatusDiv = document.getElementById('printerStatus');
+    const openDrawerBtn = document.getElementById('openDrawerBtn');
+
+    function formatDateForReceipt(date) {
+      const d = date.getDate().toString().padStart(2, '0');
+      const m = (date.getMonth() + 1).toString().padStart(2, '0');
+      const y = date.getFullYear();
+      const h = date.getHours().toString().padStart(2, '0');
+      const min = date.getMinutes().toString().padStart(2, '0');
+      return `${d}/${m}/${y} ${h}:${min}`;
+    }
+
+    function generateReceiptData(transaction, openDrawer = false) {
+      const encoder = new TextEncoder();
+      const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
+      const lines = ['', '    ★ POS INVOICE ★', '-----------------------------', `Txn: ${transaction.transaction_id}`, `Date: ${formatDateForReceipt(new Date(transaction.timestamp))}`, `Employee: ${employeeName}`, '-----------------------------'];
+      let total = 0;
+      for (let item of transaction.items) {
+        const displayName = item.category ? `${item.category}: ${item.name}` : item.name;
+        lines.push(`${displayName} x${item.quantity}`, `  ${item.price.toFixed(2)} x ${item.quantity} = RM ${(item.price * item.quantity).toFixed(2)}`);
+        total += item.price * item.quantity;
+      }
+      lines.push('-----------------------------', `TOTAL: RM ${total.toFixed(2)}`, `Payment: ${transaction.payment_method}`);
+      if (transaction.cash_received) lines.push(`Cash: RM ${transaction.cash_received} | Change: RM ${(transaction.cash_received - total).toFixed(2)}`);
+      if (transaction.discount && transaction.discount > 0) lines.push(`Lucky Draw: -RM ${transaction.discount.toFixed(2)}`);
+      if (transaction.promo_discount && transaction.promo_discount > 0) lines.push(`Promo: -RM ${transaction.promo_discount.toFixed(2)}`);
+      lines.push('-----------------------------', 'Thank you & come again!', '');
+      const text = lines.join('\n');
+      let commands = [];
+      commands.push(0x1B, 0x40);
+      commands.push(0x1B, 0x61, 0x01);
+      commands.push(...encoder.encode(text));
+      commands.push(0x1B, 0x64, 0x03);
+      commands.push(0x1D, 0x56, 0x41, 0x00);
+      if (openDrawer) {
+        const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
+        commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
+      }
+      return new Uint8Array(commands);
+    }
+
+    async function openCashDrawer() {
+      if (!isConnected || !printerCharacteristic) {
+        printerStatusDiv.innerText = '❌ Printer not connected';
+        return false;
+      }
+      try {
+        const drawerCommand = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]);
+        await printerCharacteristic.writeValue(drawerCommand);
+        printerStatusDiv.innerText = '💰 Drawer opened';
+        setTimeout(() => { if (isConnected) printerStatusDiv.innerText = '✅ Printer ready'; }, 2000);
+        return true;
+      } catch (err) {
+        console.error(err);
+        printerStatusDiv.innerText = `❌ Drawer error`;
+        return false;
+      }
+    }
+
+    async function printReceipt(transaction) {
+      if (!isConnected || !printerCharacteristic) {
+        printerStatusDiv.innerText = '❌ Printer not connected';
+        return false;
+      }
+      try {
+        const openDrawer = (transaction.payment_method === 'Cash');
+        const data = generateReceiptData(transaction, openDrawer);
+        await printerCharacteristic.writeValue(data);
+        printerStatusDiv.innerText = '✅ Receipt printed';
+        return true;
+      } catch (err) {
+        console.error(err);
+        printerStatusDiv.innerText = `❌ Print error`;
+        return false;
+      }
+    }
+
+    async function connectPrinter() {
+      try {
+        printerStatusDiv.innerText = '🔍 Scanning...';
+        connectBtn.disabled = true;
+        const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] });
+        gattServer = await device.gatt.connect();
+        const services = await gattServer.getPrimaryServices();
+        let foundChar = null;
+        for (const service of services) {
+          const chars = await service.getCharacteristics();
+          for (const char of chars) {
+            if (char.properties.write || char.properties.writeWithoutResponse) {
+              foundChar = char;
+              break;
+            }
+          }
+          if (foundChar) break;
+        }
+        if (!foundChar) throw new Error('No writable characteristic');
+        printerCharacteristic = foundChar;
+        isConnected = true;
+        window.printerAPI.isConnected = true;
+        printerStatusDiv.innerText = '✅ Printer ready';
+        connectBtn.innerText = '🔌 Disconnect';
+        openDrawerBtn.disabled = false;
+      } catch (err) {
+        printerStatusDiv.innerText = `❌ ${err.message}`;
+        gattServer = null;
+        printerCharacteristic = null;
+      } finally {
+        connectBtn.disabled = false;
+      }
+    }
+
+    async function disconnectPrinter() {
+      if (gattServer) { gattServer.disconnect(); gattServer = null; printerCharacteristic = null; }
+      isConnected = false;
+      window.printerAPI.isConnected = false;
+      printerStatusDiv.innerText = '⚪ Not connected';
+      connectBtn.innerText = '🖨️ Connect Printer';
+      openDrawerBtn.disabled = true;
+    }
+
+    connectBtn.addEventListener('click', () => { if (!isConnected) connectPrinter(); else disconnectPrinter(); });
+    openDrawerBtn.addEventListener('click', async () => {
+      if (!isConnected) { await showAlertModal('Printer not connected', 'Please connect a printer first.'); return; }
+      await openCashDrawer();
+    });
+    window.printerAPI = { isConnected: false, printReceipt: printReceipt };
+  })();
+
+  // ==================== RENDER PRODUCT GRID (with inventory mode) ====================
+// ==================== RENDER PRODUCT GRID (with inventory mode) ====================
+function renderProductGrid() {
   const searchTerm = searchInput.value.toLowerCase();
   const selectedCategory = categorySelect.value;
   let filtered = products;
@@ -2794,73 +2968,85 @@ if (paperSizeSelect) {
     return;
   }
 
+  // Build HTML
   let html = '';
   filtered.forEach(prod => {
     if (inventoryMode) {
       html += `<div class="product-card">
         <div class="product-name">${escapeHtml(prod.name)}</div>
-        <div class="product-category">${escapeHtml(prod.category)}</div>
         <div class="product-price">RM ${prod.price.toFixed(2)}</div>
         <div class="inventory-controls">
-          <button class="inventory-btn dec-stock" data-id="${prod.id}" data-current="${prod.stock}">−</button>
+          <button class="inventory-btn dec-stock" data-id="${prod.id}">−</button>
           <span class="stock-display" data-id="${prod.id}">${prod.stock}</span>
-          <button class="inventory-btn inc-stock" data-id="${prod.id}" data-current="${prod.stock}">+</button>
+          <button class="inventory-btn inc-stock" data-id="${prod.id}">+</button>
         </div>
       </div>`;
     } else {
       const stockStatus = prod.stock > 0 ? `📦 Stock: ${prod.stock}` : '❌ Out of stock';
       html += `<div class="product-card">
         <div class="product-name">${escapeHtml(prod.name)}</div>
-        <div class="product-category">${escapeHtml(prod.category)}</div>
         <div class="product-price">RM ${prod.price.toFixed(2)}</div>
         <div class="product-stock">${stockStatus}</div>
         <button class="add-btn" data-id="${prod.id}" ${prod.stock <= 0 ? 'disabled' : ''}>+ Add to cart</button>
       </div>`;
     }
   });
+
+  // Inject HTML
   productGridEl.innerHTML = html;
   productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
 
+  // Attach event listeners
   if (inventoryMode) {
+    // Decrement button ( - )
     document.querySelectorAll('.dec-stock').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = btn.dataset.id;
         const product = products.find(p => p.id == id);
         if (product && product.stock > 0) {
-          const oldStock = product.stock;
-          const newStock = product.stock - 1;
+          const delta = -1;
+          const newStock = product.stock + delta;
+
+          // Update UI immediately
           product.stock = newStock;
           const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
           if (displaySpan) displaySpan.innerText = newStock;
-          scheduleStockUpdate(id, newStock);
-          logStockChange(product.id, product.name, product.category, oldStock, newStock, -1);
-          btn.dataset.current = newStock;
-          const incBtn = document.querySelector(`.inc-stock[data-id="${id}"]`);
-          if (incBtn) incBtn.dataset.current = newStock;
+
+          // Track pending change (aggregation)
+          if (!(id in pendingStockChanges)) {
+            productOriginalStock[id] = product.stock - delta; // original before first change
+          }
+          pendingStockChanges[id] = (pendingStockChanges[id] || 0) + delta;
         }
         e.stopPropagation();
       });
     });
+
+    // Increment button ( + )
     document.querySelectorAll('.inc-stock').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = btn.dataset.id;
         const product = products.find(p => p.id == id);
         if (product) {
-          const oldStock = product.stock;
-          const newStock = product.stock + 1;
+          const delta = 1;
+          const newStock = product.stock + delta;
+
+          // Update UI immediately
           product.stock = newStock;
           const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
           if (displaySpan) displaySpan.innerText = newStock;
-          scheduleStockUpdate(id, newStock);
-          logStockChange(product.id, product.name, product.category, oldStock, newStock, 1);
-          btn.dataset.current = newStock;
-          const decBtn = document.querySelector(`.dec-stock[data-id="${id}"]`);
-          if (decBtn) decBtn.dataset.current = newStock;
+
+          // Track pending change (aggregation)
+          if (!(id in pendingStockChanges)) {
+            productOriginalStock[id] = product.stock - delta;
+          }
+          pendingStockChanges[id] = (pendingStockChanges[id] || 0) + delta;
         }
         e.stopPropagation();
       });
     });
   } else {
+    // Normal add‑to‑cart buttons
     document.querySelectorAll('.add-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const product = products.find(p => p.id == btn.dataset.id);
@@ -2870,14 +3056,6 @@ if (paperSizeSelect) {
     });
   }
 }
-  // ==================== VIEW TOGGLE ====================
-  function setViewMode(mode) {
-    viewMode = mode;
-    document.getElementById('gridViewBtn').classList.toggle('active', mode === 'grid');
-    document.getElementById('listViewBtn').classList.toggle('active', mode === 'list');
-    renderProductGrid();
-  }
-
   // ==================== EVENT LISTENERS ====================
   document.getElementById('confirmStoreBtn').addEventListener('click', () => {
     initialStore = document.getElementById('initialStoreSelect').value;
@@ -2888,6 +3066,21 @@ if (paperSizeSelect) {
     document.getElementById('loginModal').style.display = 'flex';
     document.getElementById('pinInput').focus();
   });
+
+  // ==================== VIEW TOGGLE FUNCTIONS ====================
+  function setViewMode(mode) {
+    viewMode = mode;
+    document.getElementById('gridViewBtn').classList.toggle('active', mode === 'grid');
+    document.getElementById('listViewBtn').classList.toggle('active', mode === 'list');
+    renderProductGrid();   // re‑render products with the new view mode
+  }
+
+  const gridBtn = document.getElementById('gridViewBtn');
+  const listBtn = document.getElementById('listViewBtn');
+  if (gridBtn && listBtn) {
+    gridBtn.addEventListener('click', () => setViewMode('grid'));
+    listBtn.addEventListener('click', () => setViewMode('list'));
+  }
 
   async function verifyEmployeeByPin(pin) {
     showLoading('Verifying...');
@@ -2940,7 +3133,7 @@ if (paperSizeSelect) {
         } else {
           settlementStoreSelect.disabled = false;
         }
-startReceiptPolling();
+
         updateCartUI();
         return true;
       } else {
@@ -2956,99 +3149,43 @@ startReceiptPolling();
     }
   }
 
-  // Attach other event listeners (reports, receipts, etc.) - abbreviated for brevity but fully functional in final code
-  const gridBtn = document.getElementById('gridViewBtn');
-  const listBtn = document.getElementById('listViewBtn');
-  if (gridBtn && listBtn) {
-    gridBtn.addEventListener('click', () => setViewMode('grid'));
-    listBtn.addEventListener('click', () => setViewMode('list'));
-  }
-
-  if (inventoryModeBtn) {
-    inventoryModeBtn.addEventListener('click', toggleInventoryMode);
-  }
-
-  const clearStockHistoryBtn = document.getElementById('clearStockHistoryBtn');
-  if (clearStockHistoryBtn) {
-    clearStockHistoryBtn.addEventListener('click', clearStockHistory);
-  }
-
-  const pinInput = document.getElementById('pinInput');
-  if (pinInput) {
-    document.querySelectorAll('.keypad-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (btn.dataset.digit && pinInput.value.length < 4) pinInput.value += btn.dataset.digit;
-        else if (btn.dataset.action === 'clear') pinInput.value = pinInput.value.slice(0, -1);
-        else if (btn.dataset.action === 'enter' && pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value);
-        else if (btn.dataset.action === 'enter') document.getElementById('loginError').innerText = 'Please enter 4-digit PIN';
-      });
-    });
-    pinInput.addEventListener('input', () => {
-      if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value);
-    });
-  }
-
-  // Additional listeners (reports, receipts, etc.) are included in the full version.
-  // For completeness, we add them here (abbreviated).
-if (document.getElementById('reportsButton')) {
-  document.getElementById('reportsButton').addEventListener('click', async () => {
-    if (currentEmployee?.isAdmin) {
-      const employees = await fetchEmployees();
-      const adminReportEmpSelect = document.getElementById('adminReportEmployeeSelect');
-      const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
-      if (adminReportEmpSelect && receiptsEmpSelect) {
-        adminReportEmpSelect.innerHTML = '<option value="all">All Employees</option>';
-        receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
-        employees.forEach(emp => {
-          const opt1 = document.createElement('option');
-          opt1.value = emp.id;
-          opt1.textContent = `${emp.name} (ID: ${emp.id})`;
-          const opt2 = document.createElement('option');
-          opt2.value = emp.id;
-          opt2.textContent = `${emp.name} (ID: ${emp.id})`;
-          adminReportEmpSelect.appendChild(opt1);
-          receiptsEmpSelect.appendChild(opt2);
-        });
+  if (document.getElementById('reportsButton')) {
+    document.getElementById('reportsButton').addEventListener('click', async () => {
+      if (currentEmployee?.isAdmin) {
+        const employees = await fetchEmployees();
+        const adminReportEmpSelect = document.getElementById('adminReportEmployeeSelect');
+        const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
+        if (adminReportEmpSelect && receiptsEmpSelect) {
+          adminReportEmpSelect.innerHTML = '<option value="all">All Employees</option>';
+          receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
+          employees.forEach(emp => {
+            const opt1 = document.createElement('option'); opt1.value = emp.id; opt1.textContent = `${emp.name} (ID: ${emp.id})`;
+            const opt2 = document.createElement('option'); opt2.value = emp.id; opt2.textContent = `${emp.name} (ID: ${emp.id})`;
+            adminReportEmpSelect.appendChild(opt1);
+            receiptsEmpSelect.appendChild(opt2);
+          });
+        }
+        const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
+        const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
+        if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'flex';
+        if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'flex';
+      } else {
+        const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
+        const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
+        if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'none';
+        if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'none';
+        const receiptsStore = document.getElementById('receiptsStoreSelect');
+        if (receiptsStore) receiptsStore.value = currentStore;
       }
-      const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
-      const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
-      if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'flex';
-      if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'flex';
-    } else {
-      const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
-      const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
-      if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'none';
-      if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'none';
-      const receiptsStore = document.getElementById('receiptsStoreSelect');
-      if (receiptsStore) receiptsStore.value = currentStore;
-    }
-    populateStoreSelects();
-
-    const modal = document.getElementById('adminReportModal');
-    if (modal) {
-      modal.style.display = 'flex';
-
-      // Add loading indicator inside modal (if not already present)
-      let loadingMsg = document.getElementById('adminReportLoadingMsg');
-      if (!loadingMsg) {
-        loadingMsg = document.createElement('div');
-        loadingMsg.id = 'adminReportLoadingMsg';
-        loadingMsg.style.textAlign = 'center';
-        loadingMsg.style.padding = '20px';
-        loadingMsg.style.background = '#f8fafc';
-        loadingMsg.style.borderRadius = '12px';
-        loadingMsg.style.margin = '10px 0';
-        loadingMsg.innerText = 'Loading report data...';
-        const reportStats = document.querySelector('#adminReportModal .report-stats');
-        if (reportStats) reportStats.insertAdjacentElement('beforebegin', loadingMsg);
+      populateStoreSelects();
+      const modal = document.getElementById('adminReportModal');
+      if (modal) {
+        modal.style.display = 'flex';
+        setTimeout(() => updateAdminReport(), 200);
       }
-      loadingMsg.style.display = 'block';
+    });
+  }
 
-      // Load fresh data
-      setTimeout(() => updateAdminReport(), 200);
-    }
-  });
-}
   if (document.getElementById('closeAdminReportBtn')) {
     document.getElementById('closeAdminReportBtn').addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
   }
@@ -3076,68 +3213,35 @@ if (document.getElementById('reportsButton')) {
   }
 
   if (document.getElementById('receiptsButton')) {
-  document.getElementById('receiptsButton').addEventListener('click', async () => {
-    // 1. Open modal instantly
-    const modal = document.getElementById('receiptsModal');
-    if (modal) {
-      modal.style.display = 'flex';
-
-      // 2. Add loading indicator inside modal (if not already present)
-      let loadingMsg = document.getElementById('receiptsLoadingMsg');
-      if (!loadingMsg) {
-        loadingMsg = document.createElement('div');
-        loadingMsg.id = 'receiptsLoadingMsg';
-        loadingMsg.style.textAlign = 'center';
-        loadingMsg.style.padding = '20px';
-        loadingMsg.style.background = '#f8fafc';
-        loadingMsg.style.borderRadius = '12px';
-        loadingMsg.style.margin = '10px 0';
-        loadingMsg.innerText = 'Loading receipts...';
-        const receiptsList = document.getElementById('receiptsList');
-        if (receiptsList) receiptsList.insertAdjacentElement('beforebegin', loadingMsg);
+    document.getElementById('receiptsButton').addEventListener('click', async () => {
+      if (currentEmployee?.isAdmin) {
+        const employees = await fetchEmployees();
+        const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
+        if (receiptsEmpSelect) {
+          receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
+          employees.forEach(emp => {
+            const opt = document.createElement('option'); opt.value = emp.id; opt.textContent = `${emp.name} (ID: ${emp.id})`;
+            receiptsEmpSelect.appendChild(opt);
+          });
+        }
+        const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
+        const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
+        if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'flex';
+        if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'flex';
+      } else {
+        const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
+        const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
+        if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'none';
+        if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'none';
+        const receiptsStore = document.getElementById('receiptsStoreSelect');
+        if (receiptsStore) receiptsStore.value = currentStore;
       }
-      loadingMsg.style.display = 'block';
-    }
-
-    // 3. Background tasks (admin filter setup, etc.)
-    if (currentEmployee?.isAdmin) {
-      const employees = await fetchEmployees();
-      const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
-      if (receiptsEmpSelect) {
-        receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
-        employees.forEach(emp => {
-          const opt = document.createElement('option');
-          opt.value = emp.id;
-          opt.textContent = `${emp.name} (ID: ${emp.id})`;
-          receiptsEmpSelect.appendChild(opt);
-        });
-      }
-      const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
-      const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
-      if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'flex';
-      if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'flex';
-    } else {
-      const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
-      const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
-      if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'none';
-      if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'none';
-      const receiptsStore = document.getElementById('receiptsStoreSelect');
-      if (receiptsStore) receiptsStore.value = currentStore;
-    }
-
-    populateStoreSelects();
-
-    // 4. Show cached data instantly if available
-    if (cachedReceipts) {
-      renderReceiptsList(cachedReceipts);
-      const msg = document.getElementById('receiptsLoadingMsg');
-      if (msg) msg.style.display = 'none';
-    }
-
-    // 5. Fetch fresh data in background (will update the list)
-    updateReceipts();
-  });
-}
+      populateStoreSelects();
+      const modal = document.getElementById('receiptsModal');
+      if (modal) modal.style.display = 'flex';
+      updateReceipts();
+    });
+  }
 
   if (document.getElementById('closeReceiptsBtn')) {
     document.getElementById('closeReceiptsBtn').addEventListener('click', () => document.getElementById('receiptsModal').style.display = 'none');
@@ -3185,6 +3289,7 @@ if (document.getElementById('reportsButton')) {
       }
     });
   }
+
   if (document.getElementById('checkSettlementBtn')) {
     document.getElementById('checkSettlementBtn').addEventListener('click', async () => {
       const actualCash = parseFloat(document.getElementById('actualCash').value);
@@ -3235,6 +3340,7 @@ if (document.getElementById('reportsButton')) {
       }
     });
   }
+
   if (document.getElementById('recordSettlementBtn')) {
     document.getElementById('recordSettlementBtn').addEventListener('click', async () => {
       const store = document.getElementById('settlementStoreSelect').value;
@@ -3331,6 +3437,7 @@ if (document.getElementById('reportsButton')) {
         currentStore = storeSelect.value;
         await fetchProductsFromSheet();
         clearCart();
+        if (inventoryMode) refreshStockHistory();
       }
     });
   }
@@ -3352,6 +3459,11 @@ if (document.getElementById('reportsButton')) {
       fetchProductsFromSheet(true);
     });
   }
+  if (refreshStockHistoryBtn) {
+    refreshStockHistoryBtn.addEventListener('click', () => {
+      if (inventoryMode) refreshStockHistory();
+    });
+  }
   if (searchInput) {
     searchInput.addEventListener('input', () => {
       clearTimeout(searchTimeout);
@@ -3362,33 +3474,39 @@ if (document.getElementById('reportsButton')) {
     categorySelect.addEventListener('change', renderProductGrid);
   }
   if (document.getElementById('logoutButton')) {
-  document.getElementById('logoutButton').addEventListener('click', () => {
-    // Stop background receipt polling
-    if (typeof stopReceiptPolling === 'function') stopReceiptPolling();
-
-    // Clear cached receipts
-    cachedReceipts = null;
-
-    // Reset current employee and UI
-    currentEmployee = null;
-    document.getElementById('mainContent').style.display = 'none';
-    document.getElementById('loginModal').style.display = 'flex';
-    document.getElementById('pinInput').value = '';
-    document.getElementById('loginError').innerText = '';
-
-    // Clear cart and product list
-    cart = [];
-    products = [];
-
-    // Optionally clear any other global state (e.g., stock history)
-    if (typeof clearStockHistory === 'function') clearStockHistory();
-
-    // Refresh product grid (will show loading state)
-    renderProductGrid();
-  });
-}
+    document.getElementById('logoutButton').addEventListener('click', () => {
+      currentEmployee = null;
+      document.getElementById('mainContent').style.display = 'none';
+      document.getElementById('loginModal').style.display = 'flex';
+      document.getElementById('pinInput').value = '';
+      document.getElementById('loginError').innerText = '';
+      cart = [];
+      products = [];
+    });
+  }
   if (document.getElementById('closeLoginModal')) {
     document.getElementById('closeLoginModal').addEventListener('click', () => {});
+  }
+  if (document.getElementById('gridViewBtn')) {
+    document.getElementById('gridViewBtn').addEventListener('click', () => setViewMode('grid'));
+  }
+  if (document.getElementById('listViewBtn')) {
+    document.getElementById('listViewBtn').addEventListener('click', () => setViewMode('list'));
+  }
+
+  const pinInput = document.getElementById('pinInput');
+  if (pinInput) {
+    document.querySelectorAll('.keypad-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.digit && pinInput.value.length < 4) pinInput.value += btn.dataset.digit;
+        else if (btn.dataset.action === 'clear') pinInput.value = pinInput.value.slice(0, -1);
+        else if (btn.dataset.action === 'enter' && pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value);
+        else if (btn.dataset.action === 'enter') document.getElementById('loginError').innerText = 'Please enter 4-digit PIN';
+      });
+    });
+    pinInput.addEventListener('input', () => {
+      if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value);
+    });
   }
 
   async function fetchEmployees() {
@@ -3476,6 +3594,7 @@ if (document.getElementById('reportsButton')) {
     });
   }
 
+  // Claim modal close handlers
   const closeClaimPrizeModal = document.getElementById('closeClaimPrizeModal');
   if (closeClaimPrizeModal) {
     closeClaimPrizeModal.addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
@@ -3497,6 +3616,7 @@ if (document.getElementById('reportsButton')) {
     applyPrizeBtn.addEventListener('click', applyPrizeToCart);
   }
 
+  // Special Promo modal close handlers
   const closeSpecialPromoModal = document.getElementById('closeSpecialPromoModal');
   if (closeSpecialPromoModal) {
     closeSpecialPromoModal.addEventListener('click', () => document.getElementById('specialPromoModal').style.display = 'none');
@@ -3518,121 +3638,10 @@ if (document.getElementById('reportsButton')) {
     applyCustomPromoBtn.addEventListener('click', applyCustomDiscount);
   }
 
-  // ==================== CASH COLLECTION ====================
-let currentUnsettledCash = [];
-
-async function openCollectionModal() {
-  const modal = document.getElementById('collectionModal');
-  modal.style.display = 'flex';
-
-  // Create or get loading message element inside modal
-  let loadingMsg = document.getElementById('collectionLoadingMsg');
-  if (!loadingMsg) {
-    loadingMsg = document.createElement('div');
-    loadingMsg.id = 'collectionLoadingMsg';
-    loadingMsg.style.textAlign = 'center';
-    loadingMsg.style.padding = '20px';
-    loadingMsg.style.background = '#f8fafc';
-    loadingMsg.style.borderRadius = '12px';
-    loadingMsg.style.margin = '10px 0';
-    loadingMsg.innerText = 'Loading unsettled cash...';
-    const container = document.querySelector('#collectionModal .modal-container');
-    const collectionTotalDiv = document.getElementById('collectionTotal');
-    if (container && collectionTotalDiv) {
-      container.insertBefore(loadingMsg, collectionTotalDiv);
-    }
+  // Inventory mode toggle
+  if (inventoryModeBtn) {
+    inventoryModeBtn.addEventListener('click', toggleInventoryMode);
   }
-  loadingMsg.style.display = 'block';
-
-  await loadUnsettledCash();
-  loadingMsg.style.display = 'none';
-}
-
-async function loadUnsettledCash() {
-  const store = document.getElementById('collectionStoreSelect').value;
-  showLoading('Loading unsettled cash...');
-  try {
-    let url = `${APPS_SCRIPT_URL}?action=getUnsettledCash&store=${store}`;
-    const response = await fetch(url);
-    const result = await response.json();
-    if (result.success) {
-      currentUnsettledCash = result.records;
-      renderCollectionTable();
-      updateTotalOutstanding();
-      document.getElementById('collectSelectedBtn').disabled = true;
-      const selectAll = document.getElementById('selectAllCheckbox');
-      if (selectAll) selectAll.checked = false;
-    } else {
-      await showAlertModal('Error', 'Failed to load unsettled cash: ' + (result.error || 'Unknown error'));
-    }
-  } catch (err) {
-    console.error(err);
-    await showAlertModal('Error', 'Connection error while loading unsettled cash.');
-  } finally {
-    hideLoading();
-  }
-}
-
-function renderCollectionTable() {
-  const tbody = document.getElementById('collectionTableBody');
-  if (!currentUnsettledCash.length) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No unsettled cash records found.</td></tr>';
-    return;
-  }
-  let html = '';
-  currentUnsettledCash.forEach(rec => {
-    const date = new Date(rec.timestamp).toLocaleDateString();
-    html += `<tr data-id="${rec.id}">
-      <td><input type="checkbox" class="collection-checkbox" value="${rec.id}"></td>
-      <td>${date}</td>
-      <td>${getEmployeeName(rec.employee_id)}</td>
-      <td style="text-align: right;">RM ${rec.cash_actual.toFixed(2)}</td>
-    </tr>`;
-  });
-  tbody.innerHTML = html;
-  document.querySelectorAll('.collection-checkbox').forEach(cb => {
-    cb.addEventListener('change', updateCollectionButtonState);
-  });
-}
-
-function updateTotalOutstanding() {
-  const total = currentUnsettledCash.reduce((sum, rec) => sum + rec.cash_actual, 0);
-  document.getElementById('totalOutstandingCash').innerText = `RM ${total.toFixed(2)}`;
-}
-
-function updateCollectionButtonState() {
-  const anyChecked = document.querySelectorAll('.collection-checkbox:checked').length > 0;
-  document.getElementById('collectSelectedBtn').disabled = !anyChecked;
-}
-
-// Add this event listener inside the existing code (already present, but ensure it's there)
-if (document.getElementById('collectSelectedBtn')) {
-  document.getElementById('collectSelectedBtn').addEventListener('click', async () => {
-    const selectedIds = Array.from(document.querySelectorAll('.collection-checkbox:checked')).map(cb => cb.value);
-    if (selectedIds.length === 0) return;
-    showLoading('Marking as collected...');
-    try {
-      const formData = new URLSearchParams();
-      formData.append("action", "markCashCollected");
-      formData.append("ids", JSON.stringify(selectedIds));
-      formData.append("employee_id", currentEmployee.id);
-      formData.append("employee_name", currentEmployee.name);
-      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
-      const result = await response.json();
-      if (result.success) {
-        await showAlertModal('Success', `${selectedIds.length} cash record(s) marked as collected.`);
-        await loadUnsettledCash();
-      } else {
-        await showAlertModal('Error', 'Failed to mark as collected: ' + (result.error || 'Unknown error'));
-      }
-    } catch (err) {
-      console.error(err);
-      await showAlertModal('Error', 'Connection error while marking collected.');
-    } finally {
-      hideLoading();
-    }
-  });
-}
 </script>
 </body>
 </html>
