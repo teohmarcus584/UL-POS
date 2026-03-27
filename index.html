@@ -285,21 +285,113 @@
       transform: scale(0.97);
     }
     .cart-items { max-height: 50vh; overflow-y: auto; margin-bottom: 20px; }
-    .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #edf2f7; }
-    .cart-item-info { flex: 2; }
-    .cart-item-name { font-weight: 500; font-size: 0.9rem; }
-    .cart-item-category { font-size: 0.7rem; color: #64748b; margin-top: 2px; }
-    .cart-item-price { font-size: 0.8rem; color: #2c7a4b; }
-    .cart-item-qty { display: flex; align-items: center; gap: 8px; margin: 0 12px; }
-    .qty-btn { background: #f1f5f9; border: none; width: 28px; height: 28px; border-radius: 30px; font-weight: bold; font-size: 1rem; cursor: pointer; }
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #edf2f7;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .cart-item-info {
+      flex: 2;
+      min-width: 100px;
+    }
+    .cart-item-name {
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+    .cart-item-category {
+      font-size: 0.7rem;
+      color: #64748b;
+      margin-top: 2px;
+    }
+    .cart-item-price {
+      font-size: 0.8rem;
+      color: #2c7a4b;
+    }
+    .cart-item-free {
+      display: flex;
+      align-items: center;
+      margin: 0 8px;
+    }
+    .free-gift-label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+    .free-gift-checkbox {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    .cart-item-qty {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 12px;
+    }
+    .qty-btn {
+      background: #f1f5f9;
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 30px;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+    }
     .qty-btn:active { background: #e2e8f0; }
-    .cart-item-total { font-weight: 600; min-width: 65px; text-align: right; }
-    .remove-item { background: none; border: none; color: #ef4444; font-size: 1.2rem; cursor: pointer; margin-left: 8px; width: 28px; }
-    .cart-summary { border-top: 2px dashed #e2e8f0; padding-top: 16px; margin-top: 8px; }
-    .summary-row { display: flex; justify-content: space-between; margin: 10px 0; font-size: 1.1rem; }
-    .total-row { font-weight: 800; font-size: 1.4rem; color: #0f172a; border-top: 1px solid #cbd5e1; padding-top: 12px; margin-top: 8px; }
-    .cart-actions { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
-    .cart-actions button { flex: 1; padding: 12px; border-radius: 40px; font-weight: 600; border: none; cursor: pointer; }
+    .cart-item-total {
+      font-weight: 600;
+      min-width: 65px;
+      text-align: right;
+    }
+    .remove-item {
+      background: none;
+      border: none;
+      color: #ef4444;
+      font-size: 1.2rem;
+      cursor: pointer;
+      margin-left: 8px;
+      width: 28px;
+    }
+    .cart-summary {
+      border-top: 2px dashed #e2e8f0;
+      padding-top: 16px;
+      margin-top: 8px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 10px 0;
+      font-size: 1.1rem;
+    }
+    .total-row {
+      font-weight: 800;
+      font-size: 1.4rem;
+      color: #0f172a;
+      border-top: 1px solid #cbd5e1;
+      padding-top: 12px;
+      margin-top: 8px;
+    }
+    .cart-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    .cart-actions button {
+      flex: 1;
+      padding: 12px;
+      border-radius: 40px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+    }
     #checkoutBtn { background: #2c7a4b; color: white; }
     #claimPrizeBtn { background: #f59e0b; color: white; }
     #specialPromoBtn { background: #8b5cf6; color: white; }
@@ -364,6 +456,7 @@
       background: #dc2626;
     }
 
+    /* Modals, etc. (unchanged) */
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 2000;
@@ -451,6 +544,17 @@
       .product-list .product-name, .product-list .product-price, .product-list .product-stock { margin: 4px 0; text-align: center; }
       .product-list .add-btn { width: 100%; }
       .store-selector { flex-direction: column; align-items: stretch; }
+      .cart-item {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .cart-item-info, .cart-item-free, .cart-item-qty, .cart-item-total, .remove-item {
+        justify-content: space-between;
+        margin: 4px 0;
+      }
+      .cart-item-free {
+        justify-content: flex-start;
+      }
     }
     .payment-buttons {
       display: flex;
@@ -1078,7 +1182,7 @@
 <div id="luckyDrawModal" class="modal-overlay"><div class="modal-container" style="max-width: 400px;"><span class="close-modal" id="closeLuckyDrawModal">×</span><div class="modal-title">🎲 Lucky Draw</div><p>Transaction ID: <strong id="luckyTxId"></strong></p><p>Click below to enter the Lucky Draw with this receipt number.</p><div class="modal-buttons"><button id="openLuckyDrawBtn" class="modal-btn modal-btn-primary">🎁 Go to Lucky Draw</button><button id="closeLuckyDrawBtn" class="modal-btn modal-btn-secondary">Close</button></div></div></div>
 <div id="claimPrizeModal" class="modal-overlay"><div class="modal-container" style="max-width: 400px;"><span class="close-modal" id="closeClaimPrizeModal">×</span><div class="modal-title">🎁 Claim Prize</div><div id="claimStep1"><p>Enter the receipt number from your Lucky Draw:</p><input type="text" id="claimReceiptInput" class="modal-input" placeholder="e.g., TXN-1234567890-123" style="width: 100%; margin: 12px 0; padding: 12px;"><div class="modal-buttons"><button id="checkReceiptBtn" class="modal-btn modal-btn-primary">Check</button><button id="cancelClaimBtn" class="modal-btn modal-btn-secondary">Cancel</button></div></div><div id="claimStep2" style="display: none;"><p>Receipt: <strong id="validReceiptId"></strong></p><p>Select your prize:</p><select id="prizeSelect" class="modal-input" style="width: 100%; margin: 12px 0; padding: 12px;"><option value="38">CAR AROMATIC - RM 38</option><option value="75">15ML TRAVEL PERFUME - RM 75</option><option value="109">300ML LOTION - RM 109</option><option value="75">100ML PILLOW MIST - RM 75</option></select><div class="modal-buttons"><button id="applyPrizeBtn" class="modal-btn modal-btn-primary">Apply Discount</button><button id="cancelClaimStep2Btn" class="modal-btn modal-btn-secondary">Cancel</button></div></div><div id="claimError" style="color:#ef4444; margin-top: 12px; display: none;"></div></div></div>
 <div id="specialPromoModal" class="modal-overlay"><div class="modal-container" style="max-width: 400px;"><span class="close-modal" id="closeSpecialPromoModal">×</span><div class="modal-title">🎁 Special Promo</div><div id="promoOptions"><button id="promoBuy2Free1Perfume" class="modal-btn modal-btn-primary promo-option-btn">🎯 Buy 2 Free 1 (100ml Perfume EDP)</button><button id="promoBuy3Free1ExcludePerfume" class="modal-btn modal-btn-primary promo-option-btn">🎯 Buy 3 Free 1 (Excluding Perfume)</button><div class="custom-discount-section"><label>Custom Discount (RM)</label><div class="currency-input"><span class="currency-symbol">RM</span><input type="number" id="customPromoValue" class="modal-input currency-field" placeholder="0.00" step="0.01" min="0"></div><button id="applyCustomPromoBtn" class="modal-btn modal-btn-primary apply-btn">💰 Apply Custom Discount</button></div></div><div id="promoMessage" style="color:#ef4444; margin-top:12px; display:none;"></div><div class="modal-buttons"><button id="closeSpecialPromoModalBtn" class="modal-btn modal-btn-secondary">Close</button></div></div></div>
-<div id="adminReportModal" class="modal-overlay"><div class="modal-container"><span class="close-modal" id="closeAdminReportModal">×</span><div class="modal-title">📊 Sales Report</div><div class="report-filters"><div class="filter-group" id="reportStoreFilterGroup" style="display: none;"><label>Store</label><select id="adminReportStoreSelect"><option value="all">All Stores</option><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div><div class="filter-group" id="employeeFilterGroup" style="display: none;"><label>Employee</label><select id="adminReportEmployeeSelect"><option value="all">All Employees</option></select></div><div class="filter-group"><label>Date Range</label><select id="adminReportDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div><div id="adminReportCustomDateRange" style="display: none;" class="date-range"><input type="date" id="adminReportFromDate"><input type="date" id="adminReportToDate"></div></div><div class="report-stats"><div class="stat-item">Total Sales: <span id="adminReportTotalSales" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">💵 Cash: <span id="adminReportCashTotal" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">💳 Card: <span id="adminReportCardTotal" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">📱 Other: <span id="adminReportOtherTotal" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">💰 Refunds: <span id="adminReportRefundTotal" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">📄 Refunded Bills: <span id="adminReportRefundedBills" class="stat-value">0</span></div><div class="stat-item">Transactions: <span id="adminReportTransactionCount" class="stat-value">0</span></div><div class="stat-item">Items Sold: <span id="adminReportTotalItems" class="stat-value">0</span></div></div><div class="chart-container" id="storeChartContainer" style="display: none;"><canvas id="storeChart" width="400" height="200"></canvas></div><div class="chart-container"><canvas id="dayChart" width="400" height="200"></canvas></div><div class="chart-container" id="employeeChartContainer" style="display: none;"><canvas id="employeeChart" width="400" height="200"></canvas></div><div class="modal-section"><button id="toggleProductDetailsBtn" class="modal-btn modal-btn-secondary" style="margin-bottom: 12px;">📦 Show Product Details</button><div id="productDetailsContainer" style="display: none;"><h3 style="margin: 0 0 12px 0;">Product Sales Breakdown</h3><div id="productDetailsTable" style="max-height: 300px; overflow-y: auto;"><table class="product-details-table"><thead>...</thead><tbody id="productDetailsBody"></tbody>...</table></div></div></div><div class="modal-buttons"><button id="closeAdminReportBtn" class="modal-btn modal-btn-secondary">Close</button></div></div></div>
+<div id="adminReportModal" class="modal-overlay"><div class="modal-container"><span class="close-modal" id="closeAdminReportModal">×</span><div class="modal-title">📊 Sales Report</div><div class="report-filters"><div class="filter-group" id="reportStoreFilterGroup" style="display: none;"><label>Store</label><select id="adminReportStoreSelect"><option value="all">All Stores</option><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div><div class="filter-group" id="employeeFilterGroup" style="display: none;"><label>Employee</label><select id="adminReportEmployeeSelect"><option value="all">All Employees</option></select></div><div class="filter-group"><label>Date Range</label><select id="adminReportDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div><div id="adminReportCustomDateRange" style="display: none;" class="date-range"><input type="date" id="adminReportFromDate"><input type="date" id="adminReportToDate"></div></div><div class="report-stats"><div class="stat-item">Total Sales: <span id="adminReportTotalSales" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">💵 Cash: <span id="adminReportCashTotal" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">💳 Card: <span id="adminReportCardTotal" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">📱 Other: <span id="adminReportOtherTotal" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">💰 Refunds: <span id="adminReportRefundTotal" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">📄 Refunded Bills: <span id="adminReportRefundedBills" class="stat-value">0</span></div><div class="stat-item">Transactions: <span id="adminReportTransactionCount" class="stat-value">0</span></div><div class="stat-item">Items Sold: <span id="adminReportTotalItems" class="stat-value">0</span></div></div><div class="chart-container" id="storeChartContainer" style="display: none;"><canvas id="storeChart" width="400" height="200"></canvas></div><div class="chart-container"><canvas id="dayChart" width="400" height="200"></canvas></div><div class="chart-container" id="employeeChartContainer" style="display: none;"><canvas id="employeeChart" width="400" height="200"></canvas></div><div class="modal-section"><button id="toggleProductDetailsBtn" class="modal-btn modal-btn-secondary" style="margin-bottom: 12px;">📦 Show Product Details</button><div id="productDetailsContainer" style="display: none;"><h3 style="margin: 0 0 12px 0;">Product Sales Breakdown</h3><div id="productDetailsTable" style="max-height: 300px; overflow-y: auto;"><table class="product-details-table"><thead>...</thead><tbody id="productDetailsBody"></tbody>... </table></div></div></div><div class="modal-buttons"><button id="closeAdminReportBtn" class="modal-btn modal-btn-secondary">Close</button></div></div></div>
 <div id="settlementModal" class="modal-overlay"><div class="modal-container" style="max-width: 500px;"><span class="close-modal" id="closeSettlementModal">×</span><div class="modal-title">💰 Daily Settlement</div><div class="filter-group"><label>Store Location</label><select id="settlementStoreSelect"><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div><div class="filter-group"><label>Petty Cash Float (Starting Cash)</label><input type="number" id="pettyCashFloat" class="modal-input" placeholder="Enter starting cash float" step="0.01" value="0.00"></div><div class="settlement-stats" id="systemTotalsDisplay"><p>📊 System totals for today (all employees):</p><p>💵 Cash: <strong id="sysCash">RM 0.00</strong></p><p>💳 Card: <strong id="sysCard">RM 0.00</strong></p><p>📱 QR Pay: <strong id="sysQR">RM 0.00</strong></p><p>💰 Refunds: <strong id="sysRefund">RM 0.00</strong></p></div><div class="filter-group"><label>Cash Count (Actual)</label><input type="number" id="actualCash" class="modal-input" placeholder="Enter actual cash count" step="0.01"></div><div class="filter-group"><label>Card Settlement (Actual)</label><input type="number" id="actualCard" class="modal-input" placeholder="Enter actual card settlement" step="0.01"></div><div class="filter-group"><label>QR Settlement (Actual)</label><input type="number" id="actualQR" class="modal-input" placeholder="Enter actual QR settlement" step="0.01"></div><div id="settlementError" style="color:#ef4444; margin: 12px 0; display: none;"></div><div class="modal-buttons"><button id="checkSettlementBtn" class="modal-btn modal-btn-primary">Check</button><button id="recordSettlementBtn" class="modal-btn modal-btn-primary" style="display: none;">Record Settlement</button><button id="closeSettlementModalBtn" class="modal-btn modal-btn-secondary">Cancel</button></div></div></div>
 <div id="collectionModal" class="modal-overlay"><div class="modal-container" style="max-width: 800px;"><span class="close-modal" id="closeCollectionModal">×</span><div class="modal-title">💵 Cash Collection</div><div class="filter-group"><label>Store</label><select id="collectionStoreSelect"><option value="all">All Stores</option><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div><div id="collectionTotal" class="settlement-stats" style="margin-top: 12px;"><p>💰 Total Outstanding Cash: <strong id="totalOutstandingCash">RM 0.00</strong></p></div><div style="overflow-x: auto;"><table class="collection-table" id="collectionTable"><thead><tr><th><input type="checkbox" id="selectAllCheckbox"></th><th>Date</th><th>Employee</th><th>Amount</th></tr></thead><tbody id="collectionTableBody"></tbody></table></div><div class="modal-buttons" style="margin-top: 16px;"><button id="collectSelectedBtn" class="modal-btn modal-btn-primary" disabled>Collect Selected</button><button id="closeCollectionModalBtn" class="modal-btn modal-btn-secondary">Close</button></div></div></div>
 <div id="receiptsModal" class="modal-overlay"><div class="modal-container"><span class="close-modal" id="closeReceiptsModal">×</span><div class="modal-title">📜 Receipt History</div><div class="receipts-filters"><div class="filter-group" id="receiptsStoreFilterGroup"><label>Store</label><select id="receiptsStoreSelect"><option value="all">All Stores</option></select></div><div id="receiptsEmployeeFilter" class="filter-group" style="display: none;"><label>Employee</label><select id="receiptsEmployeeSelect"><option value="all">All Employees</option></select></div><div class="filter-group"><label>Date Range</label><select id="receiptsDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div><div id="receiptsCustomDateRange" style="display: none;" class="date-range"><input type="date" id="receiptsFromDate"><input type="date" id="receiptsToDate"></div><div class="filter-group" style="flex: 2;"><label>Search (Receipt # or Product)</label><input type="text" id="receiptsSearch" placeholder="Type to filter..."></div></div><div id="receiptsList" class="receipts-list">Loading receipts...</div><div class="modal-buttons"><button id="closeReceiptsBtn" class="modal-btn modal-btn-secondary">Close</button></div></div></div>
@@ -1276,7 +1380,6 @@
   function logStockChange(productId, productName, category, oldStock, newStock, delta) {
     const now = Date.now();
     const formattedTime = new Date().toLocaleString();
-    // Store raw entry (we'll aggregate on display)
     stockHistory.unshift({
       productId,
       productName,
@@ -1287,10 +1390,9 @@
       timestamp: formattedTime,
       timestampMs: now
     });
-    renderStockHistory(); // Aggregated view
+    renderStockHistory();
   }
 
-  // NEW: Aggregated render – one row per product with net delta
   function renderStockHistory() {
     const historyList = document.getElementById('stockHistoryList');
     if (!historyList) return;
@@ -1300,8 +1402,7 @@
       return;
     }
 
-    // Aggregate by productId
-    const aggregated = new Map(); // key: productId, value: aggregated entry
+    const aggregated = new Map();
     for (const entry of stockHistory) {
       const id = entry.productId;
       if (!aggregated.has(id)) {
@@ -1317,7 +1418,6 @@
       }
       const agg = aggregated.get(id);
       agg.delta += entry.delta;
-      // Keep the most recent newStock and timestamp
       if (entry.timestampMs > agg.timestampMs) {
         agg.newStock = entry.newStock;
         agg.timestamp = entry.timestamp;
@@ -1325,7 +1425,6 @@
       }
     }
 
-    // Build HTML from aggregated entries
     let html = '';
     for (const entry of aggregated.values()) {
       const deltaClass = entry.delta > 0 ? 'delta' : 'delta negative';
@@ -1347,7 +1446,6 @@
     historyList.innerHTML = html;
   }
 
-  // Clear history: delete from sheet and clear local array
   async function clearStockHistory() {
     if (stockHistory.length === 0) {
       await showAlertModal('No History', 'There is no stock adjustment history to clear.');
@@ -1357,7 +1455,7 @@
     const confirmed = await showConfirmModal('Clear History', `Are you sure you want to permanently delete all stock history for store "${currentStore}"? This action cannot be undone.`);
     if (!confirmed) return;
 
-   
+    showLoading('Deleting history from sheet...');
     try {
       const formData = new URLSearchParams();
       formData.append('action', 'clearStockHistory');
@@ -1366,10 +1464,9 @@
       const result = await response.json();
 
       if (result.success) {
-        // Clear local array and re-render
         stockHistory = [];
         renderStockHistory();
-       
+        await showAlertModal('Success', `All stock history for store "${currentStore}" has been deleted.`);
       } else {
         throw new Error(result.error || 'Unknown error');
       }
@@ -1386,7 +1483,7 @@
       await showAlertModal('No History', 'There is no stock adjustment history to save.');
       return;
     }
-    
+    showLoading('Saving stock history...');
     try {
       const formData = new URLSearchParams();
       formData.append('action', 'saveStockHistory');
@@ -1397,7 +1494,7 @@
       const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
       const result = await response.json();
       if (result.success) {
-        
+        await showAlertModal('Saved', `Stock history (${stockHistory.length} entries) saved to Google Sheet.`);
       } else {
         throw new Error(result.error || 'Unknown error');
       }
@@ -1434,21 +1531,18 @@
   function toggleInventoryMode() {
     inventoryMode = !inventoryMode;
     if (inventoryMode) {
-      // Enter inventory mode: hide cart content, show stock history, change title
       cartNormalContent.style.display = 'none';
       stockHistoryContainerDiv.style.display = 'flex';
       cartPanelTitle.innerText = '📦 Inventory Mode';
       inventoryModeBtn.innerText = '🛍️ Exit Inventory';
       if (updateStockTimeout) clearTimeout(updateStockTimeout);
-      loadStockHistoryFromSheet(); // load saved history
+      loadStockHistoryFromSheet();
       renderProductGrid();
     } else {
-      // Exit inventory mode: restore cart, clear history, hide stock panel
       cartNormalContent.style.display = 'block';
       stockHistoryContainerDiv.style.display = 'none';
       cartPanelTitle.innerText = '🧾 Current Sale';
       inventoryModeBtn.innerText = '📦 Inventory Mode';
-      // Do NOT clear stockHistory automatically; user may want to keep it.
       renderProductGrid();
     }
   }
@@ -1620,24 +1714,30 @@
     let html = '';
     let subtotal = 0;
     cart.forEach((item, idx) => {
-      const itemTotal = item.product.price * item.quantity;
+      const effectivePrice = item.isFreeGift ? 0 : item.product.price;
+      const itemTotal = effectivePrice * item.quantity;
       subtotal += itemTotal;
       const categoryDisplay = item.product.category
         ? `<div class="cart-item-category">${escapeHtml(item.product.category)}</div>`
         : '';
       html += `
-        <div class="cart-item">
+        <div class="cart-item" data-index="${idx}">
           <div class="cart-item-info">
             <div class="cart-item-name">${escapeHtml(item.product.name)}</div>
             ${categoryDisplay}
-            <div class="cart-item-price">RM ${item.product.price.toFixed(2)}</div>
+            <div class="cart-item-price">${item.isFreeGift ? 'FREE' : `RM ${item.product.price.toFixed(2)}`}</div>
+          </div>
+          <div class="cart-item-free">
+            <label class="free-gift-label">
+              <input type="checkbox" class="free-gift-checkbox" data-index="${idx}" ${item.isFreeGift ? 'checked' : ''}> Free
+            </label>
           </div>
           <div class="cart-item-qty">
             <button class="qty-btn" data-index="${idx}" data-delta="-1">−</button>
             <span>${item.quantity}</span>
             <button class="qty-btn" data-index="${idx}" data-delta="1">+</button>
           </div>
-          <div class="cart-item-total">RM ${itemTotal.toFixed(2)}</div>
+          <div class="cart-item-total">${item.isFreeGift ? 'RM 0.00' : `RM ${(item.product.price * item.quantity).toFixed(2)}`}</div>
           <button class="remove-item" data-index="${idx}">✕</button>
         </div>
       `;
@@ -1694,6 +1794,16 @@
         e.stopPropagation();
       });
     });
+    document.querySelectorAll('.free-gift-checkbox').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        const idx = parseInt(cb.dataset.index);
+        if (!isNaN(idx)) {
+          cart[idx].isFreeGift = cb.checked;
+          updateCartUI();
+        }
+        e.stopPropagation();
+      });
+    });
   }
 
   function updateQuantity(index, delta) {
@@ -1733,7 +1843,7 @@
       }
       existing.quantity += 1;
     } else {
-      cart.push({ product: { ...product }, quantity: 1 });
+      cart.push({ product: { ...product }, quantity: 1, isFreeGift: false });
     }
     updateCartUI();
     clearPromo();
@@ -1927,7 +2037,11 @@
         return;
       }
     }
-    const subtotal = cart.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
+    let subtotal = 0;
+    for (let item of cart) {
+      const effectivePrice = item.isFreeGift ? 0 : item.product.price;
+      subtotal += effectivePrice * item.quantity;
+    }
     const totalAmount = subtotal - discountAmount - (buy2Free1Discount + buy3Free1Discount + customDiscount);
     pendingTransaction = { totalAmount };
     showPaymentModal(totalAmount);
@@ -2004,9 +2118,10 @@
       id: item.product.id,
       category: item.product.category,
       name: item.product.name,
-      price: item.product.price,
+      price: item.isFreeGift ? 0 : item.product.price,
       quantity: item.quantity,
-      total: item.product.price * item.quantity
+      total: item.isFreeGift ? 0 : item.product.price * item.quantity,
+      is_free_gift: item.isFreeGift
     }));
     const transaction = {
       transaction_id: transactionId,
@@ -2083,7 +2198,6 @@
   let cachedReceipts = null;
   let receiptPollingInterval = null;
 
-  // Background receipt fetcher
   async function fetchAndCacheReceipts() {
     try {
       let store, employeeId;
@@ -2142,8 +2256,8 @@
 
   function startReceiptPolling() {
     if (receiptPollingInterval) clearInterval(receiptPollingInterval);
-    fetchAndCacheReceipts(); // initial fetch
-    receiptPollingInterval = setInterval(fetchAndCacheReceipts, 30000); // every 30 sec
+    fetchAndCacheReceipts();
+    receiptPollingInterval = setInterval(fetchAndCacheReceipts, 30000);
   }
 
   function stopReceiptPolling() {
@@ -2655,12 +2769,16 @@
       for (const [category, items] of Object.entries(grouped)) {
         let categoryTotal = 0;
         for (const item of items) {
-          categoryTotal += item.price * item.quantity;
+          categoryTotal += (item.is_free_gift ? 0 : item.price) * item.quantity;
         }
         lines.push(formatLine(category, `RM ${categoryTotal.toFixed(2)}`));
         for (const item of items) {
           lines.push(`  ${item.name}`);
-          lines.push(`  ${item.quantity} x RM ${item.price.toFixed(2)}`);
+          if (item.is_free_gift) {
+            lines.push(`  FREE GIFT`);
+          } else {
+            lines.push(`  ${item.quantity} x RM ${item.price.toFixed(2)}`);
+          }
         }
       }
       
@@ -3594,7 +3712,7 @@
   function renderCollectionTable() {
     const tbody = document.getElementById('collectionTableBody');
     if (!currentUnsettledCash.length) {
-      tbody.innerHTML = '前进<td colspan="4" style="text-align: center;">No unsettled cash records found.前进</td>';
+      tbody.innerHTML = '前进<td colspan="4" style="text-align: center;">No unsettled cash records found.前进</tr>';
       return;
     }
     let html = '';
@@ -3605,7 +3723,7 @@
         <td>${date}</td>
         <td>${getEmployeeName(rec.employee_id)}</td>
         <td style="text-align: right;">RM ${rec.cash_actual.toFixed(2)}</td>
-       </tr>`;
+      </tr>`;
     });
     tbody.innerHTML = html;
     document.querySelectorAll('.collection-checkbox').forEach(cb => {
@@ -3623,7 +3741,6 @@
     document.getElementById('collectSelectedBtn').disabled = !anyChecked;
   }
 
-  // Load employees for select dropdowns (used above)
   (async function initEmployeeSelects() {
     const employees = await fetchEmployees();
     const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
