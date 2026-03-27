@@ -947,8 +947,19 @@
     }
     .stock-change-indicator.negative {
       background: #fee2e2;
-      color: #b91c1c;
+      color: #b91c1c;   
     }
+    .product-category {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 6px;
+  font-weight: 400;
+}
+.product-list .product-category {
+  margin-bottom: 0;
+  flex: 1;
+  font-size: 0.8rem;
+}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -3016,23 +3027,30 @@ function renderProductGrid() {
     return;
   }
 
-  // Build HTML
   let html = '';
   filtered.forEach(prod => {
+    // Common category display (shown below product name)
+    const categoryHtml = `<div class="product-category">${escapeHtml(prod.category)}</div>`;
+
     if (inventoryMode) {
+      const netChange = pendingStockChanges[prod.id] || 0;
+      const indicatorHtml = netChange !== 0 ? `<div class="stock-change-indicator ${netChange > 0 ? 'positive' : 'negative'}">${netChange > 0 ? '+' : ''}${netChange}</div>` : '';
       html += `<div class="product-card">
         <div class="product-name">${escapeHtml(prod.name)}</div>
+        ${categoryHtml}
         <div class="product-price">RM ${prod.price.toFixed(2)}</div>
         <div class="inventory-controls">
           <button class="inventory-btn dec-stock" data-id="${prod.id}">−</button>
           <span class="stock-display" data-id="${prod.id}">${prod.stock}</span>
           <button class="inventory-btn inc-stock" data-id="${prod.id}">+</button>
         </div>
+        ${indicatorHtml}
       </div>`;
     } else {
       const stockStatus = prod.stock > 0 ? `📦 Stock: ${prod.stock}` : '❌ Out of stock';
       html += `<div class="product-card">
         <div class="product-name">${escapeHtml(prod.name)}</div>
+        ${categoryHtml}
         <div class="product-price">RM ${prod.price.toFixed(2)}</div>
         <div class="product-stock">${stockStatus}</div>
         <button class="add-btn" data-id="${prod.id}" ${prod.stock <= 0 ? 'disabled' : ''}>+ Add to cart</button>
