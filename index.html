@@ -1386,7 +1386,7 @@
       await showAlertModal('No History', 'There is no stock adjustment history to save.');
       return;
     }
-    showLoading('Saving stock history...');
+    
     try {
       const formData = new URLSearchParams();
       formData.append('action', 'saveStockHistory');
@@ -1397,7 +1397,7 @@
       const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
       const result = await response.json();
       if (result.success) {
-        await showAlertModal('Saved', `Stock history (${stockHistory.length} entries) saved to Google Sheet.`);
+        
       } else {
         throw new Error(result.error || 'Unknown error');
       }
