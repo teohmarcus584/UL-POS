@@ -1537,7 +1537,7 @@ async function recordStockAdjustment(productId, productName, oldStock, newStock)
 // Refresh the stock history table (call this when needed)
 async function refreshStockHistory() {
   if (!inventoryMode) return;
-  showLoading('Loading stock history...');
+  
   try {
     const history = await fetchStockHistory(currentStore);
     displayStockHistory(history);
