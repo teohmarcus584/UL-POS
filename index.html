@@ -3664,222 +3664,234 @@ if (document.getElementById('checkSettlementBtn')) {
     }
   }
 function toggleFreeCount(index) {
-  function populateStoreSelects() {
-    const stores = Array.from(storeSelect.options).map(opt => ({ value: opt.value, text: opt.text }));
+  const item = cart[index];
+  if (!item) return;
+  const maxFree = item.quantity;
+  const newFree = (item.freeQuantity + 1) % (maxFree + 1);
+  item.freeQuantity = newFree;
+  updateCartUI();
+  clearPromo();
+}
+
+// ==================== HELPERS (previously misplaced) ====================
+function populateStoreSelects() {
+  const stores = Array.from(storeSelect.options).map(opt => ({ value: opt.value, text: opt.text }));
+  const receiptsStore = document.getElementById('receiptsStoreSelect');
+  if (receiptsStore) {
+    receiptsStore.innerHTML = '<option value="all">All Stores</option>';
+    stores.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.value;
+      opt.textContent = s.text;
+      receiptsStore.appendChild(opt);
+    });
+  }
+}
+
+function updateReceipts() {
+  let store;
+  if (currentEmployee?.isAdmin) {
     const receiptsStore = document.getElementById('receiptsStoreSelect');
-    if (receiptsStore) {
-      receiptsStore.innerHTML = '<option value="all">All Stores</option>';
-      stores.forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.value;
-        opt.textContent = s.text;
-        receiptsStore.appendChild(opt);
-      });
-    }
+    store = receiptsStore ? receiptsStore.value : 'all';
+  } else {
+    store = currentStore;
   }
-
-  function updateReceipts() {
-    let store;
-    if (currentEmployee?.isAdmin) {
-      const receiptsStore = document.getElementById('receiptsStoreSelect');
-      store = receiptsStore ? receiptsStore.value : 'all';
-    } else {
-      store = currentStore;
-    }
-    let employeeId = 'all';
-    if (currentEmployee?.isAdmin) {
-      const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
-      employeeId = receiptsEmpSelect ? receiptsEmpSelect.value : 'all';
-    }
-    const rangeSelect = document.getElementById('receiptsDateRangeSelect');
-    const range = rangeSelect ? rangeSelect.value : 'today';
-    const search = document.getElementById('receiptsSearch').value;
-    let from = null, to = null;
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    if (range === 'today') {
-      from = getLocalDateString(today);
-      to = from;
-    } else if (range === 'week') {
-      const start = new Date(today);
-      const dayOfWeek = today.getDay();
-      const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
-      start.setDate(today.getDate() - diffToMonday);
-      from = getLocalDateString(start);
-      const end = new Date(start);
-      end.setDate(start.getDate() + 6);
-      to = getLocalDateString(end);
-    } else if (range === 'month') {
-      const start = new Date(today.getFullYear(), today.getMonth(), 1);
-      from = getLocalDateString(start);
-      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      to = getLocalDateString(end);
-    } else if (range === 'custom') {
-      from = document.getElementById('receiptsFromDate').value;
-      to = document.getElementById('receiptsToDate').value;
-      if (!from || !to) return;
-    }
-    fetchReceipts(store, employeeId, from, to, search);
-  }
-
-  const toggleBtn = document.getElementById('toggleProductDetailsBtn');
-  const productDetailsContainer = document.getElementById('productDetailsContainer');
-  if (toggleBtn && productDetailsContainer) {
-    toggleBtn.addEventListener('click', () => {
-      productDetailsVisible = !productDetailsVisible;
-      if (productDetailsVisible) {
-        productDetailsContainer.style.display = 'block';
-        toggleBtn.innerText = '📦 Hide Product Details';
-        if (lastProductData) renderProductDetails(lastProductData);
-      } else {
-        productDetailsContainer.style.display = 'none';
-        toggleBtn.innerText = '📦 Show Product Details';
-      }
-    });
-  }
-
-  const closeClaimPrizeModal = document.getElementById('closeClaimPrizeModal');
-  if (closeClaimPrizeModal) {
-    closeClaimPrizeModal.addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
-  }
-  const cancelClaimBtn = document.getElementById('cancelClaimBtn');
-  if (cancelClaimBtn) {
-    cancelClaimBtn.addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
-  }
-  const cancelClaimStep2Btn = document.getElementById('cancelClaimStep2Btn');
-  if (cancelClaimStep2Btn) {
-    cancelClaimStep2Btn.addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
-  }
-  const checkReceiptBtn = document.getElementById('checkReceiptBtn');
-  if (checkReceiptBtn) {
-    checkReceiptBtn.addEventListener('click', checkReceiptForClaim);
-  }
-  const applyPrizeBtn = document.getElementById('applyPrizeBtn');
-  if (applyPrizeBtn) {
-    applyPrizeBtn.addEventListener('click', applyPrizeToCart);
-  }
-
-  const closeSpecialPromoModal = document.getElementById('closeSpecialPromoModal');
-  if (closeSpecialPromoModal) {
-    closeSpecialPromoModal.addEventListener('click', () => document.getElementById('specialPromoModal').style.display = 'none');
-  }
-  const closeSpecialPromoModalBtn = document.getElementById('closeSpecialPromoModalBtn');
-  if (closeSpecialPromoModalBtn) {
-    closeSpecialPromoModalBtn.addEventListener('click', () => document.getElementById('specialPromoModal').style.display = 'none');
-  }
-  const promoBuy2Free1Perfume = document.getElementById('promoBuy2Free1Perfume');
-  if (promoBuy2Free1Perfume) {
-    promoBuy2Free1Perfume.addEventListener('click', applyBuy2Free1Perfume);
-  }
-  const promoBuy3Free1ExcludePerfume = document.getElementById('promoBuy3Free1ExcludePerfume');
-  if (promoBuy3Free1ExcludePerfume) {
-    promoBuy3Free1ExcludePerfume.addEventListener('click', applyBuy3Free1ExcludePerfume);
-  }
-  const applyCustomPromoBtn = document.getElementById('applyCustomPromoBtn');
-  if (applyCustomPromoBtn) {
-    applyCustomPromoBtn.addEventListener('click', applyCustomDiscount);
-  }
-
-  // ==================== CASH COLLECTION ====================
-  let currentUnsettledCash = [];
-
-  async function openCollectionModal() {
-    const modal = document.getElementById('collectionModal');
-    modal.style.display = 'flex';
-
-    let loadingMsg = document.getElementById('collectionLoadingMsg');
-    if (!loadingMsg) {
-      loadingMsg = document.createElement('div');
-      loadingMsg.id = 'collectionLoadingMsg';
-      loadingMsg.style.textAlign = 'center';
-      loadingMsg.style.padding = '20px';
-      loadingMsg.style.background = '#f8fafc';
-      loadingMsg.style.borderRadius = '12px';
-      loadingMsg.style.margin = '10px 0';
-      loadingMsg.innerText = 'Loading unsettled cash...';
-      const container = document.querySelector('#collectionModal .modal-container');
-      const collectionTotalDiv = document.getElementById('collectionTotal');
-      if (container && collectionTotalDiv) {
-        container.insertBefore(loadingMsg, collectionTotalDiv);
-      }
-    }
-    loadingMsg.style.display = 'block';
-
-    await loadUnsettledCash();
-    loadingMsg.style.display = 'none';
-  }
-
-  async function loadUnsettledCash() {
-    const store = document.getElementById('collectionStoreSelect').value;
-    showLoading('Loading unsettled cash...');
-    try {
-      let url = `${APPS_SCRIPT_URL}?action=getUnsettledCash&store=${store}`;
-      const response = await fetch(url);
-      const result = await response.json();
-      if (result.success) {
-        currentUnsettledCash = result.records;
-        renderCollectionTable();
-        updateTotalOutstanding();
-        document.getElementById('collectSelectedBtn').disabled = true;
-        const selectAll = document.getElementById('selectAllCheckbox');
-        if (selectAll) selectAll.checked = false;
-      } else {
-        await showAlertModal('Error', 'Failed to load unsettled cash: ' + (result.error || 'Unknown error'));
-      }
-    } catch (err) {
-      console.error(err);
-      await showAlertModal('Error', 'Connection error while loading unsettled cash.');
-    } finally {
-      hideLoading();
-    }
-  }
-
-  function renderCollectionTable() {
-    const tbody = document.getElementById('collectionTableBody');
-    if (!currentUnsettledCash.length) {
-      tbody.innerHTML = '前进<td colspan="4" style="text-align: center;">No unsettled cash records found.前进</tr>';
-      return;
-    }
-    let html = '';
-    currentUnsettledCash.forEach(rec => {
-      const date = new Date(rec.timestamp).toLocaleDateString();
-      html += `<tr data-id="${rec.id}">
-        <td><input type="checkbox" class="collection-checkbox" value="${rec.id}"></td>
-        <td>${date}</td>
-        <td>${getEmployeeName(rec.employee_id)}</td>
-        <td style="text-align: right;">RM ${rec.cash_actual.toFixed(2)}</td>
-      </tr>`;
-    });
-    tbody.innerHTML = html;
-    document.querySelectorAll('.collection-checkbox').forEach(cb => {
-      cb.addEventListener('change', updateCollectionButtonState);
-    });
-  }
-
-  function updateTotalOutstanding() {
-    const total = currentUnsettledCash.reduce((sum, rec) => sum + rec.cash_actual, 0);
-    document.getElementById('totalOutstandingCash').innerText = `RM ${total.toFixed(2)}`;
-  }
-
-  function updateCollectionButtonState() {
-    const anyChecked = document.querySelectorAll('.collection-checkbox:checked').length > 0;
-    document.getElementById('collectSelectedBtn').disabled = !anyChecked;
-  }
-
-  (async function initEmployeeSelects() {
-    const employees = await fetchEmployees();
+  let employeeId = 'all';
+  if (currentEmployee?.isAdmin) {
     const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
-    if (receiptsEmpSelect && employees.length) {
-      receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
-      employees.forEach(emp => {
-        const opt = document.createElement('option');
-        opt.value = emp.id;
-        opt.textContent = `${emp.name} (ID: ${emp.id})`;
-        receiptsEmpSelect.appendChild(opt);
-      });
+    employeeId = receiptsEmpSelect ? receiptsEmpSelect.value : 'all';
+  }
+  const rangeSelect = document.getElementById('receiptsDateRangeSelect');
+  const range = rangeSelect ? rangeSelect.value : 'today';
+  const search = document.getElementById('receiptsSearch').value;
+  let from = null, to = null;
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  if (range === 'today') {
+    from = getLocalDateString(today);
+    to = from;
+  } else if (range === 'week') {
+    const start = new Date(today);
+    const dayOfWeek = today.getDay();
+    const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+    start.setDate(today.getDate() - diffToMonday);
+    from = getLocalDateString(start);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    to = getLocalDateString(end);
+  } else if (range === 'month') {
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    from = getLocalDateString(start);
+    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    to = getLocalDateString(end);
+  } else if (range === 'custom') {
+    from = document.getElementById('receiptsFromDate').value;
+    to = document.getElementById('receiptsToDate').value;
+    if (!from || !to) return;
+  }
+  fetchReceipts(store, employeeId, from, to, search);
+}
+
+// ==================== EVENT LISTENERS (continued) ====================
+const toggleBtn = document.getElementById('toggleProductDetailsBtn');
+const productDetailsContainer = document.getElementById('productDetailsContainer');
+if (toggleBtn && productDetailsContainer) {
+  toggleBtn.addEventListener('click', () => {
+    productDetailsVisible = !productDetailsVisible;
+    if (productDetailsVisible) {
+      productDetailsContainer.style.display = 'block';
+      toggleBtn.innerText = '📦 Hide Product Details';
+      if (lastProductData) renderProductDetails(lastProductData);
+    } else {
+      productDetailsContainer.style.display = 'none';
+      toggleBtn.innerText = '📦 Show Product Details';
     }
-  })();
- // Preload all stores in the background
+  });
+}
+
+const closeClaimPrizeModal = document.getElementById('closeClaimPrizeModal');
+if (closeClaimPrizeModal) {
+  closeClaimPrizeModal.addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
+}
+const cancelClaimBtn = document.getElementById('cancelClaimBtn');
+if (cancelClaimBtn) {
+  cancelClaimBtn.addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
+}
+const cancelClaimStep2Btn = document.getElementById('cancelClaimStep2Btn');
+if (cancelClaimStep2Btn) {
+  cancelClaimStep2Btn.addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
+}
+const checkReceiptBtn = document.getElementById('checkReceiptBtn');
+if (checkReceiptBtn) {
+  checkReceiptBtn.addEventListener('click', checkReceiptForClaim);
+}
+const applyPrizeBtn = document.getElementById('applyPrizeBtn');
+if (applyPrizeBtn) {
+  applyPrizeBtn.addEventListener('click', applyPrizeToCart);
+}
+
+const closeSpecialPromoModal = document.getElementById('closeSpecialPromoModal');
+if (closeSpecialPromoModal) {
+  closeSpecialPromoModal.addEventListener('click', () => document.getElementById('specialPromoModal').style.display = 'none');
+}
+const closeSpecialPromoModalBtn = document.getElementById('closeSpecialPromoModalBtn');
+if (closeSpecialPromoModalBtn) {
+  closeSpecialPromoModalBtn.addEventListener('click', () => document.getElementById('specialPromoModal').style.display = 'none');
+}
+const promoBuy2Free1Perfume = document.getElementById('promoBuy2Free1Perfume');
+if (promoBuy2Free1Perfume) {
+  promoBuy2Free1Perfume.addEventListener('click', applyBuy2Free1Perfume);
+}
+const promoBuy3Free1ExcludePerfume = document.getElementById('promoBuy3Free1ExcludePerfume');
+if (promoBuy3Free1ExcludePerfume) {
+  promoBuy3Free1ExcludePerfume.addEventListener('click', applyBuy3Free1ExcludePerfume);
+}
+const applyCustomPromoBtn = document.getElementById('applyCustomPromoBtn');
+if (applyCustomPromoBtn) {
+  applyCustomPromoBtn.addEventListener('click', applyCustomDiscount);
+}
+
+// ==================== CASH COLLECTION ====================
+let currentUnsettledCash = [];
+
+async function openCollectionModal() {
+  const modal = document.getElementById('collectionModal');
+  modal.style.display = 'flex';
+
+  let loadingMsg = document.getElementById('collectionLoadingMsg');
+  if (!loadingMsg) {
+    loadingMsg = document.createElement('div');
+    loadingMsg.id = 'collectionLoadingMsg';
+    loadingMsg.style.textAlign = 'center';
+    loadingMsg.style.padding = '20px';
+    loadingMsg.style.background = '#f8fafc';
+    loadingMsg.style.borderRadius = '12px';
+    loadingMsg.style.margin = '10px 0';
+    loadingMsg.innerText = 'Loading unsettled cash...';
+    const container = document.querySelector('#collectionModal .modal-container');
+    const collectionTotalDiv = document.getElementById('collectionTotal');
+    if (container && collectionTotalDiv) {
+      container.insertBefore(loadingMsg, collectionTotalDiv);
+    }
+  }
+  loadingMsg.style.display = 'block';
+
+  await loadUnsettledCash();
+  loadingMsg.style.display = 'none';
+}
+
+async function loadUnsettledCash() {
+  const store = document.getElementById('collectionStoreSelect').value;
+  showLoading('Loading unsettled cash...');
+  try {
+    let url = `${APPS_SCRIPT_URL}?action=getUnsettledCash&store=${store}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    if (result.success) {
+      currentUnsettledCash = result.records;
+      renderCollectionTable();
+      updateTotalOutstanding();
+      document.getElementById('collectSelectedBtn').disabled = true;
+      const selectAll = document.getElementById('selectAllCheckbox');
+      if (selectAll) selectAll.checked = false;
+    } else {
+      await showAlertModal('Error', 'Failed to load unsettled cash: ' + (result.error || 'Unknown error'));
+    }
+  } catch (err) {
+    console.error(err);
+    await showAlertModal('Error', 'Connection error while loading unsettled cash.');
+  } finally {
+    hideLoading();
+  }
+}
+
+function renderCollectionTable() {
+  const tbody = document.getElementById('collectionTableBody');
+  if (!currentUnsettledCash.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No unsettled cash records found.</td></tr>';
+    return;
+  }
+  let html = '';
+  currentUnsettledCash.forEach(rec => {
+    const date = new Date(rec.timestamp).toLocaleDateString();
+    html += `<tr data-id="${rec.id}">
+      <td><input type="checkbox" class="collection-checkbox" value="${rec.id}"></td>
+      <td>${date}</td>
+      <td>${getEmployeeName(rec.employee_id)}</td>
+      <td style="text-align: right;">RM ${rec.cash_actual.toFixed(2)}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+  document.querySelectorAll('.collection-checkbox').forEach(cb => {
+    cb.addEventListener('change', updateCollectionButtonState);
+  });
+}
+
+function updateTotalOutstanding() {
+  const total = currentUnsettledCash.reduce((sum, rec) => sum + rec.cash_actual, 0);
+  document.getElementById('totalOutstandingCash').innerText = `RM ${total.toFixed(2)}`;
+}
+
+function updateCollectionButtonState() {
+  const anyChecked = document.querySelectorAll('.collection-checkbox:checked').length > 0;
+  document.getElementById('collectSelectedBtn').disabled = !anyChecked;
+}
+
+(async function initEmployeeSelects() {
+  const employees = await fetchEmployees();
+  const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
+  if (receiptsEmpSelect && employees.length) {
+    receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
+    employees.forEach(emp => {
+      const opt = document.createElement('option');
+      opt.value = emp.id;
+      opt.textContent = `${emp.name} (ID: ${emp.id})`;
+      receiptsEmpSelect.appendChild(opt);
+    });
+  }
+})();
+
+// Preload all stores in the background
 const allStores = ["queens", "sunshine", "gurney_paragon"];
 allStores.forEach(store => preloadProductsForStore(store));
 </script>
