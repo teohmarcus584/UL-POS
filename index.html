@@ -1087,7 +1087,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzk7RXDcZii865QBb55iIlm4LbX8rfvTzKGAXJ_VyG3T5x3ME7bc81JF_EbS33s8g0dsw/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby_znIN3bet70r8elQjtRAr5gqIxpp8jIFEV2BGnS9zaFxTUEl3JSXMHTYPGtWbOtmjOQ/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -3076,20 +3076,7 @@ pinInput.addEventListener('input', () => {
     clearStockHistoryBtn.addEventListener('click', clearStockHistory);
   }
 
-  const pinInput = document.getElementById('pinInput');
-  if (pinInput) {
-    document.querySelectorAll('.keypad-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (btn.dataset.digit && pinInput.value.length < 4) pinInput.value += btn.dataset.digit;
-        else if (btn.dataset.action === 'clear') pinInput.value = pinInput.value.slice(0, -1);
-        else if (btn.dataset.action === 'enter' && pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value);
-        else if (btn.dataset.action === 'enter') document.getElementById('loginError').innerText = 'Please enter 4-digit PIN';
-      });
-    });
-    pinInput.addEventListener('input', () => {
-      if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value);
-    });
-  }
+  
 
   // Additional listeners (reports, receipts, etc.) are included in the full version.
   // For completeness, we add them here (abbreviated).
