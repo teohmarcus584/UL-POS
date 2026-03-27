@@ -1574,33 +1574,56 @@ async function refreshStockHistory() {
     hideLoading();
   }
 }
-  function displayStockHistory(history) {
+ function displayStockHistory(history) {
   const container = document.getElementById('stockHistoryList');
   if (!container) return;
   if (!history || history.length === 0) {
     container.innerHTML = '<div class="stock-history-empty">No stock adjustments recorded yet.</div>';
     return;
   }
-  let html = '<table class="stock-history-table"><thead><tr><th>Time</th><th>Product</th><th>Change</th><th>Old Stock</th><th>New Stock</th><th>Employee</th></tr></thead><tbody>';
+
+  // Build a quick map from product name to category using the global products array
+  const productCategoryMap = {};
+  products.forEach(p => {
+    productCategoryMap[p.name] = p.category || '—';
+  });
+
+  let html = `<table class="stock-history-table">
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Product</th>
+        <th>Category</th>
+        <th>Change</th>
+        <th>Old Stock</th>
+        <th>New Stock</th>
+        <th>Employee</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
   for (const adj of history) {
     const change = adj.newStock - adj.oldStock;
-    const changeClass = change > 0 ? 'positive' : 'negative';
     const changeSign = change > 0 ? `+${change}` : `${change}`;
     const changeStyle = change > 0 ? 'color: #2c7a4b;' : 'color: #dc2626;';
     const date = new Date(adj.timestamp).toLocaleString();
-    html += `<tr>
-      <td>${date}</td>
-      <td>${escapeHtml(adj.productName)}</td>
-      <td style="${changeStyle}">${changeSign}</td>
-      <td>${adj.oldStock}</td>
-      <td>${adj.newStock}</td>
-      <td>${escapeHtml(adj.employeeName)}</td>
-    </tr>`;
+    const category = productCategoryMap[adj.productName] || '—';
+
+    html += `
+      <tr>
+        <td>${date}</td>
+        <td>${escapeHtml(adj.productName)}</td>
+        <td>${escapeHtml(category)}</td>
+        <td style="${changeStyle}">${changeSign}</td>
+        <td>${adj.oldStock}</td>
+        <td>${adj.newStock}</td>
+        <td>${escapeHtml(adj.employeeName)}</td>
+      </tr>`;
   }
+
   html += '</tbody></table>';
   container.innerHTML = html;
 }
-
   // ==================== INITIAL DATA LOAD ====================
   async function loadInitialData() {
     try {
