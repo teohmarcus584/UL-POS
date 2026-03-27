@@ -1087,7 +1087,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzk7RXDcZii865QBb55iIlm4LbX8rfvTzKGAXJ_VyG3T5x3ME7bc81JF_EbS33s8g0dsw/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby_znIN3bet70r8elQjtRAr5gqIxpp8jIFEV2BGnS9zaFxTUEl3JSXMHTYPGtWbOtmjOQ/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1359,7 +1359,13 @@ function renderStockHistory() {
       renderProductGrid();
     }
   }
-
+// Update the global employee name map from cached employees
+function updateEmployeeNameMap() {
+  employeeNameMap = {};
+  cachedEmployees.forEach(emp => {
+    employeeNameMap[emp.id] = emp.name;
+  });
+}
   // ==================== INITIAL DATA LOAD ====================
  async function loadInitialData() {
   try {
@@ -1367,7 +1373,7 @@ function renderStockHistory() {
     const response = await fetch(url);
     const result = await response.json();
     if (result.success) {
-      // Products
+      // Process products
       products = result.products.map(p => ({
         id: p.id,
         name: p.name,
@@ -1386,11 +1392,14 @@ function renderStockHistory() {
       });
       renderProductGrid();
 
-      // Employees (with PINs)
+      // Cache employees (includes PIN and is_admin)
       cachedEmployees = result.employees;
-      console.log('Employees loaded:', cachedEmployees);
+      // Update the name map for receipt display
+      updateEmployeeNameMap();
 
+      // Populate soldBy select
       populateSoldBySelect();
+
       return true;
     } else {
       throw new Error('Failed to load initial data');
@@ -2977,6 +2986,9 @@ async function refreshEmployeesInBackground() {
     const result = await response.json();
     if (result.success) {
       cachedEmployees = result.employees;
+      // Update the name map
+      updateEmployeeNameMap();
+
       // Update any open selects that use employee data
       populateSoldBySelect();
       if (currentEmployee?.isAdmin) {
@@ -2988,7 +3000,6 @@ async function refreshEmployeesInBackground() {
     console.error('Background employee refresh failed', err);
   }
 }
-
 function stopEmployeeBackgroundRefresh() {
   if (employeeRefreshInterval) {
     clearInterval(employeeRefreshInterval);
