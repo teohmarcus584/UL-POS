@@ -1483,7 +1483,7 @@
       await showAlertModal('No History', 'There is no stock adjustment history to save.');
       return;
     }
-    showLoading('Saving stock history...');
+    
     try {
       const formData = new URLSearchParams();
       formData.append('action', 'saveStockHistory');
@@ -3065,7 +3065,15 @@
           storeSelect.disabled = false;
           inventoryModeBtn.style.display = 'flex';
         }
-
+// Hide system totals in settlement modal for non-admin
+const systemTotalsDiv = document.getElementById('systemTotalsDisplay');
+if (systemTotalsDiv) {
+    if (!currentEmployee.isAdmin) {
+      systemTotalsDiv.style.display = 'none';
+    } else {
+      systemTotalsDiv.style.display = 'block';
+    }
+  }
         const reportStoreFilter = document.getElementById('reportStoreFilterGroup');
         const employeeFilterGroup = document.getElementById('employeeFilterGroup');
         const storeChartContainer = document.getElementById('storeChartContainer');
@@ -3510,20 +3518,20 @@
     categorySelect.addEventListener('change', renderProductGrid);
   }
   if (document.getElementById('logoutButton')) {
-    document.getElementById('logoutButton').addEventListener('click', () => {
-      if (typeof stopReceiptPolling === 'function') stopReceiptPolling();
-      cachedReceipts = null;
-      currentEmployee = null;
-      document.getElementById('mainContent').style.display = 'none';
-      document.getElementById('loginModal').style.display = 'flex';
-      document.getElementById('pinInput').value = '';
-      document.getElementById('loginError').innerText = '';
-      cart = [];
-      products = [];
-      if (typeof clearStockHistory === 'function') clearStockHistory();
-      renderProductGrid();
-    });
-  }
+  document.getElementById('logoutButton').addEventListener('click', () => {
+    if (typeof stopReceiptPolling === 'function') stopReceiptPolling();
+    cachedReceipts = null;
+    currentEmployee = null;
+    document.getElementById('mainContent').style.display = 'none';
+    document.getElementById('loginModal').style.display = 'flex';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('loginError').innerText = '';
+    cart = [];
+    products = [];
+    // No longer clear stock history
+    renderProductGrid();
+  });
+}
   if (document.getElementById('closeLoginModal')) {
     document.getElementById('closeLoginModal').addEventListener('click', () => {});
   }
