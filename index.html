@@ -1325,7 +1325,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxPrVqdu8a8W-XpXvZ4Dkj3BV2HqaU-mScwhNw5kfPV7Us0PTA30zBpLdIQDiFZbuV4/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyq2hExKxAHZw9t9rHWpIOPKMukhtz93IHMUOEQN-pHON98Qhso7oCRxMXUTFxntrAjcw/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1347,7 +1347,7 @@
   let claimedReceiptInfo = null;
   let pendingPrize = null;          // { receipt, value, name }
 // Stock adjustment aggregation (inventory mode)
-
+let sessionStockChanges = {}; // productId -> net change during inventory session
   let inventoryMode = false;
   
 
@@ -1541,16 +1541,14 @@ async function recordStockAdjustment(productId, productName, category, oldStock,
 // Refresh the stock history table (call this when needed)
 async function refreshStockHistory() {
   if (!inventoryMode) return;
-  
   try {
     const history = await fetchStockHistory(currentStore);
+    console.log('Stock history:', history); // debug
     displayStockHistory(history);
   } catch (err) {
     console.error(err);
     const container = document.getElementById('stockHistoryList');
     if (container) container.innerHTML = '<div class="stock-history-empty">Error loading history.</div>';
-  } finally {
-    hideLoading();
   }
 }
 function displayStockHistory(history) {
@@ -1567,7 +1565,6 @@ function displayStockHistory(history) {
     <tbody>`;
 
   for (const adj of history) {
-    // Safely parse numbers
     const oldStock = isNaN(adj.oldStock) ? 0 : adj.oldStock;
     const newStock = isNaN(adj.newStock) ? 0 : adj.newStock;
     const change = newStock - oldStock;
@@ -1737,15 +1734,17 @@ function displayStockHistory(history) {
     stockHistoryContainer.style.display = 'none';
     inventoryModeBtn.innerText = '📦 Inventory Mode';
     inventoryMode = false;
+    sessionStockChanges = {};   // clear session changes
   } else {
     // Enter inventory mode
     normalCartSections.style.display = 'none';
     stockHistoryContainer.style.display = 'block';
     inventoryModeBtn.innerText = '🛍️ Exit Inventory';
     inventoryMode = true;
-    refreshStockHistory(); // load existing history
+    sessionStockChanges = {};   // fresh session
+    refreshStockHistory();     // load existing history
   }
-  renderProductGrid();
+  renderProductGrid();         // rebuild grid (removes any old indicators)
 }
   // ==================== CART FUNCTIONS ====================
   function updateCartUI() {
@@ -2997,62 +2996,85 @@ function renderProductGrid() {
 
   // Attach event listeners for inventory mode
   if (inventoryMode) {
-    // Decrement button
-    document.querySelectorAll('.dec-stock').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const id = btn.dataset.id;
-        const product = products.find(p => p.id == id);
-        if (product && product.stock > 0) {
-          const oldStock = product.stock;
-          const newStock = oldStock - 1;
-          product.stock = newStock;
+  // Decrement button
+  document.querySelectorAll('.dec-stock').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const id = btn.dataset.id;
+      const product = products.find(p => p.id == id);
+      if (product && product.stock > 0) {
+        const oldStock = product.stock;
+        const newStock = oldStock - 1;
+        product.stock = newStock;
 
-          const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
-          if (displaySpan) displaySpan.innerText = newStock;
+        const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
+        if (displaySpan) displaySpan.innerText = newStock;
 
-          await updateStockOnServer(id, newStock);
-          await recordStockAdjustment(id, product.name, oldStock, newStock);
-          await refreshStockHistory();
+        await updateStockOnServer(id, newStock);
+        await recordStockAdjustment(id, product.name, product.category, oldStock, newStock);
+        await refreshStockHistory();
 
-          // Temporary visual feedback
-          const tempIndicator = document.createElement('div');
-          tempIndicator.className = 'stock-change-indicator negative';
-          tempIndicator.innerText = '-1';
-          btn.closest('.product-card').appendChild(tempIndicator);
-          setTimeout(() => tempIndicator.remove(), 1500);
+        // Update session net change
+        sessionStockChanges[id] = (sessionStockChanges[id] || 0) - 1;
+        const net = sessionStockChanges[id];
+
+        // Get or create the persistent indicator
+        const card = btn.closest('.product-card');
+        let indicator = card.querySelector('.stock-change-indicator');
+        if (!indicator) {
+          indicator = document.createElement('div');
+          indicator.className = 'stock-change-indicator';
+          card.appendChild(indicator);
         }
-        e.stopPropagation();
-      });
-    });
-
-    // Increment button
-    document.querySelectorAll('.inc-stock').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const id = btn.dataset.id;
-        const product = products.find(p => p.id == id);
-        if (product) {
-          const oldStock = product.stock;
-          const newStock = oldStock + 1;
-          product.stock = newStock;
-
-          const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
-          if (displaySpan) displaySpan.innerText = newStock;
-
-          await updateStockOnServer(id, newStock);
-          await recordStockAdjustment(id, product.name, oldStock, newStock);
-          await refreshStockHistory();
-
-          // Temporary visual feedback
-          const tempIndicator = document.createElement('div');
-          tempIndicator.className = 'stock-change-indicator positive';
-          tempIndicator.innerText = '+1';
-          btn.closest('.product-card').appendChild(tempIndicator);
-          setTimeout(() => tempIndicator.remove(), 1500);
+        // Update indicator content and style
+        if (net !== 0) {
+          indicator.className = `stock-change-indicator ${net > 0 ? 'positive' : 'negative'}`;
+          indicator.innerText = net > 0 ? `+${net}` : `${net}`;
+        } else {
+          // If net becomes zero, remove indicator (user could cancel out changes)
+          indicator.remove();
         }
-        e.stopPropagation();
-      });
+      }
+      e.stopPropagation();
     });
-  }
+  });
+
+  // Increment button
+  document.querySelectorAll('.inc-stock').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const id = btn.dataset.id;
+      const product = products.find(p => p.id == id);
+      if (product) {
+        const oldStock = product.stock;
+        const newStock = oldStock + 1;
+        product.stock = newStock;
+
+        const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
+        if (displaySpan) displaySpan.innerText = newStock;
+
+        await updateStockOnServer(id, newStock);
+        await recordStockAdjustment(id, product.name, product.category, oldStock, newStock);
+        await refreshStockHistory();
+
+        sessionStockChanges[id] = (sessionStockChanges[id] || 0) + 1;
+        const net = sessionStockChanges[id];
+
+        const card = btn.closest('.product-card');
+        let indicator = card.querySelector('.stock-change-indicator');
+        if (!indicator) {
+          indicator = document.createElement('div');
+          indicator.className = 'stock-change-indicator';
+          card.appendChild(indicator);
+        }
+        if (net !== 0) {
+          indicator.className = `stock-change-indicator ${net > 0 ? 'positive' : 'negative'}`;
+          indicator.innerText = net > 0 ? `+${net}` : `${net}`;
+        } else {
+          indicator.remove();
+        }
+      }
+      e.stopPropagation();
+    });
+  });
 }
   // ==================== EVENT LISTENERS ====================
   document.getElementById('confirmStoreBtn').addEventListener('click', () => {
