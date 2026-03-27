@@ -1087,7 +1087,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNuBBgVjHf0-SNp6e2mSM-2rWlEGIEc7BcekaR05dVq8dZF5RJUtJyUhvWQf46IEvwCA/exec";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNuBBgVjHf0-SNp6e2mSM-2rWlEGIEc7BcekaR05dVq8dZF5RJUtJyUhvWQf46IEvwCA/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1108,17 +1108,11 @@
   let customDiscount = 0;
   let claimedReceiptInfo = null;
   let pendingPrize = null;
-  let pendingClaimReceipt = null;
-  let loadingTimeout = null;
+  let pendingClaimReceipt = null; // added for claim flow
+let loadingTimeout = null;
   let inventoryMode = false;
   let updateStockTimeout = null;
-  let stockHistory = [];
-  let cachedEmployees = [];
-  let employeeRefreshInterval = null;
-  let initialDataLoadPromise = null;
-  let pendingStockChanges = new Map();
-  let serverStockHistory = [];
-  let originalStockMap = new Map();
+  let stockHistory = []; // Stock adjustment log (array of entries)
 
   // DOM elements
   const productGridEl = document.getElementById('productGrid');
@@ -1143,23 +1137,27 @@
   const cartPanelTitle = document.getElementById('cartPanelTitle');
 
   // ==================== HELPER FUNCTIONS ====================
-  function showLoading(msg = 'Loading...') {
-    if (loadingTimeout) clearTimeout(loadingTimeout);
-    const msgEl = document.getElementById('loadingMessage');
-    const overlay = document.getElementById('loadingOverlay');
-    if (msgEl) msgEl.innerText = msg;
-    if (overlay) overlay.style.display = 'flex';
-    loadingTimeout = setTimeout(() => hideLoading(), 30000);
-  }
+ function showLoading(msg = 'Loading...') {
+  // Clear any existing timeout to avoid multiple timers
+  if (loadingTimeout) clearTimeout(loadingTimeout);
+  const msgEl = document.getElementById('loadingMessage');
+  const overlay = document.getElementById('loadingOverlay');
+  if (msgEl) msgEl.innerText = msg;
+  if (overlay) overlay.style.display = 'flex';
+  // Auto‑hide after 30 seconds (30000 ms)
+  loadingTimeout = setTimeout(() => {
+    hideLoading();
+  }, 30000);
+}
 
-  function hideLoading() {
-    if (loadingTimeout) {
-      clearTimeout(loadingTimeout);
-      loadingTimeout = null;
-    }
-    const overlay = document.getElementById('loadingOverlay');
-    if (overlay) overlay.style.display = 'none';
+function hideLoading() {
+  if (loadingTimeout) {
+    clearTimeout(loadingTimeout);
+    loadingTimeout = null;
   }
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
 
   function showAlertModal(title, message) {
     return new Promise((resolve) => {
@@ -1276,164 +1274,87 @@
     return employeeNameMap[employeeId] || employeeId;
   }
 
-  // ==================== STOCK HISTORY FUNCTIONS ====================
-  function logStockChange(productId, productName, category, oldStock, newStock, delta) {
-    const now = Date.now();
-    const formattedTime = new Date().toLocaleString();
-    let existingIndex = -1;
-    for (let i = 0; i < stockHistory.length; i++) {
-      if (stockHistory[i].productId === productId) {
-        existingIndex = i;
-        break;
-      }
-    }
-    if (existingIndex !== -1) {
-      const entry = stockHistory[existingIndex];
-      entry.newStock = newStock;
-      entry.delta += delta;
-      entry.timestamp = formattedTime;
-      entry.timestampMs = now;
-      entry.category = category;
-      stockHistory.splice(existingIndex, 1);
-      stockHistory.unshift(entry);
-    } else {
-      stockHistory.unshift({
-        productId,
-        productName,
-        category,
-        oldStock,
-        newStock,
-        delta,
-        timestamp: formattedTime,
-        timestampMs: now
-      });
-    }
-    renderStockHistory();
-  }
-
-  function renderStockHistory() {
-    const historyList = document.getElementById('stockHistoryList');
-    if (!historyList) return;
-    if (stockHistory.length === 0) {
-      historyList.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 20px;">No adjustments yet.</div>';
-      return;
-    }
-    let html = '';
-    for (const entry of stockHistory) {
-      const deltaClass = entry.delta > 0 ? 'delta' : 'delta negative';
-      const deltaSymbol = entry.delta > 0 ? `+${entry.delta}` : `${entry.delta}`;
-      html += `
-        <div class="history-entry">
-          <div class="delta-badge ${deltaClass}">${deltaSymbol}</div>
-          <div class="history-main">
-            <div class="product-name">${escapeHtml(entry.productName)}</div>
-            <div class="product-category" style="font-size:0.7rem; color:#64748b; margin-bottom:4px;">${escapeHtml(entry.category)}</div>
-            <div class="stock-change">Stock: ${entry.oldStock} → ${entry.newStock}</div>
-            <div class="timestamp">${entry.timestamp}</div>
-          </div>
-        </div>
-      `;
-    }
-    historyList.innerHTML = html;
-  }
-
-  function clearStockHistory() {
-    stockHistory = [];
-    renderStockHistory();
-  }
-
-  // ==================== INVENTORY MODE TOGGLE ====================
-  function toggleInventoryMode() {
-    if (inventoryMode) {
-      if (pendingStockChanges.size > 0) {
-        showConfirmModal('Unsaved Changes', 'You have unsaved stock changes. Do you want to save them before exiting?').then(async (save) => {
-          if (save) {
-            await saveInventoryChanges();
-          }
-          completeExitInventoryMode();
-        });
-      } else {
-        completeExitInventoryMode();
-      }
-    } else {
-      originalStockMap.clear();
-      products.forEach(p => originalStockMap.set(p.id, p.stock));
-      pendingStockChanges.clear();
-      loadStockHistoryFromServer().then(() => {
-        cartNormalContent.style.display = 'none';
-        stockHistoryContainerDiv.style.display = 'flex';
-        cartPanelTitle.innerText = '📦 Inventory Mode';
-        inventoryModeBtn.innerText = '🛍️ Exit Inventory';
-        inventoryMode = true;
-        renderProductGrid();
-      });
+  // ==================== STOCK HISTORY (Grouped by product) ====================
+// ========== STOCK HISTORY FUNCTIONS ==========
+function logStockChange(productId, productName, category, oldStock, newStock, delta) {
+  const now = Date.now();
+  const formattedTime = new Date().toLocaleString();
+  let existingIndex = -1;
+  for (let i = 0; i < stockHistory.length; i++) {
+    if (stockHistory[i].productId === productId) {
+      existingIndex = i;
+      break;
     }
   }
-
-  function completeExitInventoryMode() {
-    cartNormalContent.style.display = 'block';
-    stockHistoryContainerDiv.style.display = 'none';
-    cartPanelTitle.innerText = '🧾 Current Sale';
-    inventoryModeBtn.innerText = '📦 Inventory Mode';
-    inventoryMode = false;
-    pendingStockChanges.clear();
-    originalStockMap.clear();
-    fetchProductsFromSheet(true).then(() => {
-      updateCartUI();
-      renderProductGrid();
+  if (existingIndex !== -1) {
+    const entry = stockHistory[existingIndex];
+    entry.newStock = newStock;
+    entry.delta += delta;
+    entry.timestamp = formattedTime;
+    entry.timestampMs = now;
+    entry.category = category;
+    stockHistory.splice(existingIndex, 1);
+    stockHistory.unshift(entry);
+  } else {
+    stockHistory.unshift({
+      productId,
+      productName,
+      category,
+      oldStock,
+      newStock,
+      delta,
+      timestamp: formattedTime,
+      timestampMs: now
     });
   }
+  renderStockHistory();
+}
 
-  async function saveInventoryChanges() {
-    if (pendingStockChanges.size === 0) return true;
-    showLoading('Saving inventory changes...');
-    try {
-      const updates = Array.from(pendingStockChanges.entries()).map(([productId, newStock]) => {
-        const product = products.find(p => p.id == productId);
-        const oldStock = product ? product.stock : 0;
-        return { productId, newStock, oldStock, delta: newStock - oldStock };
-      });
-      const formData = new URLSearchParams();
-      formData.append("action", "bulkUpdateStock");
-      formData.append("updates", JSON.stringify(updates));
-      formData.append("store", currentStore);
-      formData.append("employeeId", currentEmployee.id);
-      formData.append("employeeName", currentEmployee.name);
-      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
-      const result = await response.json();
-      if (result.success) {
-        pendingStockChanges.clear();
-        await fetchProductsFromSheet(true);
-        await loadStockHistoryFromServer();
-        renderProductGrid();
-        return true;
-      } else {
-        throw new Error(result.error);
-      }
-    } catch (err) {
-      console.error(err);
-      await showAlertModal('Error', 'Failed to save inventory changes: ' + err.message);
-      return false;
-    } finally {
-      hideLoading();
-    }
+function renderStockHistory() {
+  const historyList = document.getElementById('stockHistoryList');
+  if (!historyList) return;
+  if (stockHistory.length === 0) {
+    historyList.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 20px;">No adjustments yet.</div>';
+    return;
   }
-
-  async function loadStockHistoryFromServer() {
-    try {
-      const url = `${APPS_SCRIPT_URL}?action=getStockHistory&store=${currentStore}`;
-      const response = await fetch(url);
-      const result = await response.json();
-      if (result.success) {
-        serverStockHistory = result.history;
-        if (inventoryMode) {
-          renderStockHistory();
-        }
-      } else {
-        console.error('Failed to load stock history:', result.error);
-      }
-    } catch (err) {
-      console.error('Error loading stock history:', err);
+  let html = '';
+  for (const entry of stockHistory) {
+    const deltaClass = entry.delta > 0 ? 'delta' : 'delta negative';
+    const deltaSymbol = entry.delta > 0 ? `+${entry.delta}` : `${entry.delta}`;
+    html += `
+      <div class="history-entry">
+        <div class="delta-badge ${deltaClass}">${deltaSymbol}</div>
+        <div class="history-main">
+          <div class="product-name">${escapeHtml(entry.productName)}</div>
+          <div class="product-category" style="font-size:0.7rem; color:#64748b; margin-bottom:4px;">${escapeHtml(entry.category)}</div>
+          <div class="stock-change">Stock: ${entry.oldStock} → ${entry.newStock}</div>
+          <div class="timestamp">${entry.timestamp}</div>
+        </div>
+      </div>
+    `;
+  }
+  historyList.innerHTML = html;
+}
+  // ==================== INVENTORY MODE TOGGLE ====================
+  function toggleInventoryMode() {
+    inventoryMode = !inventoryMode;
+    if (inventoryMode) {
+      // Enter inventory mode: hide cart content, show stock history, change title
+      cartNormalContent.style.display = 'none';
+      stockHistoryContainerDiv.style.display = 'flex';
+      cartPanelTitle.innerText = '📦 Inventory Mode';
+      inventoryModeBtn.innerText = '🛍️ Exit Inventory';
+      if (updateStockTimeout) clearTimeout(updateStockTimeout);
+      renderProductGrid();
+    } else {
+      // Exit inventory mode: restore cart, clear history, hide stock panel
+      cartNormalContent.style.display = 'block';
+      stockHistoryContainerDiv.style.display = 'none';
+      cartPanelTitle.innerText = '🧾 Current Sale';
+      inventoryModeBtn.innerText = '📦 Inventory Mode';
+      clearStockHistory(); // Reset history on exit
+      updateCartUI(); // Restore cart display
+      renderProductGrid();
     }
   }
 
@@ -1462,9 +1383,17 @@
         });
         renderProductGrid();
 
-        cachedEmployees = result.employees;
-        updateEmployeeNameMap();
-        populateSoldBySelect();
+        employeeNameMap = {};
+        const employees = result.employees;
+        soldBySelect.innerHTML = '';
+        employees.forEach(emp => {
+          employeeNameMap[emp.id] = emp.name;
+          const option = document.createElement('option');
+          option.value = emp.id;
+          option.textContent = `${emp.name} (ID: ${emp.id})`;
+          if (currentEmployee && emp.id == currentEmployee.id) option.selected = true;
+          soldBySelect.appendChild(option);
+        });
         return true;
       } else {
         throw new Error('Failed to load initial data');
@@ -1476,25 +1405,6 @@
     } finally {
       hideLoading();
     }
-  }
-
-  function updateEmployeeNameMap() {
-    employeeNameMap = {};
-    cachedEmployees.forEach(emp => {
-      employeeNameMap[emp.id] = emp.name;
-    });
-  }
-
-  function populateSoldBySelect() {
-    if (!soldBySelect) return;
-    soldBySelect.innerHTML = '';
-    cachedEmployees.forEach(emp => {
-      const option = document.createElement('option');
-      option.value = emp.id;
-      option.textContent = `${emp.name} (ID: ${emp.id})`;
-      if (currentEmployee && emp.id == currentEmployee.id) option.selected = true;
-      soldBySelect.appendChild(option);
-    });
   }
 
   async function fetchProductsFromSheet(force = false) {
@@ -1563,7 +1473,7 @@
     }
   }
 
-  // ==================== STOCK UPDATE (individual, used only for sale) ====================
+  // ==================== STOCK UPDATE ====================
   async function updateStockOnServer(productId, newStock) {
     try {
       const formData = new URLSearchParams();
@@ -1785,6 +1695,7 @@
           showClaimError('This prize has already been claimed.');
           return;
         }
+        // Store the receipt data for later use
         window.pendingClaimReceipt = data;
         document.getElementById('validReceiptId').innerText = data.receipt;
         document.getElementById('claimStep1').style.display = 'none';
@@ -1923,7 +1834,10 @@
     pendingTransaction = { totalAmount };
     showPaymentModal(totalAmount);
   }
-
+function clearStockHistory() {
+  stockHistory = [];
+  renderStockHistory();
+}
   function showPaymentModal(totalAmount) {
     const modal = document.getElementById('paymentModal');
     const cashOptionsDiv = document.getElementById('cashOptions');
@@ -2069,82 +1983,112 @@
       hideLoading();
     }
   }
+// Global variables (add near other let declarations)
+let cachedReceipts = null;
+let receiptPollingInterval = null;
 
-  // ==================== RECEIPTS & POLLING ====================
-  let cachedReceipts = null;
-  let receiptPollingInterval = null;
 
-  function startReceiptPolling() {
-    if (receiptPollingInterval) clearInterval(receiptPollingInterval);
-    fetchAndCacheReceipts();
-    receiptPollingInterval = setInterval(fetchAndCacheReceipts, 30000);
+// Helper: clear loading overlay after timeout
+function showLoading(msg = 'Loading...') {
+  if (loadingTimeout) clearTimeout(loadingTimeout);
+  const msgEl = document.getElementById('loadingMessage');
+  const overlay = document.getElementById('loadingOverlay');
+  if (msgEl) msgEl.innerText = msg;
+  if (overlay) overlay.style.display = 'flex';
+  loadingTimeout = setTimeout(() => hideLoading(), 30000);
+}
+
+function hideLoading() {
+  if (loadingTimeout) {
+    clearTimeout(loadingTimeout);
+    loadingTimeout = null;
   }
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
 
-  function stopReceiptPolling() {
-    if (receiptPollingInterval) {
-      clearInterval(receiptPollingInterval);
-      receiptPollingInterval = null;
+// Stock history clear function
+function clearStockHistory() {
+  stockHistory = [];
+  renderStockHistory();
+}
+
+// Background receipt fetcher
+async function fetchAndCacheReceipts() {
+  try {
+    let store, employeeId;
+    if (currentEmployee?.isAdmin) {
+      store = document.getElementById('receiptsStoreSelect')?.value || 'all';
+      employeeId = document.getElementById('receiptsEmployeeSelect')?.value || 'all';
+    } else {
+      store = currentStore;
+      employeeId = 'all';
     }
-    cachedReceipts = null;
-  }
-
-  async function fetchAndCacheReceipts() {
-    try {
-      let store, employeeId;
-      if (currentEmployee?.isAdmin) {
-        store = document.getElementById('receiptsStoreSelect')?.value || 'all';
-        employeeId = document.getElementById('receiptsEmployeeSelect')?.value || 'all';
-      } else {
-        store = currentStore;
-        employeeId = 'all';
-      }
-      const rangeSelect = document.getElementById('receiptsDateRangeSelect');
-      const range = rangeSelect ? rangeSelect.value : 'today';
-      const search = document.getElementById('receiptsSearch')?.value || '';
-      let from = null, to = null;
-      const today = new Date();
-      today.setHours(0,0,0,0);
-      if (range === 'today') {
-        from = getLocalDateString(today);
-        to = from;
-      } else if (range === 'week') {
-        const start = new Date(today);
-        const dayOfWeek = today.getDay();
-        const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
-        start.setDate(today.getDate() - diffToMonday);
-        from = getLocalDateString(start);
-        const end = new Date(start);
-        end.setDate(start.getDate() + 6);
-        to = getLocalDateString(end);
-      } else if (range === 'month') {
-        const start = new Date(today.getFullYear(), today.getMonth(), 1);
-        from = getLocalDateString(start);
-        const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        to = getLocalDateString(end);
-      } else if (range === 'custom') {
-        from = document.getElementById('receiptsFromDate')?.value;
-        to = document.getElementById('receiptsToDate')?.value;
-        if (!from || !to) return;
-      }
-      let url = `${APPS_SCRIPT_URL}?action=getReceipts&store=${store}&employeeId=${employeeId}`;
-      if (from) url += `&from=${encodeURIComponent(from)}`;
-      if (to) url += `&to=${encodeURIComponent(to)}`;
-      if (search) url += `&search=${encodeURIComponent(search)}`;
-      const response = await fetch(url);
-      const result = await response.json();
-      if (result.success) {
-        cachedReceipts = result.receipts;
-        const receiptsModal = document.getElementById('receiptsModal');
-        if (receiptsModal && receiptsModal.style.display === 'flex') {
-          renderReceiptsList(cachedReceipts);
-        }
-      }
-    } catch (err) {
-      console.error('Background receipt fetch failed:', err);
+    const rangeSelect = document.getElementById('receiptsDateRangeSelect');
+    const range = rangeSelect ? rangeSelect.value : 'today';
+    const search = document.getElementById('receiptsSearch')?.value || '';
+    let from = null, to = null;
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    if (range === 'today') {
+      from = getLocalDateString(today);
+      to = from;
+    } else if (range === 'week') {
+      const start = new Date(today);
+      const dayOfWeek = today.getDay();
+      const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+      start.setDate(today.getDate() - diffToMonday);
+      from = getLocalDateString(start);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      to = getLocalDateString(end);
+    } else if (range === 'month') {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      from = getLocalDateString(start);
+      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      to = getLocalDateString(end);
+    } else if (range === 'custom') {
+      from = document.getElementById('receiptsFromDate')?.value;
+      to = document.getElementById('receiptsToDate')?.value;
+      if (!from || !to) return;
     }
+    let url = `${APPS_SCRIPT_URL}?action=getReceipts&store=${store}&employeeId=${employeeId}`;
+    if (from) url += `&from=${encodeURIComponent(from)}`;
+    if (to) url += `&to=${encodeURIComponent(to)}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    if (result.success) {
+      cachedReceipts = result.receipts;
+      // If receipts modal is open, update it instantly
+      const receiptsModal = document.getElementById('receiptsModal');
+      if (receiptsModal && receiptsModal.style.display === 'flex') {
+        renderReceiptsList(cachedReceipts);
+      }
+    }
+  } catch (err) {
+    console.error('Background receipt fetch failed:', err);
   }
+}
 
+// Start polling after login
+function startReceiptPolling() {
+  if (receiptPollingInterval) clearInterval(receiptPollingInterval);
+  fetchAndCacheReceipts(); // initial fetch
+  receiptPollingInterval = setInterval(fetchAndCacheReceipts, 30000); // every 30 sec
+}
+
+// Stop polling on logout (call inside logout button handler)
+function stopReceiptPolling() {
+  if (receiptPollingInterval) {
+    clearInterval(receiptPollingInterval);
+    receiptPollingInterval = null;
+  }
+  cachedReceipts = null;
+}
+  // ==================== RECEIPTS ====================
   async function fetchReceipts(store, employeeId, from, to, search) {
+    
     try {
       let url = `${APPS_SCRIPT_URL}?action=getReceipts&store=${store}&employeeId=${employeeId}`;
       if (from) url += `&from=${encodeURIComponent(from)}`;
@@ -2162,67 +2106,69 @@
     }
   }
 
-  function renderReceiptsList(receipts) {
-    const container = document.getElementById('receiptsList');
-    if (!receipts.length) {
-      container.innerHTML = '<div style="text-align:center; padding:30px;">No receipts found.</div>';
-      return;
-    }
-    let html = '';
-    receipts.forEach(rec => {
-      const date = new Date(rec.timestamp).toLocaleString();
-      const itemsSummary = rec.items.map(i => {
-        const displayName = i.category ? `${i.category}: ${i.name}` : i.name;
-        return `${displayName} x${i.quantity}`;
-      }).join(', ');
-      const employeeName = getEmployeeName(rec.employee_id);
-      const isRefund = rec.total < 0;
-      const isRefundedOriginal = rec.refunded === true && !isRefund;
-      const refundClass = isRefund ? 'refund-receipt' : '';
-      const receiptIdHtml = isRefund
-        ? `<span class="receipt-id">[REFUND] ${rec.transaction_id}</span>`
-        : `<span class="receipt-id">${rec.transaction_id}</span>`;
-
-      let actionsHtml = `<button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>🖨️ Reprint</button>`;
-      if (!isRefund && !isRefundedOriginal) {
-        actionsHtml += `<button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">💰 Refund</button>`;
-      }
-
-      html += `<div class="receipt-item ${refundClass}" data-receipt='${JSON.stringify(rec)}'>
-          <div class="receipt-header">
-            ${receiptIdHtml}
-            <span class="receipt-date">${date}</span>
-            <span class="receipt-total">RM ${rec.total.toFixed(2)}</span>
-          </div>
-          <div class="receipt-details">
-            <div>Store: ${rec.store} | Payment: ${rec.payment_method} | Employee: ${employeeName}</div>
-            <div>Items: ${itemsSummary}</div>
-          </div>
-          <div class="receipt-actions">
-            ${actionsHtml}
-          </div>
-        </div>`;
-    });
-    container.innerHTML = html;
-
-    document.querySelectorAll('.reprint-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        reprintReceipt(JSON.parse(btn.dataset.receipt));
-        e.stopPropagation();
-      });
-    });
-    document.querySelectorAll('.refund-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const transactionId = btn.dataset.txid;
-        const store = btn.dataset.store;
-        e.stopPropagation();
-        const confirm = await showConfirmModal('Refund Transaction', `Are you sure you want to refund transaction ${transactionId}? This will reverse the sale and restore stock.`);
-        if (confirm) {
-          await processRefund(transactionId, store);
-        }
-      });
-    });
+ function renderReceiptsList(receipts) {
+  const container = document.getElementById('receiptsList');
+  if (!receipts.length) {
+    container.innerHTML = '<div style="text-align:center; padding:30px;">No receipts found.</div>';
+    return;
   }
+  let html = '';
+  receipts.forEach(rec => {
+    const date = new Date(rec.timestamp).toLocaleString();
+    const itemsSummary = rec.items.map(i => {
+      const displayName = i.category ? `${i.category}: ${i.name}` : i.name;
+      return `${displayName} x${i.quantity}`;
+    }).join(', ');
+    const employeeName = getEmployeeName(rec.employee_id);
+    const isRefund = rec.total < 0;
+    const isRefundedOriginal = rec.refunded === true && !isRefund;
+    const refundClass = isRefund ? 'refund-receipt' : '';
+    const receiptIdHtml = isRefund
+      ? `<span class="receipt-id">[REFUND] ${rec.transaction_id}</span>`
+      : `<span class="receipt-id">${rec.transaction_id}</span>`;
+
+    // Actions: always Reprint, Refund only if not already refunded
+    let actionsHtml = `<button class="reprint-btn" data-receipt='${JSON.stringify(rec)}'>🖨️ Reprint</button>`;
+    if (!isRefund && !isRefundedOriginal) {
+      actionsHtml += `<button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">💰 Refund</button>`;
+    }
+
+    html += `<div class="receipt-item ${refundClass}" data-receipt='${JSON.stringify(rec)}'>
+        <div class="receipt-header">
+          ${receiptIdHtml}
+          <span class="receipt-date">${date}</span>
+          <span class="receipt-total">RM ${rec.total.toFixed(2)}</span>
+        </div>
+        <div class="receipt-details">
+          <div>Store: ${rec.store} | Payment: ${rec.payment_method} | Employee: ${employeeName}</div>
+          <div>Items: ${itemsSummary}</div>
+        </div>
+        <div class="receipt-actions">
+          ${actionsHtml}
+        </div>
+      </div>`;
+  });
+  container.innerHTML = html;
+
+  // Attach event listeners
+  document.querySelectorAll('.reprint-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      reprintReceipt(JSON.parse(btn.dataset.receipt));
+      e.stopPropagation();
+    });
+  });
+  document.querySelectorAll('.refund-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const transactionId = btn.dataset.txid;
+      const store = btn.dataset.store;
+      e.stopPropagation();
+      const confirm = await showConfirmModal('Refund Transaction', `Are you sure you want to refund transaction ${transactionId}? This will reverse the sale and restore stock.`);
+      if (confirm) {
+        await processRefund(transactionId, store);
+      }
+    });
+  });
+}
 
   async function reprintReceipt(receipt) {
     if (!window.printerAPI || !window.printerAPI.isConnected) {
@@ -2262,7 +2208,7 @@
     }
   }
 
-  // ==================== REPORTS ====================
+  // ==================== REPORTS (simplified) ====================
   async function fetchSalesReport(store, employeeId, from, to, unsettledOnly) {
     showLoading('Loading report...');
     try {
@@ -2423,116 +2369,119 @@
     tbody.innerHTML = html;
   }
 
-  async function updateAdminReport() {
-    let store, employeeId;
-    if (currentEmployee.isAdmin) {
-      store = document.getElementById('adminReportStoreSelect').value;
-      employeeId = document.getElementById('adminReportEmployeeSelect').value;
+async function updateAdminReport() {
+  let store, employeeId;
+  if (currentEmployee.isAdmin) {
+    store = document.getElementById('adminReportStoreSelect').value;
+    employeeId = document.getElementById('adminReportEmployeeSelect').value;
+  } else {
+    store = 'all';
+    employeeId = currentEmployee.id;
+  }
+
+  const range = document.getElementById('adminReportDateRangeSelect').value;
+  let from = null, to = null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (range === 'today') {
+    from = getLocalDateString(today);
+    to = from;
+  } else if (range === 'week') {
+    const start = new Date(today);
+    const dayOfWeek = today.getDay();
+    const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+    start.setDate(today.getDate() - diffToMonday);
+    from = getLocalDateString(start);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    to = getLocalDateString(end);
+  } else if (range === 'month') {
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    from = getLocalDateString(start);
+    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    to = getLocalDateString(end);
+  } else if (range === 'custom') {
+    from = document.getElementById('adminReportFromDate').value;
+    to = document.getElementById('adminReportToDate').value;
+    if (!from || !to) return;
+  }
+
+  // Build array of promises for all data we need
+  const promises = [
+    fetchSalesReport(store, employeeId, from, to),
+    fetchSalesChartData(store, employeeId, from, to),
+    fetchProductSalesReport(store, employeeId, from, to)
+  ];
+  if (currentEmployee.isAdmin) {
+    promises.push(fetchEmployeeSalesData(store, from, to));
+  }
+
+  // Wait for all fetches to complete
+  const results = await Promise.all(promises);
+  const productData = results[2]; // third item = product sales report
+
+  if (productData) {
+    lastProductData = productData;
+    if (productDetailsVisible) renderProductDetails(lastProductData);
+  }
+
+  // Hide loading indicator (created by the Reports button click)
+  const loadingMsg = document.getElementById('adminReportLoadingMsg');
+  if (loadingMsg) loadingMsg.style.display = 'none';
+}
+
+  // ==================== SETTLEMENT & COLLECTION (simplified) ====================
+ async function openSettlementModal() {
+  const modal = document.getElementById('settlementModal');
+  modal.style.display = 'flex';
+
+  // Create or get loading message element inside modal
+  let loadingMsg = document.getElementById('settlementLoadingMsg');
+  if (!loadingMsg) {
+    loadingMsg = document.createElement('div');
+    loadingMsg.id = 'settlementLoadingMsg';
+    loadingMsg.style.textAlign = 'center';
+    loadingMsg.style.padding = '20px';
+    loadingMsg.style.background = '#f8fafc';
+    loadingMsg.style.borderRadius = '12px';
+    loadingMsg.style.margin = '10px 0';
+    loadingMsg.innerText = 'Loading settlement data...';
+    const systemTotalsDiv = document.getElementById('systemTotalsDisplay');
+    if (systemTotalsDiv) systemTotalsDiv.insertAdjacentElement('afterend', loadingMsg);
+  }
+  loadingMsg.style.display = 'block';
+
+  try {
+    let store;
+    if (!currentEmployee.isAdmin) {
+      store = initialStore;
+      document.getElementById('settlementStoreSelect').value = store;
+      document.getElementById('settlementStoreSelect').disabled = true;
     } else {
-      store = 'all';
-      employeeId = currentEmployee.id;
+      store = document.getElementById('settlementStoreSelect').value;
+      document.getElementById('settlementStoreSelect').disabled = false;
     }
 
-    const range = document.getElementById('adminReportDateRangeSelect').value;
-    let from = null, to = null;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const todayStr = getLocalDateString(new Date());
+    const alreadySettled = await checkSettlementStatus(store, todayStr);
 
-    if (range === 'today') {
-      from = getLocalDateString(today);
-      to = from;
-    } else if (range === 'week') {
-      const start = new Date(today);
-      const dayOfWeek = today.getDay();
-      const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
-      start.setDate(today.getDate() - diffToMonday);
-      from = getLocalDateString(start);
-      const end = new Date(start);
-      end.setDate(start.getDate() + 6);
-      to = getLocalDateString(end);
-    } else if (range === 'month') {
-      const start = new Date(today.getFullYear(), today.getMonth(), 1);
-      from = getLocalDateString(start);
-      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      to = getLocalDateString(end);
-    } else if (range === 'custom') {
-      from = document.getElementById('adminReportFromDate').value;
-      to = document.getElementById('adminReportToDate').value;
-      if (!from || !to) return;
-    }
-
-    const promises = [
-      fetchSalesReport(store, employeeId, from, to),
-      fetchSalesChartData(store, employeeId, from, to),
-      fetchProductSalesReport(store, employeeId, from, to)
-    ];
-    if (currentEmployee.isAdmin) {
-      promises.push(fetchEmployeeSalesData(store, from, to));
-    }
-
-    const results = await Promise.all(promises);
-    const productData = results[2];
-
-    if (productData) {
-      lastProductData = productData;
-      if (productDetailsVisible) renderProductDetails(lastProductData);
-    }
-
-    const loadingMsg = document.getElementById('adminReportLoadingMsg');
-    if (loadingMsg) loadingMsg.style.display = 'none';
-  }
-
-  // ==================== SETTLEMENT ====================
-  async function openSettlementModal() {
-    const modal = document.getElementById('settlementModal');
-    modal.style.display = 'flex';
-
-    let loadingMsg = document.getElementById('settlementLoadingMsg');
-    if (!loadingMsg) {
-      loadingMsg = document.createElement('div');
-      loadingMsg.id = 'settlementLoadingMsg';
-      loadingMsg.style.textAlign = 'center';
-      loadingMsg.style.padding = '20px';
-      loadingMsg.style.background = '#f8fafc';
-      loadingMsg.style.borderRadius = '12px';
-      loadingMsg.style.margin = '10px 0';
-      loadingMsg.innerText = 'Loading settlement data...';
-      const systemTotalsDiv = document.getElementById('systemTotalsDisplay');
-      if (systemTotalsDiv) systemTotalsDiv.insertAdjacentElement('afterend', loadingMsg);
-    }
-    loadingMsg.style.display = 'block';
-
-    try {
-      let store;
-      if (!currentEmployee.isAdmin) {
-        store = initialStore;
-        document.getElementById('settlementStoreSelect').value = store;
-        document.getElementById('settlementStoreSelect').disabled = true;
-      } else {
-        store = document.getElementById('settlementStoreSelect').value;
-        document.getElementById('settlementStoreSelect').disabled = false;
-      }
-
-      const todayStr = getLocalDateString(new Date());
-      const alreadySettled = await checkSettlementStatus(store, todayStr);
-
-      if (alreadySettled) {
-        loadingMsg.style.display = 'none';
-        await showAlertModal('Settlement Already Done', 'Settlement has already been recorded for today. No further settlement allowed.');
-        modal.style.display = 'none';
-        return;
-      }
-
-      await refreshSettlementTotals(store);
+    if (alreadySettled) {
       loadingMsg.style.display = 'none';
-    } catch (err) {
-      console.error(err);
-      loadingMsg.style.display = 'none';
-      await showAlertModal('Error', 'Failed to load settlement data.');
+      await showAlertModal('Settlement Already Done', 'Settlement has already been recorded for today. No further settlement allowed.');
       modal.style.display = 'none';
+      return;
     }
-  }
 
+    await refreshSettlementTotals(store);
+    loadingMsg.style.display = 'none';
+  } catch (err) {
+    console.error(err);
+    loadingMsg.style.display = 'none';
+    await showAlertModal('Error', 'Failed to load settlement data.');
+    modal.style.display = 'none';
+  }
+}
   async function checkSettlementStatus(store, date) {
     try {
       const url = `${APPS_SCRIPT_URL}?action=getSettlementStatus&store=${store}&date=${date}`;
@@ -2544,8 +2493,6 @@
       return false;
     }
   }
-
-  let currentSettlementTotals = null;
 
   async function refreshSettlementTotals(store) {
     const todayStr = getLocalDateString(new Date());
@@ -2585,6 +2532,8 @@
     }
   }
 
+  let currentSettlementTotals = null;
+
   function setSettlementFieldsEnabled(enabled) {
     const fields = ['settlementStoreSelect', 'pettyCashFloat', 'actualCash', 'actualCard', 'actualQR'];
     const isNonAdmin = !currentEmployee?.isAdmin;
@@ -2601,289 +2550,326 @@
   }
 
   // ==================== PRINTER SETUP ====================
-  (function setupPrinter() {
-    let gattServer = null, printerCharacteristic = null, isConnected = false;
-    const connectBtn = document.getElementById('connectPrinterButton');
-    const printerStatusDiv = document.getElementById('printerStatus');
-    const openDrawerBtn = document.getElementById('openDrawerBtn');
+ // ==================== PRINTER SETUP (with chunked writing) ====================
+(function setupPrinter() {
+  let gattServer = null, printerCharacteristic = null, isConnected = false;
+  const connectBtn = document.getElementById('connectPrinterButton');
+  const printerStatusDiv = document.getElementById('printerStatus');
+  const openDrawerBtn = document.getElementById('openDrawerBtn');
 
-    function generateReceiptData(transaction, openDrawer = false) {
-      const encoder = new TextEncoder();
-      const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
-      const storeLocation = transaction.store ? transaction.store.charAt(0).toUpperCase() + transaction.store.slice(1) : 'Queens';
-
-      const paperSize = localStorage.getItem('printerPaperSize') || '80';
-      const maxChars = paperSize === '58' ? 32 : 48;
-
-      function formatLine(left, right = null) {
-        if (right === null) {
-          return left.length > maxChars ? left.substring(0, maxChars - 3) + '...' : left;
-        }
-        const leftMax = Math.floor(maxChars * 0.6);
-        const rightMax = maxChars - leftMax - 2;
-        let leftText = left.length > leftMax ? left.substring(0, leftMax - 3) + '...' : left;
-        let rightText = right.length > rightMax ? right.substring(0, rightMax - 3) + '...' : right;
-        return leftText.padEnd(leftMax) + ' ' + rightText.padStart(rightMax);
-      }
-
-      const grouped = {};
-      for (const item of transaction.items) {
-        const cat = item.category || 'Uncategorized';
-        if (!grouped[cat]) grouped[cat] = [];
-        grouped[cat].push(item);
-      }
-
-      const lines = [];
-      const separator = '-'.repeat(maxChars);
-
-      lines.push('', '    UL PERFUMERY', separator);
-      lines.push(formatLine(`STORE LOCATION : ${storeLocation}`));
-      lines.push(formatLine(`EMPLOYEE : ${employeeName}`));
-      lines.push(separator);
-
-      for (const [category, items] of Object.entries(grouped)) {
-        let categoryTotal = 0;
-        for (const item of items) {
-          categoryTotal += item.price * item.quantity;
-        }
-        lines.push(formatLine(category, `RM ${categoryTotal.toFixed(2)}`));
-        for (const item of items) {
-          lines.push(`  ${item.name}`);
-          lines.push(`  ${item.quantity} x RM ${item.price.toFixed(2)}`);
-        }
-      }
-
-      lines.push(separator);
-      const totalAmount = transaction.total;
-      lines.push(formatLine('TOTAL', `RM ${totalAmount.toFixed(2)}`));
-      lines.push(formatLine('PAYMENT METHOD', transaction.payment_method));
-      if (transaction.cash_received && transaction.payment_method === 'Cash') {
-        const change = transaction.cash_received - totalAmount;
-        lines.push(formatLine('CHANGE', `RM ${change.toFixed(2)}`));
-      }
-
-      lines.push(separator);
-      lines.push('THANK YOU FOR YOUR PURCHASE');
-      lines.push('ANY ENQUIRY PLEASE CONTACT');
-      lines.push('+60134665831 ( MARCUS )');
-      lines.push('GOODS SOLD ARE NOT REFUNDABLE');
-      lines.push(separator);
-
-      const date = new Date(transaction.timestamp);
-      const formattedDate = `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
-      lines.push(formatLine(`TXN   : ${transaction.transaction_id}`));
-      lines.push(formatLine(`DATE  : ${formattedDate}`));
-      lines.push('');
-
-      const text = lines.join('\n');
-      let commands = [];
-      commands.push(0x1B, 0x40);
-      commands.push(0x1B, 0x61, 0x01);
-      commands.push(...encoder.encode(text));
-      commands.push(0x1B, 0x64, 0x03);
-      commands.push(0x1D, 0x56, 0x41, 0x00);
-      if (openDrawer) {
-        const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
-        commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
-      }
-      return new Uint8Array(commands);
+  function formatDateForReceipt(date) {
+    const d = date.getDate().toString().padStart(2, '0');
+    const m = (date.getMonth() + 1).toString().padStart(2, '0');
+    const y = date.getFullYear();
+    const h = date.getHours().toString().padStart(2, '0');
+    const min = date.getMinutes().toString().padStart(2, '0');
+    return `${d}/${m}/${y} ${h}:${min}`;
+  }
+function generateReceiptData(transaction, openDrawer = false) {
+  const encoder = new TextEncoder();
+  const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
+  const storeLocation = transaction.store ? transaction.store.charAt(0).toUpperCase() + transaction.store.slice(1) : 'Queens';
+  
+  // Get paper size setting (default 80mm)
+  const paperSize = localStorage.getItem('printerPaperSize') || '80';
+  const maxChars = paperSize === '58' ? 32 : 48; // 58mm ~32 chars, 80mm ~48 chars
+  
+  // Helper to pad/truncate text for fixed width
+  function formatLine(left, right = null) {
+    if (right === null) {
+      // Single line, truncate if needed
+      return left.length > maxChars ? left.substring(0, maxChars - 3) + '...' : left;
     }
-
-    const paperSizeSelect = document.getElementById('paperSizeSelect');
-    if (paperSizeSelect) {
-      const savedSize = localStorage.getItem('printerPaperSize');
-      if (savedSize) paperSizeSelect.value = savedSize;
-      else paperSizeSelect.value = '80';
-      paperSizeSelect.addEventListener('change', () => {
-        localStorage.setItem('printerPaperSize', paperSizeSelect.value);
-        showAlertModal('Settings', `Paper size set to ${paperSizeSelect.value}mm.`);
-      });
+    // Two columns
+    const leftMax = Math.floor(maxChars * 0.6);
+    const rightMax = maxChars - leftMax - 2;
+    let leftText = left.length > leftMax ? left.substring(0, leftMax - 3) + '...' : left;
+    let rightText = right.length > rightMax ? right.substring(0, rightMax - 3) + '...' : right;
+    return leftText.padEnd(leftMax) + ' ' + rightText.padStart(rightMax);
+  }
+  
+  // Group items by category
+  const grouped = {};
+  for (const item of transaction.items) {
+    const cat = item.category || 'Uncategorized';
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(item);
+  }
+  
+  const lines = [];
+  const separator = '-'.repeat(maxChars);
+  
+  // Header
+  lines.push('', '    UL PERFUMERY', separator);
+  lines.push(formatLine(`STORE LOCATION : ${storeLocation}`));
+  lines.push(formatLine(`EMPLOYEE : ${employeeName}`));
+  lines.push(separator);
+  
+  // Items by category
+  for (const [category, items] of Object.entries(grouped)) {
+    let categoryTotal = 0;
+    for (const item of items) {
+      categoryTotal += item.price * item.quantity;
     }
-
-    async function sendChunkedData(data, chunkSize = 500) {
-      if (!printerCharacteristic) return false;
-      let offset = 0;
-      while (offset < data.length) {
-        const chunk = data.slice(offset, offset + chunkSize);
-        try {
-          await printerCharacteristic.writeValue(chunk);
-          await new Promise(resolve => setTimeout(resolve, 50));
-        } catch (err) {
-          console.error('Chunk write failed:', err);
-          throw err;
-        }
-        offset += chunkSize;
+    lines.push(formatLine(category, `RM ${categoryTotal.toFixed(2)}`));
+    
+    for (const item of items) {
+      lines.push(`  ${item.name}`);
+      lines.push(`  ${item.quantity} x RM ${item.price.toFixed(2)}`);
+    }
+  }
+  
+  lines.push(separator);
+  
+  // Total
+  const totalAmount = transaction.total;
+  lines.push(formatLine('TOTAL', `RM ${totalAmount.toFixed(2)}`));
+  
+  // Payment method
+  lines.push(formatLine('PAYMENT METHOD', transaction.payment_method));
+  
+  // Change if cash
+  if (transaction.cash_received && transaction.payment_method === 'Cash') {
+    const change = transaction.cash_received - totalAmount;
+    lines.push(formatLine('CHANGE', `RM ${change.toFixed(2)}`));
+  }
+  
+  lines.push(separator);
+  lines.push('THANK YOU FOR YOUR PURCHASE');
+  lines.push('ANY ENQUIRY PLEASE CONTACT');
+  lines.push('+60134665831 ( MARCUS )');
+  lines.push('GOODS SOLD ARE NOT REFUNDABLE');
+  lines.push(separator);
+  
+  // Transaction details
+  const date = new Date(transaction.timestamp);
+  const formattedDate = `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+  lines.push(formatLine(`TXN   : ${transaction.transaction_id}`));
+  lines.push(formatLine(`DATE  : ${formattedDate}`));
+  lines.push('');
+  
+  const text = lines.join('\n');
+  
+  let commands = [];
+  commands.push(0x1B, 0x40); // Initialize printer
+  commands.push(0x1B, 0x61, 0x01); // Center alignment
+  commands.push(...encoder.encode(text));
+  commands.push(0x1B, 0x64, 0x03); // Feed 3 lines
+  commands.push(0x1D, 0x56, 0x41, 0x00); // Cut paper
+  if (openDrawer) {
+    const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
+    commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
+  }
+  return new Uint8Array(commands);
+}
+// Paper size selector handling
+const paperSizeSelect = document.getElementById('paperSizeSelect');
+if (paperSizeSelect) {
+  // Load saved setting
+  const savedSize = localStorage.getItem('printerPaperSize');
+  if (savedSize) paperSizeSelect.value = savedSize;
+  else paperSizeSelect.value = '80';
+  
+  // Save on change
+  paperSizeSelect.addEventListener('change', () => {
+    localStorage.setItem('printerPaperSize', paperSizeSelect.value);
+    showAlertModal('Settings', `Paper size set to ${paperSizeSelect.value}mm.`);
+  });
+}
+  // Helper to send data in chunks
+  async function sendChunkedData(data, chunkSize = 500) {
+    if (!printerCharacteristic) return false;
+    let offset = 0;
+    while (offset < data.length) {
+      const chunk = data.slice(offset, offset + chunkSize);
+      try {
+        await printerCharacteristic.writeValue(chunk);
+        // Small delay to allow printer to process chunk (optional)
+        await new Promise(resolve => setTimeout(resolve, 50));
+      } catch (err) {
+        console.error('Chunk write failed:', err);
+        throw err;
       }
+      offset += chunkSize;
+    }
+    return true;
+  }
+
+  async function openCashDrawer() {
+    if (!isConnected || !printerCharacteristic) {
+      printerStatusDiv.innerText = '❌ Printer not connected';
+      return false;
+    }
+    try {
+      const drawerCommand = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]);
+      await printerCharacteristic.writeValue(drawerCommand);
+      printerStatusDiv.innerText = '💰 Drawer opened';
+      setTimeout(() => { if (isConnected) printerStatusDiv.innerText = '✅ Printer ready'; }, 2000);
       return true;
-    }
-
-    async function openCashDrawer() {
-      if (!isConnected || !printerCharacteristic) {
-        printerStatusDiv.innerText = '❌ Printer not connected';
-        return false;
-      }
-      try {
-        const drawerCommand = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]);
-        await printerCharacteristic.writeValue(drawerCommand);
-        printerStatusDiv.innerText = '💰 Drawer opened';
-        setTimeout(() => { if (isConnected) printerStatusDiv.innerText = '✅ Printer ready'; }, 2000);
-        return true;
-      } catch (err) {
-        console.error(err);
-        printerStatusDiv.innerText = `❌ Drawer error`;
-        return false;
-      }
-    }
-
-    async function printReceipt(transaction) {
-      if (!isConnected || !printerCharacteristic) {
-        printerStatusDiv.innerText = '❌ Printer not connected';
-        return false;
-      }
-      try {
-        const openDrawer = (transaction.payment_method === 'Cash');
-        const data = generateReceiptData(transaction, openDrawer);
-        await sendChunkedData(data, 500);
-        printerStatusDiv.innerText = '✅ Receipt printed';
-        return true;
-      } catch (err) {
-        console.error(err);
-        printerStatusDiv.innerText = `❌ Print error: ${err.message}`;
-        return false;
-      }
-    }
-
-    async function connectPrinter() {
-      try {
-        printerStatusDiv.innerText = '🔍 Scanning...';
-        connectBtn.disabled = true;
-        const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] });
-        gattServer = await device.gatt.connect();
-        const services = await gattServer.getPrimaryServices();
-        let foundChar = null;
-        for (const service of services) {
-          const chars = await service.getCharacteristics();
-          for (const char of chars) {
-            if (char.properties.write || char.properties.writeWithoutResponse) {
-              foundChar = char;
-              break;
-            }
-          }
-          if (foundChar) break;
-        }
-        if (!foundChar) throw new Error('No writable characteristic');
-        printerCharacteristic = foundChar;
-        isConnected = true;
-        window.printerAPI.isConnected = true;
-        printerStatusDiv.innerText = '✅ Printer ready';
-        connectBtn.innerText = '🔌 Disconnect';
-        openDrawerBtn.disabled = false;
-      } catch (err) {
-        printerStatusDiv.innerText = `❌ ${err.message}`;
-        gattServer = null;
-        printerCharacteristic = null;
-      } finally {
-        connectBtn.disabled = false;
-      }
-    }
-
-    async function disconnectPrinter() {
-      if (gattServer) { gattServer.disconnect(); gattServer = null; printerCharacteristic = null; }
-      isConnected = false;
-      window.printerAPI.isConnected = false;
-      printerStatusDiv.innerText = '⚪ Not connected';
-      connectBtn.innerText = '🖨️ Connect Printer';
-      openDrawerBtn.disabled = true;
-    }
-
-    connectBtn.addEventListener('click', () => { if (!isConnected) connectPrinter(); else disconnectPrinter(); });
-    openDrawerBtn.addEventListener('click', async () => {
-      if (!isConnected) { await showAlertModal('Printer not connected', 'Please connect a printer first.'); return; }
-      await openCashDrawer();
-    });
-    window.printerAPI = { isConnected: false, printReceipt: printReceipt };
-  })();
-
-  // ==================== RENDER PRODUCT GRID (FIXED) ====================
-  function renderProductGrid() {
-    const searchTerm = searchInput.value.toLowerCase();
-    const selectedCategory = categorySelect.value;
-    let filtered = products;
-    if (selectedCategory !== 'all') filtered = filtered.filter(p => p.category === selectedCategory);
-    if (searchTerm) filtered = filtered.filter(p => p.name.toLowerCase().includes(searchTerm));
-    if (filtered.length === 0) {
-      productGridEl.innerHTML = '<div style="text-align:center; padding:20px;">No products found</div>';
-      return;
-    }
-
-    let html = '';
-    filtered.forEach(prod => {
-      if (inventoryMode) {
-        html += `<div class="product-card">
-          <div class="product-name">${escapeHtml(prod.name)}</div>
-          <div class="product-category">${escapeHtml(prod.category)}</div>
-          <div class="product-price">RM ${prod.price.toFixed(2)}</div>
-          <div class="inventory-controls">
-            <button class="inventory-btn dec-stock" data-id="${prod.id}" data-current="${prod.stock}">−</button>
-            <span class="stock-display" data-id="${prod.id}">${prod.stock}</span>
-            <button class="inventory-btn inc-stock" data-id="${prod.id}" data-current="${prod.stock}">+</button>
-          </div>
-        </div>`;
-      } else {
-        const stockStatus = prod.stock > 0 ? `📦 Stock: ${prod.stock}` : '❌ Out of stock';
-        html += `<div class="product-card">
-          <div class="product-name">${escapeHtml(prod.name)}</div>
-          <div class="product-category">${escapeHtml(prod.category)}</div>
-          <div class="product-price">RM ${prod.price.toFixed(2)}</div>
-          <div class="product-stock">${stockStatus}</div>
-          <button class="add-btn" data-id="${prod.id}" ${prod.stock <= 0 ? 'disabled' : ''}>+ Add to cart</button>
-        </div>`;
-      }
-    });
-    productGridEl.innerHTML = html;
-    productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
-
-    // Attach event listeners based on mode
-    if (inventoryMode) {
-      document.querySelectorAll('.dec-stock').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const id = btn.dataset.id;
-          const product = products.find(p => p.id == id);
-          if (product && product.stock > 0) {
-            const newStock = product.stock - 1;
-            product.stock = newStock;
-            pendingStockChanges.set(id, newStock);
-            const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
-            if (displaySpan) displaySpan.innerText = newStock;
-          }
-          e.stopPropagation();
-        });
-      });
-      document.querySelectorAll('.inc-stock').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const id = btn.dataset.id;
-          const product = products.find(p => p.id == id);
-          if (product) {
-            const newStock = product.stock + 1;
-            product.stock = newStock;
-            pendingStockChanges.set(id, newStock);
-            const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
-            if (displaySpan) displaySpan.innerText = newStock;
-          }
-          e.stopPropagation();
-        });
-      });
-    } else {
-      document.querySelectorAll('.add-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const product = products.find(p => p.id == btn.dataset.id);
-          if (product && product.stock > 0) addToCart(product);
-          e.stopPropagation();
-        });
-      });
+    } catch (err) {
+      console.error(err);
+      printerStatusDiv.innerText = `❌ Drawer error`;
+      return false;
     }
   }
 
+  async function printReceipt(transaction) {
+    if (!isConnected || !printerCharacteristic) {
+      printerStatusDiv.innerText = '❌ Printer not connected';
+      return false;
+    }
+    try {
+      const openDrawer = (transaction.payment_method === 'Cash');
+      const data = generateReceiptData(transaction, openDrawer);
+      // Send data in chunks to avoid exceeding characteristic's write limit
+      await sendChunkedData(data, 500);
+      printerStatusDiv.innerText = '✅ Receipt printed';
+      return true;
+    } catch (err) {
+      console.error(err);
+      printerStatusDiv.innerText = `❌ Print error: ${err.message}`;
+      return false;
+    }
+  }
+
+  async function connectPrinter() {
+    try {
+      printerStatusDiv.innerText = '🔍 Scanning...';
+      connectBtn.disabled = true;
+      const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] });
+      gattServer = await device.gatt.connect();
+      const services = await gattServer.getPrimaryServices();
+      let foundChar = null;
+      for (const service of services) {
+        const chars = await service.getCharacteristics();
+        for (const char of chars) {
+          if (char.properties.write || char.properties.writeWithoutResponse) {
+            foundChar = char;
+            break;
+          }
+        }
+        if (foundChar) break;
+      }
+      if (!foundChar) throw new Error('No writable characteristic');
+      printerCharacteristic = foundChar;
+      isConnected = true;
+      window.printerAPI.isConnected = true;
+      printerStatusDiv.innerText = '✅ Printer ready';
+      connectBtn.innerText = '🔌 Disconnect';
+      openDrawerBtn.disabled = false;
+    } catch (err) {
+      printerStatusDiv.innerText = `❌ ${err.message}`;
+      gattServer = null;
+      printerCharacteristic = null;
+    } finally {
+      connectBtn.disabled = false;
+    }
+  }
+
+  async function disconnectPrinter() {
+    if (gattServer) { gattServer.disconnect(); gattServer = null; printerCharacteristic = null; }
+    isConnected = false;
+    window.printerAPI.isConnected = false;
+    printerStatusDiv.innerText = '⚪ Not connected';
+    connectBtn.innerText = '🖨️ Connect Printer';
+    openDrawerBtn.disabled = true;
+  }
+
+  connectBtn.addEventListener('click', () => { if (!isConnected) connectPrinter(); else disconnectPrinter(); });
+  openDrawerBtn.addEventListener('click', async () => {
+    if (!isConnected) { await showAlertModal('Printer not connected', 'Please connect a printer first.'); return; }
+    await openCashDrawer();
+  });
+  window.printerAPI = { isConnected: false, printReceipt: printReceipt };
+})();
+  // ==================== RENDER PRODUCT GRID (with inventory mode and logging) ====================
+ function renderProductGrid() {
+  const searchTerm = searchInput.value.toLowerCase();
+  const selectedCategory = categorySelect.value;
+  let filtered = products;
+  if (selectedCategory !== 'all') filtered = filtered.filter(p => p.category === selectedCategory);
+  if (searchTerm) filtered = filtered.filter(p => p.name.toLowerCase().includes(searchTerm));
+  if (filtered.length === 0) {
+    productGridEl.innerHTML = '<div style="text-align:center; padding:20px;">No products found</div>';
+    return;
+  }
+
+  let html = '';
+  filtered.forEach(prod => {
+    if (inventoryMode) {
+      html += `<div class="product-card">
+        <div class="product-name">${escapeHtml(prod.name)}</div>
+        <div class="product-category">${escapeHtml(prod.category)}</div>
+        <div class="product-price">RM ${prod.price.toFixed(2)}</div>
+        <div class="inventory-controls">
+          <button class="inventory-btn dec-stock" data-id="${prod.id}" data-current="${prod.stock}">−</button>
+          <span class="stock-display" data-id="${prod.id}">${prod.stock}</span>
+          <button class="inventory-btn inc-stock" data-id="${prod.id}" data-current="${prod.stock}">+</button>
+        </div>
+      </div>`;
+    } else {
+      const stockStatus = prod.stock > 0 ? `📦 Stock: ${prod.stock}` : '❌ Out of stock';
+      html += `<div class="product-card">
+        <div class="product-name">${escapeHtml(prod.name)}</div>
+        <div class="product-category">${escapeHtml(prod.category)}</div>
+        <div class="product-price">RM ${prod.price.toFixed(2)}</div>
+        <div class="product-stock">${stockStatus}</div>
+        <button class="add-btn" data-id="${prod.id}" ${prod.stock <= 0 ? 'disabled' : ''}>+ Add to cart</button>
+      </div>`;
+    }
+  });
+  productGridEl.innerHTML = html;
+  productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
+
+  if (inventoryMode) {
+    document.querySelectorAll('.dec-stock').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = btn.dataset.id;
+        const product = products.find(p => p.id == id);
+        if (product && product.stock > 0) {
+          const oldStock = product.stock;
+          const newStock = product.stock - 1;
+          product.stock = newStock;
+          const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
+          if (displaySpan) displaySpan.innerText = newStock;
+          scheduleStockUpdate(id, newStock);
+          logStockChange(product.id, product.name, product.category, oldStock, newStock, -1);
+          btn.dataset.current = newStock;
+          const incBtn = document.querySelector(`.inc-stock[data-id="${id}"]`);
+          if (incBtn) incBtn.dataset.current = newStock;
+        }
+        e.stopPropagation();
+      });
+    });
+    document.querySelectorAll('.inc-stock').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = btn.dataset.id;
+        const product = products.find(p => p.id == id);
+        if (product) {
+          const oldStock = product.stock;
+          const newStock = product.stock + 1;
+          product.stock = newStock;
+          const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
+          if (displaySpan) displaySpan.innerText = newStock;
+          scheduleStockUpdate(id, newStock);
+          logStockChange(product.id, product.name, product.category, oldStock, newStock, 1);
+          btn.dataset.current = newStock;
+          const decBtn = document.querySelector(`.dec-stock[data-id="${id}"]`);
+          if (decBtn) decBtn.dataset.current = newStock;
+        }
+        e.stopPropagation();
+      });
+    });
+  } else {
+    document.querySelectorAll('.add-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const product = products.find(p => p.id == btn.dataset.id);
+        if (product && product.stock > 0) addToCart(product);
+        e.stopPropagation();
+      });
+    });
+  }
+}
   // ==================== VIEW TOGGLE ====================
   function setViewMode(mode) {
     viewMode = mode;
@@ -2892,141 +2878,33 @@
     renderProductGrid();
   }
 
-  // ==================== EMPLOYEE BACKGROUND REFRESH ====================
-  function startEmployeeBackgroundRefresh() {
-    if (employeeRefreshInterval) clearInterval(employeeRefreshInterval);
-    refreshEmployeesInBackground();
-    employeeRefreshInterval = setInterval(refreshEmployeesInBackground, 5 * 60 * 1000);
-  }
-
-  async function refreshEmployeesInBackground() {
-    try {
-      const response = await fetch(`${APPS_SCRIPT_URL}?action=getEmployeesFull`);
-      const result = await response.json();
-      if (result.success) {
-        cachedEmployees = result.employees;
-        updateEmployeeNameMap();
-        populateSoldBySelect();
-        if (currentEmployee?.isAdmin) {
-          populateAdminEmployeeSelect();
-          populateReceiptsEmployeeSelect();
-        }
-      }
-    } catch (err) {
-      console.error('Background employee refresh failed', err);
-    }
-  }
-
-  function stopEmployeeBackgroundRefresh() {
-    if (employeeRefreshInterval) {
-      clearInterval(employeeRefreshInterval);
-      employeeRefreshInterval = null;
-    }
-  }
-
-  function populateAdminEmployeeSelect() {
-    const select = document.getElementById('adminReportEmployeeSelect');
-    if (!select) return;
-    select.innerHTML = '<option value="all">All Employees</option>';
-    cachedEmployees.forEach(emp => {
-      const opt = document.createElement('option');
-      opt.value = emp.id;
-      opt.textContent = `${emp.name} (ID: ${emp.id})`;
-      select.appendChild(opt);
-    });
-  }
-
-  function populateReceiptsEmployeeSelect() {
-    const select = document.getElementById('receiptsEmployeeSelect');
-    if (!select) return;
-    select.innerHTML = '<option value="all">All Employees</option>';
-    cachedEmployees.forEach(emp => {
-      const opt = document.createElement('option');
-      opt.value = emp.id;
-      opt.textContent = `${emp.name} (ID: ${emp.id})`;
-      select.appendChild(opt);
-    });
-  }
-
-  // ==================== PIN LOGIN ====================
-  async function verifyEmployeeByPin(pin) {
-    if (cachedEmployees.length === 0 && initialDataLoadPromise) {
-      await initialDataLoadPromise;
-    }
-    if (cachedEmployees.length === 0) {
-      console.warn('Fetching employees directly...');
-      const response = await fetch(`${APPS_SCRIPT_URL}?action=getEmployeesFull`);
-      const result = await response.json();
-      if (result.success) {
-        cachedEmployees = result.employees;
-      } else {
-        return { success: false, error: 'Could not load employee data.' };
-      }
-    }
-
-    const employee = cachedEmployees.find(e => String(e.pin).trim() === String(pin).trim());
-    if (employee) {
-      return {
-        success: true,
-        employee: {
-          id: employee.id,
-          name: employee.name,
-          isAdmin: employee.is_admin
-        }
-      };
-    } else {
-      return { success: false, error: 'Invalid PIN' };
-    }
-  }
-
   // ==================== EVENT LISTENERS ====================
   document.getElementById('confirmStoreBtn').addEventListener('click', () => {
     initialStore = document.getElementById('initialStoreSelect').value;
     currentStore = initialStore;
     storeSelect.value = initialStore;
     document.getElementById('storeSelectModal').style.display = 'none';
-    initialDataLoadPromise = loadInitialData();
+    initialDataPromise = loadInitialData();
     document.getElementById('loginModal').style.display = 'flex';
     document.getElementById('pinInput').focus();
   });
 
-  const pinInputField = document.getElementById('pinInput');
-  document.querySelectorAll('.keypad-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (btn.dataset.digit && pinInputField.value.length < 4) {
-        pinInputField.value += btn.dataset.digit;
-      } else if (btn.dataset.action === 'clear') {
-        pinInputField.value = pinInputField.value.slice(0, -1);
-      } else if (btn.dataset.action === 'enter') {
-        handlePinEntry();
-      }
-      document.getElementById('loginError').innerText = '';
-    });
-  });
-  pinInputField.addEventListener('input', () => {
-    if (pinInputField.value.length === 4) {
-      handlePinEntry();
-    } else {
-      document.getElementById('loginError').innerText = '';
-    }
-  });
-
-  async function handlePinEntry() {
-    const pin = pinInputField.value.trim();
-    if (pin.length === 4) {
-      const result = await verifyEmployeeByPin(pin);
+  async function verifyEmployeeByPin(pin) {
+    showLoading('Verifying...');
+    try {
+      const url = `${APPS_SCRIPT_URL}?action=verifyByPin&pin=${encodeURIComponent(pin)}`;
+      const response = await fetch(url);
+      const result = await response.json();
       if (result.success) {
         currentEmployee = result.employee;
         document.getElementById('employeeName').innerText = currentEmployee.name;
         document.getElementById('loginModal').style.display = 'none';
         document.getElementById('mainContent').style.display = 'block';
 
-        if (soldBySelect && currentEmployee) {
-          soldBySelect.value = currentEmployee.id;
-        }
+        if (initialDataPromise) await initialDataPromise;
+        else await loadInitialData();
 
-        startEmployeeBackgroundRefresh();
-        startReceiptPolling();
+        soldBySelect.value = currentEmployee.id;
 
         if (!currentEmployee.isAdmin) {
           storeSelect.disabled = true;
@@ -3036,51 +2914,47 @@
           inventoryModeBtn.style.display = 'flex';
         }
 
+        const reportStoreFilter = document.getElementById('reportStoreFilterGroup');
+        const employeeFilterGroup = document.getElementById('employeeFilterGroup');
+        const storeChartContainer = document.getElementById('storeChartContainer');
+        const employeeChartContainer = document.getElementById('employeeChartContainer');
+        const collectionBtn = document.getElementById('collectionBtn');
         if (currentEmployee.isAdmin) {
-          populateAdminEmployeeSelect();
-          populateReceiptsEmployeeSelect();
+          reportStoreFilter.style.display = 'flex';
+          employeeFilterGroup.style.display = 'flex';
+          storeChartContainer.style.display = 'block';
+          employeeChartContainer.style.display = 'block';
+          collectionBtn.style.display = 'flex';
+        } else {
+          reportStoreFilter.style.display = 'none';
+          employeeFilterGroup.style.display = 'none';
+          storeChartContainer.style.display = 'none';
+          employeeChartContainer.style.display = 'none';
+          collectionBtn.style.display = 'none';
         }
 
-        if (products.length === 0) {
-          await fetchProductsFromSheet();
+        const settlementStoreSelect = document.getElementById('settlementStoreSelect');
+        if (!currentEmployee.isAdmin) {
+          settlementStoreSelect.value = initialStore;
+          settlementStoreSelect.disabled = true;
+        } else {
+          settlementStoreSelect.disabled = false;
         }
-
+startReceiptPolling();
         updateCartUI();
+        return true;
       } else {
-        document.getElementById('loginError').innerText = result.error;
-        pinInputField.value = '';
+        document.getElementById('loginError').innerText = result.error || 'Invalid PIN';
+        return false;
       }
+    } catch (err) {
+      console.error(err);
+      document.getElementById('loginError').innerText = 'Connection error';
+      return false;
+    } finally {
+      hideLoading();
     }
   }
-
-  
-
-// Attach event listeners for keypad and input field
-// ========== PIN EVENT LISTENERS ==========
-const pinInput = document.getElementById('pinInput');
-
-// Keypad buttons
-document.querySelectorAll('.keypad-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    if (btn.dataset.digit && pinInput.value.length < 4) {
-      pinInput.value += btn.dataset.digit;
-    } else if (btn.dataset.action === 'clear') {
-      pinInput.value = pinInput.value.slice(0, -1);
-    } else if (btn.dataset.action === 'enter') {
-      handlePinEntry();
-    }
-    document.getElementById('loginError').innerText = '';
-  });
-});
-
-// Direct input
-pinInput.addEventListener('input', () => {
-  if (pinInput.value.length === 4) {
-    handlePinEntry();
-  } else {
-    document.getElementById('loginError').innerText = '';
-  }
-});
 
   // Attach other event listeners (reports, receipts, etc.) - abbreviated for brevity but fully functional in final code
   const gridBtn = document.getElementById('gridViewBtn');
@@ -3099,7 +2973,20 @@ pinInput.addEventListener('input', () => {
     clearStockHistoryBtn.addEventListener('click', clearStockHistory);
   }
 
-  
+  const pinInput = document.getElementById('pinInput');
+  if (pinInput) {
+    document.querySelectorAll('.keypad-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.digit && pinInput.value.length < 4) pinInput.value += btn.dataset.digit;
+        else if (btn.dataset.action === 'clear') pinInput.value = pinInput.value.slice(0, -1);
+        else if (btn.dataset.action === 'enter' && pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value);
+        else if (btn.dataset.action === 'enter') document.getElementById('loginError').innerText = 'Please enter 4-digit PIN';
+      });
+    });
+    pinInput.addEventListener('input', () => {
+      if (pinInput.value.length === 4) verifyEmployeeByPin(pinInput.value);
+    });
+  }
 
   // Additional listeners (reports, receipts, etc.) are included in the full version.
   // For completeness, we add them here (abbreviated).
