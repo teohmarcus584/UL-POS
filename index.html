@@ -1087,7 +1087,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby_znIN3bet70r8elQjtRAr5gqIxpp8jIFEV2BGnS9zaFxTUEl3JSXMHTYPGtWbOtmjOQ/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzk7RXDcZii865QBb55iIlm4LbX8rfvTzKGAXJ_VyG3T5x3ME7bc81JF_EbS33s8g0dsw/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1367,7 +1367,7 @@ function renderStockHistory() {
     const response = await fetch(url);
     const result = await response.json();
     if (result.success) {
-      // Process products
+      // Products
       products = result.products.map(p => ({
         id: p.id,
         name: p.name,
@@ -1386,12 +1386,11 @@ function renderStockHistory() {
       });
       renderProductGrid();
 
-      // Cache employees (includes PIN and is_admin)
+      // Employees (with PINs)
       cachedEmployees = result.employees;
- console.log('Employees loaded:', cachedEmployees); // <-- ADD THIS
-      // Populate soldBy select
-      populateSoldBySelect();
+      console.log('Employees loaded:', cachedEmployees);
 
+      populateSoldBySelect();
       return true;
     } else {
       throw new Error('Failed to load initial data');
@@ -2888,33 +2887,41 @@ if (paperSizeSelect) {
   }
 
   // ==================== EVENT LISTENERS ====================
- document.getElementById('confirmStoreBtn').addEventListener('click', () => {
+document.getElementById('confirmStoreBtn').addEventListener('click', () => {
   initialStore = document.getElementById('initialStoreSelect').value;
   currentStore = initialStore;
   storeSelect.value = initialStore;
   document.getElementById('storeSelectModal').style.display = 'none';
 
-  // Store the promise so we can await it later in PIN verification
-  initialDataLoadPromise = loadInitialData();
+  initialDataLoadPromise = loadInitialData(); // store the promise
 
   document.getElementById('loginModal').style.display = 'flex';
   document.getElementById('pinInput').focus();
 });
+
 // ==================== LOCAL PIN VERIFICATION ====================
 async function verifyEmployeeByPin(pin) {
-  // If employees are not cached yet, wait for the pending initial load
+  // Wait for initial load if in progress
   if (cachedEmployees.length === 0 && initialDataLoadPromise) {
     console.warn('Waiting for initial data load...');
     await initialDataLoadPromise;
   }
-  // Fallback: if still empty (e.g., initial load failed), fetch now
+  // Fallback: fetch employees directly if still empty
   if (cachedEmployees.length === 0) {
-    console.warn('No cached employees, fetching now...');
-    await loadInitialData();
+    console.warn('Fetching employees directly...');
+    const response = await fetch(`${APPS_SCRIPT_URL}?action=getEmployeesFull`);
+    const result = await response.json();
+    if (result.success) {
+      cachedEmployees = result.employees;
+    } else {
+      return { success: false, error: 'Could not load employee data.' };
+    }
   }
 
-  // Find employee by PIN
-  const employee = cachedEmployees.find(e => String(e.pin) === String(pin));
+  console.log('Checking PIN:', pin);
+  console.log('Cached employees:', cachedEmployees);
+
+  const employee = cachedEmployees.find(e => String(e.pin).trim() === String(pin).trim());
   if (employee) {
     return {
       success: true,
@@ -3000,16 +3007,13 @@ async function handlePinEntry() {
       document.getElementById('loginModal').style.display = 'none';
       document.getElementById('mainContent').style.display = 'block';
 
-      // Set the "Sold By" dropdown to the logged-in employee (already done by loadInitialData, but ensure)
       const soldBySelect = document.getElementById('soldBySelect');
       if (soldBySelect && currentEmployee) {
         soldBySelect.value = currentEmployee.id;
       }
 
-      // Start background refresh for employee data
       startEmployeeBackgroundRefresh();
 
-      // If admin, show inventory mode button, etc.
       if (!currentEmployee.isAdmin) {
         storeSelect.disabled = true;
         inventoryModeBtn.style.display = 'none';
@@ -3018,13 +3022,11 @@ async function handlePinEntry() {
         inventoryModeBtn.style.display = 'flex';
       }
 
-      // Populate any admin‑dependent selects if they will be used
       if (currentEmployee.isAdmin) {
         populateAdminEmployeeSelect();
         populateReceiptsEmployeeSelect();
       }
 
-      // Load products (if not already loaded)
       if (products.length === 0) {
         await fetchProductsFromSheet();
       }
@@ -3032,7 +3034,7 @@ async function handlePinEntry() {
       updateCartUI();
     } else {
       document.getElementById('loginError').innerText = result.error;
-      pinInput.value = ''; // Clear PIN for retry
+      pinInput.value = '';
     }
   }
 }
@@ -3055,7 +3057,7 @@ document.querySelectorAll('.keypad-btn').forEach(btn => {
   });
 });
 
-// Direct keyboard input
+// Direct input
 pinInput.addEventListener('input', () => {
   if (pinInput.value.length === 4) {
     handlePinEntry();
@@ -3063,6 +3065,7 @@ pinInput.addEventListener('input', () => {
     document.getElementById('loginError').innerText = '';
   }
 });
+
   // Attach other event listeners (reports, receipts, etc.) - abbreviated for brevity but fully functional in final code
   const gridBtn = document.getElementById('gridViewBtn');
   const listBtn = document.getElementById('listViewBtn');
