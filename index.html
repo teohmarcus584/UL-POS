@@ -1023,6 +1023,20 @@
       font-size: 0.75rem;
       min-width: 100px;
     }
+    .free-toggle-btn {
+  background: #f1f5f9;
+  border: none;
+  border-radius: 30px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.1s;
+  white-space: nowrap;
+}
+.free-toggle-btn:active {
+  transform: scale(0.95);
+}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -1697,136 +1711,134 @@ let preloadedStores = [];    // List of stores that have been preloaded
 
   // ==================== CART FUNCTIONS ====================
   function updateCartUI() {
-    if (!cartContainer) return;
-    if (cart.length === 0) {
-      cartContainer.innerHTML = '<div style="color:#94a3b8; text-align:center;">Cart is empty</div>';
-      subtotalSpan.innerText = `RM 0.00`;
-      discountAmount = 0;
-      buy2Free1Discount = 0;
-      buy3Free1Discount = 0;
-      customDiscount = 0;
-      claimedReceiptInfo = null;
-      pendingPrize = null;
-      discountRow.style.display = 'none';
-      promoBuy2Free1Row.style.display = 'none';
-      promoBuy3Free1Row.style.display = 'none';
-      customDiscountRow.style.display = 'none';
-      totalSpan.innerText = `RM 0.00`;
-      return;
-    }
-
-    let html = '';
-    let subtotal = 0;
-    cart.forEach((item, idx) => {
-      const effectivePrice = item.isFreeGift ? 0 : item.product.price;
-      const itemTotal = effectivePrice * item.quantity;
-      subtotal += itemTotal;
-      const categoryDisplay = item.product.category
-        ? `<div class="cart-item-category">${escapeHtml(item.product.category)}</div>`
-        : '';
-      html += `
-        <div class="cart-item" data-index="${idx}">
-          <div class="cart-item-info">
-            <div class="cart-item-name">${escapeHtml(item.product.name)}</div>
-            ${categoryDisplay}
-            <div class="cart-item-price">${item.isFreeGift ? 'FREE' : `RM ${item.product.price.toFixed(2)}`}</div>
-          </div>
-          <div class="cart-item-free">
-            <label class="free-gift-label">
-              <input type="checkbox" class="free-gift-checkbox" data-index="${idx}" ${item.isFreeGift ? 'checked' : ''}> Free
-            </label>
-          </div>
-          <div class="cart-item-qty">
-            <button class="qty-btn" data-index="${idx}" data-delta="-1">−</button>
-            <span>${item.quantity}</span>
-            <button class="qty-btn" data-index="${idx}" data-delta="1">+</button>
-          </div>
-          <div class="cart-item-total">${item.isFreeGift ? 'RM 0.00' : `RM ${(item.product.price * item.quantity).toFixed(2)}`}</div>
-          <button class="remove-item" data-index="${idx}">✕</button>
-        </div>
-      `;
-    });
-    cartContainer.innerHTML = html;
-
-    subtotalSpan.innerText = `RM ${subtotal.toFixed(2)}`;
-
-    const totalPromoDiscount = buy2Free1Discount + buy3Free1Discount + customDiscount;
-    const total = subtotal - discountAmount - totalPromoDiscount;
-
-    if (discountAmount > 0) {
-      discountRow.style.display = 'flex';
-      discountAmountSpan.innerText = `RM ${discountAmount.toFixed(2)}`;
-    } else {
-      discountRow.style.display = 'none';
-    }
-
-    if (buy2Free1Discount > 0) {
-      promoBuy2Free1Row.style.display = 'flex';
-      promoBuy2Free1Amount.innerText = `RM ${buy2Free1Discount.toFixed(2)}`;
-    } else {
-      promoBuy2Free1Row.style.display = 'none';
-    }
-
-    if (buy3Free1Discount > 0) {
-      promoBuy3Free1Row.style.display = 'flex';
-      promoBuy3Free1Amount.innerText = `RM ${buy3Free1Discount.toFixed(2)}`;
-    } else {
-      promoBuy3Free1Row.style.display = 'none';
-    }
-
-    if (customDiscount > 0) {
-      customDiscountRow.style.display = 'flex';
-      customDiscountAmount.innerText = `RM ${customDiscount.toFixed(2)}`;
-    } else {
-      customDiscountRow.style.display = 'none';
-    }
-
-    totalSpan.innerText = `RM ${total.toFixed(2)}`;
-
-    document.querySelectorAll('.qty-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const idx = parseInt(btn.dataset.index);
-        const delta = parseInt(btn.dataset.delta);
-        if (!isNaN(idx) && !isNaN(delta)) updateQuantity(idx, delta);
-        e.stopPropagation();
-      });
-    });
-    document.querySelectorAll('.remove-item').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const idx = parseInt(btn.dataset.index);
-        if (!isNaN(idx)) removeCartItem(idx);
-        e.stopPropagation();
-      });
-    });
-    document.querySelectorAll('.free-gift-checkbox').forEach(cb => {
-      cb.addEventListener('change', (e) => {
-        const idx = parseInt(cb.dataset.index);
-        if (!isNaN(idx)) {
-          cart[idx].isFreeGift = cb.checked;
-          updateCartUI();
-        }
-        e.stopPropagation();
-      });
-    });
+  if (!cartContainer) return;
+  if (cart.length === 0) {
+    cartContainer.innerHTML = '<div style="color:#94a3b8; text-align:center;">Cart is empty</div>';
+    subtotalSpan.innerText = `RM 0.00`;
+    discountAmount = 0;
+    buy2Free1Discount = 0;
+    buy3Free1Discount = 0;
+    customDiscount = 0;
+    claimedReceiptInfo = null;
+    pendingPrize = null;
+    discountRow.style.display = 'none';
+    promoBuy2Free1Row.style.display = 'none';
+    promoBuy3Free1Row.style.display = 'none';
+    customDiscountRow.style.display = 'none';
+    totalSpan.innerText = `RM 0.00`;
+    return;
   }
+
+  let html = '';
+  let subtotal = 0;
+  cart.forEach((item, idx) => {
+    const paidUnits = item.quantity - item.freeQuantity;
+    const itemTotal = paidUnits * item.product.price;
+    subtotal += itemTotal;
+    const categoryDisplay = item.product.category
+      ? `<div class="cart-item-category">${escapeHtml(item.product.category)}</div>`
+      : '';
+    html += `
+      <div class="cart-item" data-index="${idx}">
+        <div class="cart-item-info">
+          <div class="cart-item-name">${escapeHtml(item.product.name)}</div>
+          ${categoryDisplay}
+          <div class="cart-item-price">RM ${item.product.price.toFixed(2)}</div>
+        </div>
+        <div class="cart-item-free">
+          <button class="free-toggle-btn" data-index="${idx}">Free: ${item.freeQuantity}</button>
+        </div>
+        <div class="cart-item-qty">
+          <button class="qty-btn" data-index="${idx}" data-delta="-1">−</button>
+          <span>${item.quantity}</span>
+          <button class="qty-btn" data-index="${idx}" data-delta="1">+</button>
+        </div>
+        <div class="cart-item-total">RM ${itemTotal.toFixed(2)}</div>
+        <button class="remove-item" data-index="${idx}">✕</button>
+      </div>
+    `;
+  });
+  cartContainer.innerHTML = html;
+
+  subtotalSpan.innerText = `RM ${subtotal.toFixed(2)}`;
+
+  const totalPromoDiscount = buy2Free1Discount + buy3Free1Discount + customDiscount;
+  const total = subtotal - discountAmount - totalPromoDiscount;
+
+  if (discountAmount > 0) {
+    discountRow.style.display = 'flex';
+    discountAmountSpan.innerText = `RM ${discountAmount.toFixed(2)}`;
+  } else {
+    discountRow.style.display = 'none';
+  }
+
+  if (buy2Free1Discount > 0) {
+    promoBuy2Free1Row.style.display = 'flex';
+    promoBuy2Free1Amount.innerText = `RM ${buy2Free1Discount.toFixed(2)}`;
+  } else {
+    promoBuy2Free1Row.style.display = 'none';
+  }
+
+  if (buy3Free1Discount > 0) {
+    promoBuy3Free1Row.style.display = 'flex';
+    promoBuy3Free1Amount.innerText = `RM ${buy3Free1Discount.toFixed(2)}`;
+  } else {
+    promoBuy3Free1Row.style.display = 'none';
+  }
+
+  if (customDiscount > 0) {
+    customDiscountRow.style.display = 'flex';
+    customDiscountAmount.innerText = `RM ${customDiscount.toFixed(2)}`;
+  } else {
+    customDiscountRow.style.display = 'none';
+  }
+
+  totalSpan.innerText = `RM ${total.toFixed(2)}`;
+
+  // Attach event listeners for quantity and remove
+  document.querySelectorAll('.qty-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = parseInt(btn.dataset.index);
+      const delta = parseInt(btn.dataset.delta);
+      if (!isNaN(idx) && !isNaN(delta)) updateQuantity(idx, delta);
+      e.stopPropagation();
+    });
+  });
+  document.querySelectorAll('.remove-item').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = parseInt(btn.dataset.index);
+      if (!isNaN(idx)) removeCartItem(idx);
+      e.stopPropagation();
+    });
+  });
+  document.querySelectorAll('.free-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = parseInt(btn.dataset.index);
+      if (!isNaN(idx)) toggleFreeCount(idx);
+      e.stopPropagation();
+    });
+  });
+}
 
   function updateQuantity(index, delta) {
-    const item = cart[index];
-    if (!item) return;
-    const newQty = item.quantity + delta;
-    if (newQty <= 0) {
-      cart.splice(index, 1);
-    } else {
-      const productStock = item.product.stock;
-      if (newQty > productStock && productStock !== undefined) {
-        showAlertModal('Stock limit', `Only ${productStock} left in stock.`);
-        return;
-      }
-      item.quantity = newQty;
+  const item = cart[index];
+  if (!item) return;
+  const newQty = item.quantity + delta;
+  if (newQty <= 0) {
+    cart.splice(index, 1);
+  } else {
+    const productStock = item.product.stock;
+    if (newQty > productStock && productStock !== undefined) {
+      showAlertModal('Stock limit', `Only ${productStock} left in stock.`);
+      return;
     }
-    updateCartUI();
-    clearPromo();
+    item.quantity = newQty;
+    // Cap freeQuantity to new quantity
+    if (item.freeQuantity > newQty) item.freeQuantity = newQty;
   }
+  updateCartUI();
+  clearPromo();
+}
 
   function removeCartItem(index) {
     cart.splice(index, 1);
@@ -1835,23 +1847,25 @@ let preloadedStores = [];    // List of stores that have been preloaded
   }
 
   function addToCart(product) {
-    if (product.stock <= 0) {
-      showAlertModal('Out of Stock', `${product.name} is out of stock.`);
+  if (product.stock <= 0) {
+    showAlertModal('Out of Stock', `${product.name} is out of stock.`);
+    return;
+  }
+  const existing = cart.find(item => item.product.id === product.id);
+  if (existing) {
+    if (existing.quantity + 1 > product.stock) {
+      showAlertModal('Stock limit', `Cannot add more than ${product.stock} units.`);
       return;
     }
-    const existing = cart.find(item => item.product.id === product.id);
-    if (existing) {
-      if (existing.quantity + 1 > product.stock) {
-        showAlertModal('Stock limit', `Cannot add more than ${product.stock} units.`);
-        return;
-      }
-      existing.quantity += 1;
-    } else {
-      cart.push({ product: { ...product }, quantity: 1, isFreeGift: false });
-    }
-    updateCartUI();
-    clearPromo();
+    existing.quantity += 1;
+    // Ensure freeQuantity does not exceed new quantity
+    if (existing.freeQuantity > existing.quantity) existing.freeQuantity = existing.quantity;
+  } else {
+    cart.push({ product: { ...product }, quantity: 1, freeQuantity: 0 });
   }
+  updateCartUI();
+  clearPromo();
+}
 
   function clearCart() {
     if (cart.length === 0) return;
@@ -2119,14 +2133,14 @@ let preloadedStores = [];    // List of stores that have been preloaded
     const totalAmount = pendingTransaction.totalAmount;
     const transactionId = `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const saleItems = cart.map(item => ({
-      id: item.product.id,
-      category: item.product.category,
-      name: item.product.name,
-      price: item.isFreeGift ? 0 : item.product.price,
-      quantity: item.quantity,
-      total: item.isFreeGift ? 0 : item.product.price * item.quantity,
-      is_free_gift: item.isFreeGift
-    }));
+  id: item.product.id,
+  category: item.product.category,
+  name: item.product.name,
+  price: item.product.price,
+  quantity: item.quantity,
+  free_quantity: item.freeQuantity,
+  total: (item.quantity - item.freeQuantity) * item.product.price
+}));
     const transaction = {
       transaction_id: transactionId,
       items: saleItems,
@@ -2772,90 +2786,93 @@ async function preloadProductsForStore(store) {
     const openDrawerBtn = document.getElementById('openDrawerBtn');
 
     function generateReceiptData(transaction, openDrawer = false) {
-      const encoder = new TextEncoder();
-      const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
-      const storeLocation = transaction.store ? transaction.store.charAt(0).toUpperCase() + transaction.store.slice(1) : 'Queens';
-      
-      const paperSize = localStorage.getItem('printerPaperSize') || '80';
-      const maxChars = paperSize === '58' ? 32 : 48;
-      
-      function formatLine(left, right = null) {
-        if (right === null) {
-          return left.length > maxChars ? left.substring(0, maxChars - 3) + '...' : left;
-        }
-        const leftMax = Math.floor(maxChars * 0.6);
-        const rightMax = maxChars - leftMax - 2;
-        let leftText = left.length > leftMax ? left.substring(0, leftMax - 3) + '...' : left;
-        let rightText = right.length > rightMax ? right.substring(0, rightMax - 3) + '...' : right;
-        return leftText.padEnd(leftMax) + ' ' + rightText.padStart(rightMax);
-      }
-      
-      const grouped = {};
-      for (const item of transaction.items) {
-        const cat = item.category || 'Uncategorized';
-        if (!grouped[cat]) grouped[cat] = [];
-        grouped[cat].push(item);
-      }
-      
-      const lines = [];
-      const separator = '-'.repeat(maxChars);
-      
-      lines.push('', '    UL PERFUMERY', separator);
-      lines.push(formatLine(`STORE LOCATION : ${storeLocation}`));
-      lines.push(formatLine(`EMPLOYEE : ${employeeName}`));
-      lines.push(separator);
-      
-      for (const [category, items] of Object.entries(grouped)) {
-        let categoryTotal = 0;
-        for (const item of items) {
-          categoryTotal += (item.is_free_gift ? 0 : item.price) * item.quantity;
-        }
-        lines.push(formatLine(category, `RM ${categoryTotal.toFixed(2)}`));
-        for (const item of items) {
-          lines.push(`  ${item.name}`);
-          if (item.is_free_gift) {
-            lines.push(`  FREE GIFT`);
-          } else {
-            lines.push(`  ${item.quantity} x RM ${item.price.toFixed(2)}`);
-          }
-        }
-      }
-      
-      lines.push(separator);
-      const totalAmount = transaction.total;
-      lines.push(formatLine('TOTAL', `RM ${totalAmount.toFixed(2)}`));
-      lines.push(formatLine('PAYMENT METHOD', transaction.payment_method));
-      if (transaction.cash_received && transaction.payment_method === 'Cash') {
-        const change = transaction.cash_received - totalAmount;
-        lines.push(formatLine('CHANGE', `RM ${change.toFixed(2)}`));
-      }
-      lines.push(separator);
-      lines.push('THANK YOU FOR YOUR PURCHASE');
-      lines.push('ANY ENQUIRY PLEASE CONTACT');
-      lines.push('+60134665831 ( MARCUS )');
-      lines.push('GOODS SOLD ARE NOT REFUNDABLE');
-      lines.push(separator);
-      
-      const date = new Date(transaction.timestamp);
-      const formattedDate = `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
-      lines.push(formatLine(`TXN   : ${transaction.transaction_id}`));
-      lines.push(formatLine(`DATE  : ${formattedDate}`));
-      lines.push('');
-      
-      const text = lines.join('\n');
-      
-      let commands = [];
-      commands.push(0x1B, 0x40); // Initialize
-      commands.push(0x1B, 0x61, 0x01); // Center
-      commands.push(...encoder.encode(text));
-      commands.push(0x1B, 0x64, 0x03); // Feed 3 lines
-      commands.push(0x1D, 0x56, 0x41, 0x00); // Cut
-      if (openDrawer) {
-        const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
-        commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
-      }
-      return new Uint8Array(commands);
+  const encoder = new TextEncoder();
+  const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
+  const storeLocation = transaction.store ? transaction.store.charAt(0).toUpperCase() + transaction.store.slice(1) : 'Queens';
+  
+  const paperSize = localStorage.getItem('printerPaperSize') || '80';
+  const maxChars = paperSize === '58' ? 32 : 48;
+  
+  function formatLine(left, right = null) {
+    if (right === null) {
+      return left.length > maxChars ? left.substring(0, maxChars - 3) + '...' : left;
     }
+    const leftMax = Math.floor(maxChars * 0.6);
+    const rightMax = maxChars - leftMax - 2;
+    let leftText = left.length > leftMax ? left.substring(0, leftMax - 3) + '...' : left;
+    let rightText = right.length > rightMax ? right.substring(0, rightMax - 3) + '...' : right;
+    return leftText.padEnd(leftMax) + ' ' + rightText.padStart(rightMax);
+  }
+  
+  const grouped = {};
+  for (const item of transaction.items) {
+    const cat = item.category || 'Uncategorized';
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(item);
+  }
+  
+  const lines = [];
+  const separator = '-'.repeat(maxChars);
+  
+  lines.push('', '    UL PERFUMERY', separator);
+  lines.push(formatLine(`STORE LOCATION : ${storeLocation}`));
+  lines.push(formatLine(`EMPLOYEE : ${employeeName}`));
+  lines.push(separator);
+  
+  for (const [category, items] of Object.entries(grouped)) {
+    let categoryTotal = 0;
+    for (const item of items) {
+      const paidQty = item.quantity - (item.free_quantity || 0);
+      categoryTotal += paidQty * item.price;
+    }
+    lines.push(formatLine(category, `RM ${categoryTotal.toFixed(2)}`));
+    for (const item of items) {
+      const paidQty = item.quantity - (item.free_quantity || 0);
+      if (paidQty > 0) {
+        lines.push(`  ${item.name}`);
+        lines.push(`  ${paidQty} x RM ${item.price.toFixed(2)}`);
+      }
+      if (item.free_quantity > 0) {
+        lines.push(`  ** ${item.free_quantity} FREE **`);
+      }
+    }
+  }
+  
+  lines.push(separator);
+  const totalAmount = transaction.total;
+  lines.push(formatLine('TOTAL', `RM ${totalAmount.toFixed(2)}`));
+  lines.push(formatLine('PAYMENT METHOD', transaction.payment_method));
+  if (transaction.cash_received && transaction.payment_method === 'Cash') {
+    const change = transaction.cash_received - totalAmount;
+    lines.push(formatLine('CHANGE', `RM ${change.toFixed(2)}`));
+  }
+  lines.push(separator);
+  lines.push('THANK YOU FOR YOUR PURCHASE');
+  lines.push('ANY ENQUIRY PLEASE CONTACT');
+  lines.push('+60134665831 ( MARCUS )');
+  lines.push('GOODS SOLD ARE NOT REFUNDABLE');
+  lines.push(separator);
+  
+  const date = new Date(transaction.timestamp);
+  const formattedDate = `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+  lines.push(formatLine(`TXN   : ${transaction.transaction_id}`));
+  lines.push(formatLine(`DATE  : ${formattedDate}`));
+  lines.push('');
+  
+  const text = lines.join('\n');
+  
+  let commands = [];
+  commands.push(0x1B, 0x40); // Initialize
+  commands.push(0x1B, 0x61, 0x01); // Center
+  commands.push(...encoder.encode(text));
+  commands.push(0x1B, 0x64, 0x03); // Feed 3 lines
+  commands.push(0x1D, 0x56, 0x41, 0x00); // Cut
+  if (openDrawer) {
+    const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
+    commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
+  }
+  return new Uint8Array(commands);
+}
 
     const paperSizeSelect = document.getElementById('paperSizeSelect');
     if (paperSizeSelect) {
@@ -3646,7 +3663,7 @@ if (document.getElementById('checkSettlementBtn')) {
       return [];
     }
   }
-
+function toggleFreeCount(index) {
   function populateStoreSelects() {
     const stores = Array.from(storeSelect.options).map(opt => ({ value: opt.value, text: opt.text }));
     const receiptsStore = document.getElementById('receiptsStoreSelect');
