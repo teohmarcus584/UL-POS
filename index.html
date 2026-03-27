@@ -1325,7 +1325,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxzustwOSlTbLU2sKXgR1iCmND7kovZigZ4nmhdF8WaktpY_PaMkbA9Q7YZzjNERVXyGg/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxCleZLw0OA70zQAYnLiMhxtraLZTzsVKhzQTtwG11lAyzdiJs-Cjh0MN1p3gAWwj0v4Q/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1565,18 +1565,25 @@ function displayStockHistory(history) {
     <tbody>`;
 
   for (const adj of history) {
-    const oldStock = isNaN(adj.oldStock) ? 0 : adj.oldStock;
-    const newStock = isNaN(adj.newStock) ? 0 : adj.newStock;
-    const change = newStock - oldStock;
-    const changeText = change > 0 ? `ADDED +${change}` : `REMOVED ${change}`;
     const date = adj.timestamp ? new Date(adj.timestamp).toLocaleString() : "Unknown date";
     const category = adj.category && adj.category !== "undefined" ? adj.category : "—";
+    // Convert movement to "ADDED +X" or "REMOVED -X"
+    let action = adj.movement;
+    if (action.startsWith('+')) {
+      action = `ADDED ${action}`;
+    } else if (action.startsWith('-')) {
+      action = `REMOVED ${action}`;
+    } else if (action !== "") {
+      action = `CHANGED ${action}`; // fallback
+    } else {
+      action = "—";
+    }
 
     html += `<tr>
       <td>${escapeHtml(date)}</td>
       <td>${escapeHtml(adj.productName || "Unknown")}</td>
       <td>${escapeHtml(category)}</td>
-      <td>${escapeHtml(changeText)}</td>
+      <td>${escapeHtml(action)}</td>
       <td>${escapeHtml(adj.employeeName || "System")}</td>
      </tr>`;
   }
