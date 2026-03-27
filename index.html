@@ -1336,7 +1336,7 @@ function renderStockHistory() {
   historyList.innerHTML = html;
 }
   // ==================== INVENTORY MODE TOGGLE ====================
-  function toggleInventoryMode() {
+ function toggleInventoryMode() {
   inventoryMode = !inventoryMode;
   const clearHistoryBtn = document.getElementById('clearStockHistoryBtn');
   if (inventoryMode) {
@@ -2376,35 +2376,7 @@ function stopReceiptPolling() {
     });
     tbody.innerHTML = html;
   }
-function toggleInventoryMode() {
-  inventoryMode = !inventoryMode;
-  const clearHistoryBtn = document.getElementById('clearStockHistoryBtn');
-  if (inventoryMode) {
-    // Enter inventory mode
-    cartNormalContent.style.display = 'none';
-    stockHistoryContainerDiv.style.display = 'flex';
-    cartPanelTitle.innerText = '📦 Inventory Mode';
-    inventoryModeBtn.innerText = '🛍️ Exit Inventory';
-    // Change button to Save History
-    clearHistoryBtn.innerText = '💾 Save History';
-    clearHistoryBtn.onclick = saveStockHistoryToSheet;
-    // Load saved history from sheet
-    loadStockHistoryFromSheet();
-    renderProductGrid();
-  } else {
-    // Exit inventory mode
-    cartNormalContent.style.display = 'block';
-    stockHistoryContainerDiv.style.display = 'none';
-    cartPanelTitle.innerText = '🧾 Current Sale';
-    inventoryModeBtn.innerText = '📦 Inventory Mode';
-    // Change button back to Clear History
-    clearHistoryBtn.innerText = '🗑️ Clear History';
-    clearHistoryBtn.onclick = clearStockHistory;
-    clearStockHistory(); // Clear local history when exiting (optional)
-    updateCartUI();
-    renderProductGrid();
-  }
-}
+
 async function updateAdminReport() {
   let store, employeeId;
   if (currentEmployee.isAdmin) {
@@ -3608,7 +3580,55 @@ async function loadUnsettledCash() {
     hideLoading();
   }
 }
+// Save stock history to Google Sheet
+async function saveStockHistoryToSheet() {
+  if (stockHistory.length === 0) {
+    showAlertModal('Nothing to save', 'No stock adjustments to save.');
+    return;
+  }
+  showLoading('Saving stock history...');
+  try {
+    const formData = new URLSearchParams();
+    formData.append("action", "saveStockHistory");
+    formData.append("store", currentStore);
+    formData.append("history", JSON.stringify(stockHistory));
+    const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+    const result = await response.json();
+    if (result.success) {
+      showAlertModal('Saved', 'Stock history saved successfully.');
+    } else {
+      showAlertModal('Error', 'Failed to save: ' + (result.error || 'Unknown error'));
+    }
+  } catch (err) {
+    console.error(err);
+    showAlertModal('Error', 'Connection error while saving history.');
+  } finally {
+    hideLoading();
+  }
+}
 
+// Load stock history from Google Sheet
+async function loadStockHistoryFromSheet() {
+  showLoading('Loading stock history...');
+  try {
+    const url = `${APPS_SCRIPT_URL}?action=getStockHistory&store=${currentStore}&_=${Date.now()}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    if (result.success) {
+      stockHistory = result.history || [];
+      renderStockHistory();
+    } else {
+      console.warn('No saved history found.');
+      stockHistory = [];
+      renderStockHistory();
+    }
+  } catch (err) {
+    console.error(err);
+    showAlertModal('Error', 'Failed to load saved history.');
+  } finally {
+    hideLoading();
+  }
+}
 function renderCollectionTable() {
   const tbody = document.getElementById('collectionTableBody');
   if (!currentUnsettledCash.length) {
