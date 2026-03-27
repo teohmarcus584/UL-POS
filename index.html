@@ -1115,7 +1115,7 @@ let loadingTimeout = null;
   let stockHistory = []; // Stock adjustment log (array of entries)
 let cachedEmployees = [];      // Array of employee objects { id, name, pin, is_admin }
 let employeeRefreshInterval = null; // Interval ID for background refresh
-
+let initialDataLoadPromise = null; // Store the initial data load promise
   // DOM elements
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -1388,7 +1388,7 @@ function renderStockHistory() {
 
       // Cache employees (includes PIN and is_admin)
       cachedEmployees = result.employees;
-
+ console.log('Employees loaded:', cachedEmployees); // <-- ADD THIS
       // Populate soldBy select
       populateSoldBySelect();
 
@@ -2888,31 +2888,33 @@ if (paperSizeSelect) {
   }
 
   // ==================== EVENT LISTENERS ====================
-  document.getElementById('confirmStoreBtn').addEventListener('click', () => {
-    initialStore = document.getElementById('initialStoreSelect').value;
-    currentStore = initialStore;
-    storeSelect.value = initialStore;
-    document.getElementById('storeSelectModal').style.display = 'none';
-    initialDataPromise = loadInitialData();
-    document.getElementById('loginModal').style.display = 'flex';
-    document.getElementById('pinInput').focus();
-  });
+ document.getElementById('confirmStoreBtn').addEventListener('click', () => {
+  initialStore = document.getElementById('initialStoreSelect').value;
+  currentStore = initialStore;
+  storeSelect.value = initialStore;
+  document.getElementById('storeSelectModal').style.display = 'none';
 
+  // Store the promise so we can await it later in PIN verification
+  initialDataLoadPromise = loadInitialData();
+
+  document.getElementById('loginModal').style.display = 'flex';
+  document.getElementById('pinInput').focus();
+});
 // ==================== LOCAL PIN VERIFICATION ====================
 async function verifyEmployeeByPin(pin) {
-  // If employees are not yet cached, wait for the ongoing initial load
+  // If employees are not cached yet, wait for the pending initial load
+  if (cachedEmployees.length === 0 && initialDataLoadPromise) {
+    console.warn('Waiting for initial data load...');
+    await initialDataLoadPromise;
+  }
+  // Fallback: if still empty (e.g., initial load failed), fetch now
   if (cachedEmployees.length === 0) {
-    if (initialDataPromise) {
-      console.warn('Waiting for initial data to finish...');
-      await initialDataPromise;
-    } else {
-      console.warn('Employees not cached, fetching initial data...');
-      await loadInitialData();
-    }
+    console.warn('No cached employees, fetching now...');
+    await loadInitialData();
   }
 
+  // Find employee by PIN
   const employee = cachedEmployees.find(e => String(e.pin) === String(pin));
-
   if (employee) {
     return {
       success: true,
@@ -3036,9 +3038,12 @@ async function handlePinEntry() {
 }
 
 // Attach event listeners for keypad and input field
+// ========== PIN EVENT LISTENERS ==========
+const pinInput = document.getElementById('pinInput');
+
+// Keypad buttons
 document.querySelectorAll('.keypad-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    const pinInput = document.getElementById('pinInput');
     if (btn.dataset.digit && pinInput.value.length < 4) {
       pinInput.value += btn.dataset.digit;
     } else if (btn.dataset.action === 'clear') {
@@ -3046,12 +3051,11 @@ document.querySelectorAll('.keypad-btn').forEach(btn => {
     } else if (btn.dataset.action === 'enter') {
       handlePinEntry();
     }
-    // Clear error on any new input
     document.getElementById('loginError').innerText = '';
   });
 });
 
-// Also listen to the input field for direct typing
+// Direct keyboard input
 pinInput.addEventListener('input', () => {
   if (pinInput.value.length === 4) {
     handlePinEntry();
