@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes, viewport-fit=cover">
   <title>POS System | PIN Login</title>
   <style>
-    /* ========== ALL EXISTING STYLES (unchanged) ========== */
+    /* ========== ALL EXISTING STYLES ========== */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -220,15 +220,8 @@
       flex-wrap: wrap;
     }
     .product-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.05); border-color: #cbd5e1; }
-    .product-name { font-weight: 600; font-size: 1rem; margin-bottom: 4px; color: #0f172a; }
-    .product-category {
-      font-size: 0.75rem;
-      color: #64748b;
-      margin-bottom: 6px;
-      font-weight: 400;
-    }
+    .product-name { font-weight: 600; font-size: 1rem; margin-bottom: 8px; color: #0f172a; }
     .product-list .product-name { margin-bottom: 0; flex: 2; }
-    .product-list .product-category { margin-bottom: 0; flex: 1; font-size: 0.8rem; }
     .product-price { font-weight: 700; color: #2c7a4b; font-size: 1.2rem; margin: 6px 0; }
     .product-list .product-price { margin: 0; font-size: 1.1rem; min-width: 80px; }
     .product-stock { font-size: 0.7rem; color: #64748b; margin-bottom: 10px; }
@@ -463,7 +456,7 @@
       .pos-dashboard { flex-direction: column; }
       .product-grid { max-height: 40vh; }
       .product-list .product-card { flex-direction: column; align-items: stretch; text-align: center; }
-      .product-list .product-name, .product-list .product-category, .product-list .product-price, .product-list .product-stock { margin: 4px 0; text-align: center; }
+      .product-list .product-name, .product-list .product-price, .product-list .product-stock { margin: 4px 0; text-align: center; }
       .product-list .add-btn { width: 100%; }
       .store-selector { flex-direction: column; align-items: stretch; }
     }
@@ -931,35 +924,6 @@
       min-width: 40px;
       text-align: center;
     }
-    .stock-change-indicator {
-      font-size: 0.75rem;
-      font-weight: 600;
-      margin-top: 6px;
-      padding: 2px 6px;
-      border-radius: 20px;
-      display: inline-block;
-      background: #eef2ff;
-      color: #1e40af;
-    }
-    .stock-change-indicator.positive {
-      background: #dcfce7;
-      color: #166534;
-    }
-    .stock-change-indicator.negative {
-      background: #fee2e2;
-      color: #b91c1c;   
-    }
-    .product-category {
-  font-size: 0.75rem;
-  color: #64748b;
-  margin-bottom: 6px;
-  font-weight: 400;
-}
-.product-list .product-category {
-  margin-bottom: 0;
-  flex: 1;
-  font-size: 0.8rem;
-}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -1325,7 +1289,7 @@
 
 <script>
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyaoaq60dEdxOydh6yNZmq0O38pBuBgA_ZOiLQ896w0gzttb59JXtv2HTHpQ83zLfDFWA/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwsoWl9ktiVz9jSZJMvJAm1zpNGpiiExmkSg9ypE9-C_3F973-uNoNI-tgVYGpfM74y-w/exec"; // REPLACE WITH YOUR URL
 
   // ==================== GLOBAL VARIABLES ====================
   let products = [];
@@ -1347,7 +1311,9 @@
   let claimedReceiptInfo = null;
   let pendingPrize = null;          // { receipt, value, name }
 // Stock adjustment aggregation (inventory mode)
-let sessionStockChanges = {}; // productId -> net change during inventory session
+let pendingStockChanges = {};      // productId -> net change (e.g., +3, -2)
+let productOriginalStock = {};     // productId -> stock at first change
+let stockUpdateTimeout = null;      // debounce timer
   let inventoryMode = false;
   
 
@@ -1516,15 +1482,45 @@ let sessionStockChanges = {}; // productId -> net change during inventory sessio
       return [];
     }
   }
+// Called after the debounce timer to apply all pending changes
+async function applyPendingStockUpdates() {
+  const productsToUpdate = Object.keys(pendingStockChanges);
+  if (productsToUpdate.length === 0) return;
+
+  showLoading('Committing stock changes...');
+
+  for (const productId of productsToUpdate) {
+    const netChange = pendingStockChanges[productId];
+    const originalStock = productOriginalStock[productId];
+    const newStock = originalStock + netChange;
+
+    const product = products.find(p => p.id == productId);
+    if (product) {
+      // Record one aggregated adjustment
+      await recordStockAdjustment(productId, product.name, originalStock, newStock);
+      // Update server stock
+      await updateStockOnServer(productId, newStock);
+      // Ensure local product stock matches final (already updated)
+    }
+  }
+
+  // Clear pending data
+  pendingStockChanges = {};
+  productOriginalStock = {};
+
+  // Refresh history after commit
+  await refreshStockHistory();
+  hideLoading();
+  showAlertModal('Success', 'All stock changes have been recorded.');
+}
 
 // Fire-and-forget: sends a single adjustment record to the backend
-async function recordStockAdjustment(productId, productName, category, oldStock, newStock) {
+async function recordStockAdjustment(productId, productName, oldStock, newStock) {
   try {
     const formData = new URLSearchParams();
     formData.append("action", "saveStockAdjustment");
     formData.append("productId", productId);
     formData.append("productName", productName);
-    formData.append("category", category || "—");
     formData.append("oldStock", oldStock);
     formData.append("newStock", newStock);
     formData.append("store", currentStore);
@@ -1541,61 +1537,45 @@ async function recordStockAdjustment(productId, productName, category, oldStock,
 // Refresh the stock history table (call this when needed)
 async function refreshStockHistory() {
   if (!inventoryMode) return;
+  showLoading('Loading stock history...');
   try {
     const history = await fetchStockHistory(currentStore);
-    console.log('Stock history:', history); // debug
     displayStockHistory(history);
   } catch (err) {
     console.error(err);
     const container = document.getElementById('stockHistoryList');
     if (container) container.innerHTML = '<div class="stock-history-empty">Error loading history.</div>';
+  } finally {
+    hideLoading();
   }
 }
-function displayStockHistory(history) {
+  function displayStockHistory(history) {
   const container = document.getElementById('stockHistoryList');
   if (!container) return;
   if (!history || history.length === 0) {
     container.innerHTML = '<div class="stock-history-empty">No stock adjustments recorded yet.</div>';
     return;
   }
-
-  let html = `<table class="stock-history-table">
-    <thead>
-      <tr><th>Time</th><th>Product</th><th>Category</th><th>Action</th><th>Employee</th> </thead>
-    <tbody>`;
-
+  let html = '<table class="stock-history-table"><thead><tr><th>Time</th><th>Product</th><th>Change</th><th>Old Stock</th><th>New Stock</th><th>Employee</th></tr></thead><tbody>';
   for (const adj of history) {
-    const date = adj.timestamp ? new Date(adj.timestamp).toLocaleString() : "Unknown date";
-    const category = adj.category && adj.category !== "undefined" ? adj.category : "—";
-    
-    // Extract numeric movement
-    let movementValue = 0;
-    if (adj.movement) {
-      const match = adj.movement.match(/([+-]?\d+)/);
-      if (match) movementValue = parseInt(match[1], 10);
-    }
-    
-    let action = "";
-    if (movementValue > 0) {
-      action = `ADDED +${movementValue}`;
-    } else if (movementValue < 0) {
-      action = `REMOVED ${movementValue}`;
-    } else {
-      action = "—";
-    }
-
+    const change = adj.newStock - adj.oldStock;
+    const changeClass = change > 0 ? 'positive' : 'negative';
+    const changeSign = change > 0 ? `+${change}` : `${change}`;
+    const changeStyle = change > 0 ? 'color: #2c7a4b;' : 'color: #dc2626;';
+    const date = new Date(adj.timestamp).toLocaleString();
     html += `<tr>
-      <td>${escapeHtml(date)}</td>
-      <td>${escapeHtml(adj.productName || "Unknown")}</td>
-      <td>${escapeHtml(category)}</td>
-      <td>${escapeHtml(action)}</td>
-      <td>${escapeHtml(adj.employeeName || "System")}</td>
-      </tr>`;
+      <td>${date}</td>
+      <td>${escapeHtml(adj.productName)}</td>
+      <td style="${changeStyle}">${changeSign}</td>
+      <td>${adj.oldStock}</td>
+      <td>${adj.newStock}</td>
+      <td>${escapeHtml(adj.employeeName)}</td>
+    </tr>`;
   }
-
   html += '</tbody></table>';
   container.innerHTML = html;
 }
+
   // ==================== INITIAL DATA LOAD ====================
   async function loadInitialData() {
     try {
@@ -1733,27 +1713,43 @@ function displayStockHistory(history) {
 
  let updateStockTimeout = null; // global debounce timer
 
+function scheduleStockUpdate(productId, newStock, oldStock, productName) {
+  // Clear any existing timer
+  if (updateStockTimeout) clearTimeout(updateStockTimeout);
 
+  // Set a new timer to update the server after 500ms of inactivity
+  updateStockTimeout = setTimeout(() => {
+    // Update the server with the final stock
+    updateStockOnServer(productId, newStock);
+    // Record the adjustment in history (this was the old way – now removed)
+    // recordStockAdjustment(productId, productName, oldStock, newStock);
+  }, 500);
+}
 
   // ==================== INVENTORY MODE TOGGLE ====================
- function toggleInventoryMode() {
+  function toggleInventoryMode() {
   if (inventoryMode) {
-    // Exit inventory mode
+    // Exit inventory mode: commit all pending changes
+    if (Object.keys(pendingStockChanges).length > 0) {
+      applyPendingStockUpdates();
+    }
+    // Switch UI
     normalCartSections.style.display = 'block';
     stockHistoryContainer.style.display = 'none';
     inventoryModeBtn.innerText = '📦 Inventory Mode';
     inventoryMode = false;
-    sessionStockChanges = {};   // clear session changes
   } else {
-    // Enter inventory mode
+    // Enter inventory mode: reset pending data
+    pendingStockChanges = {};
+    productOriginalStock = {};
+    // Switch UI
     normalCartSections.style.display = 'none';
     stockHistoryContainer.style.display = 'block';
     inventoryModeBtn.innerText = '🛍️ Exit Inventory';
     inventoryMode = true;
-    sessionStockChanges = {};   // fresh session
-    refreshStockHistory();     // load existing history
+    refreshStockHistory(); // load existing history
   }
-  renderProductGrid();         // rebuild grid (removes any old indicators)
+  renderProductGrid();
 }
   // ==================== CART FUNCTIONS ====================
   function updateCartUI() {
@@ -2972,14 +2968,12 @@ function renderProductGrid() {
     return;
   }
 
+  // Build HTML
   let html = '';
   filtered.forEach(prod => {
-    const categoryHtml = `<div class="product-category">${escapeHtml(prod.category)}</div>`;
-
     if (inventoryMode) {
       html += `<div class="product-card">
         <div class="product-name">${escapeHtml(prod.name)}</div>
-        ${categoryHtml}
         <div class="product-price">RM ${prod.price.toFixed(2)}</div>
         <div class="inventory-controls">
           <button class="inventory-btn dec-stock" data-id="${prod.id}">−</button>
@@ -2991,7 +2985,6 @@ function renderProductGrid() {
       const stockStatus = prod.stock > 0 ? `📦 Stock: ${prod.stock}` : '❌ Out of stock';
       html += `<div class="product-card">
         <div class="product-name">${escapeHtml(prod.name)}</div>
-        ${categoryHtml}
         <div class="product-price">RM ${prod.price.toFixed(2)}</div>
         <div class="product-stock">${stockStatus}</div>
         <button class="add-btn" data-id="${prod.id}" ${prod.stock <= 0 ? 'disabled' : ''}>+ Add to cart</button>
@@ -2999,85 +2992,65 @@ function renderProductGrid() {
     }
   });
 
+  // Inject HTML
   productGridEl.innerHTML = html;
   productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
 
-  // Attach event listeners for inventory mode
+  // Attach event listeners
   if (inventoryMode) {
-    // Decrement button
+    // Decrement button ( - )
     document.querySelectorAll('.dec-stock').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
+      btn.addEventListener('click', (e) => {
         const id = btn.dataset.id;
         const product = products.find(p => p.id == id);
         if (product && product.stock > 0) {
-          const oldStock = product.stock;
-          const newStock = oldStock - 1;
-          product.stock = newStock;
+          const delta = -1;
+          const newStock = product.stock + delta;
 
+          // Update UI immediately
+          product.stock = newStock;
           const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
           if (displaySpan) displaySpan.innerText = newStock;
 
-          await updateStockOnServer(id, newStock);
-          await recordStockAdjustment(id, product.name, product.category, oldStock, newStock);
-          await refreshStockHistory();
-
-          // Update session net change
-          sessionStockChanges[id] = (sessionStockChanges[id] || 0) - 1;
-          const net = sessionStockChanges[id];
-
-          // Get or create the persistent indicator
-          const card = btn.closest('.product-card');
-          let indicator = card.querySelector('.stock-change-indicator');
-          if (!indicator) {
-            indicator = document.createElement('div');
-            indicator.className = 'stock-change-indicator';
-            card.appendChild(indicator);
+          // Track pending change (aggregation)
+          if (!(id in pendingStockChanges)) {
+            productOriginalStock[id] = product.stock - delta; // original before first change
           }
-          if (net !== 0) {
-            indicator.className = `stock-change-indicator ${net > 0 ? 'positive' : 'negative'}`;
-            indicator.innerText = net > 0 ? `+${net}` : `${net}`;
-          } else {
-            indicator.remove();
-          }
+          pendingStockChanges[id] = (pendingStockChanges[id] || 0) + delta;
         }
         e.stopPropagation();
       });
     });
 
-    // Increment button
+    // Increment button ( + )
     document.querySelectorAll('.inc-stock').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
+      btn.addEventListener('click', (e) => {
         const id = btn.dataset.id;
         const product = products.find(p => p.id == id);
         if (product) {
-          const oldStock = product.stock;
-          const newStock = oldStock + 1;
-          product.stock = newStock;
+          const delta = 1;
+          const newStock = product.stock + delta;
 
+          // Update UI immediately
+          product.stock = newStock;
           const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
           if (displaySpan) displaySpan.innerText = newStock;
 
-          await updateStockOnServer(id, newStock);
-          await recordStockAdjustment(id, product.name, product.category, oldStock, newStock);
-          await refreshStockHistory();
-
-          sessionStockChanges[id] = (sessionStockChanges[id] || 0) + 1;
-          const net = sessionStockChanges[id];
-
-          const card = btn.closest('.product-card');
-          let indicator = card.querySelector('.stock-change-indicator');
-          if (!indicator) {
-            indicator = document.createElement('div');
-            indicator.className = 'stock-change-indicator';
-            card.appendChild(indicator);
+          // Track pending change (aggregation)
+          if (!(id in pendingStockChanges)) {
+            productOriginalStock[id] = product.stock - delta;
           }
-          if (net !== 0) {
-            indicator.className = `stock-change-indicator ${net > 0 ? 'positive' : 'negative'}`;
-            indicator.innerText = net > 0 ? `+${net}` : `${net}`;
-          } else {
-            indicator.remove();
-          }
+          pendingStockChanges[id] = (pendingStockChanges[id] || 0) + delta;
         }
+        e.stopPropagation();
+      });
+    });
+  } else {
+    // Normal add‑to‑cart buttons
+    document.querySelectorAll('.add-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const product = products.find(p => p.id == btn.dataset.id);
+        if (product && product.stock > 0) addToCart(product);
         e.stopPropagation();
       });
     });
