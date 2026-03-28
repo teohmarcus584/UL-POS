@@ -2738,7 +2738,11 @@ async function openSettlementModal() {
   const modal = document.getElementById('settlementModal');
   modal.style.display = 'flex';
 
-  // 🔄 RESET UI IMMEDIATELY – no stale state
+  // Hide the input fields until data is loaded
+  const inputsContainer = document.getElementById('settlementInputsContainer');
+  if (inputsContainer) inputsContainer.style.display = 'none';
+
+  // Reset UI immediately
   document.getElementById('recordSettlementBtn').style.display = 'none';
   document.getElementById('checkSettlementBtn').style.display = 'block';
   document.getElementById('checkSettlementBtn').disabled = false;
@@ -2752,7 +2756,7 @@ async function openSettlementModal() {
   document.getElementById('actualCard').classList.remove('error-field');
   document.getElementById('actualQR').classList.remove('error-field');
 
-  // Show loading message while fetching settlement data
+  // Show loading message
   let loadingMsg = document.getElementById('settlementLoadingMsg');
   if (!loadingMsg) {
     loadingMsg = document.createElement('div');
@@ -2791,6 +2795,10 @@ async function openSettlementModal() {
 
     await refreshSettlementTotals(store);
     loadingMsg.style.display = 'none';
+
+    // After totals are loaded, show the input fields (if not settled)
+    if (inputsContainer) inputsContainer.style.display = 'block';
+
   } catch (err) {
     console.error(err);
     loadingMsg.style.display = 'none';
