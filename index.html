@@ -4,11 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes, viewport-fit=cover">
   <title>POS System | PIN Login</title>
-  <!-- PWA Meta -->
-  <meta name="theme-color" content="#2c7a4b">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="manifest" href="manifest.json">
   <style>
     /* ========== ALL EXISTING STYLES (kept intact) ========== */
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -844,6 +839,11 @@
       width: auto;
       object-fit: contain;
       vertical-align: middle;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .pos-logo:hover {
+      opacity: 0.8;
     }
     .employee-bar {
       display: flex;
@@ -1058,17 +1058,89 @@
 .free-toggle-btn.active:hover {
   background: #059669;
 }
-    /* Spinner for settlement loading */
-    .settlement-loading-spinner {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 2px solid #e2e8f0;
-      border-top-color: #2c7a4b;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      vertical-align: middle;
-      margin-right: 8px;
+.settlement-loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #2c7a4b;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+    /* Side menu styles */
+    .side-menu {
+      position: fixed;
+      top: 0;
+      left: -300px;
+      width: 280px;
+      height: 100%;
+      background: white;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+      z-index: 1001;
+      transition: left 0.3s ease;
+      display: flex;
+      flex-direction: column;
+    }
+    .side-menu.open {
+      left: 0;
+    }
+    .side-menu-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .side-menu-header h3 {
+      margin: 0;
+    }
+    .close-menu-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #64748b;
+    }
+    .close-menu-btn:hover {
+      color: #0f172a;
+    }
+    .side-menu-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 20px;
+    }
+    .side-menu-buttons button {
+      background: #f1f5f9;
+      border: none;
+      border-radius: 40px;
+      padding: 12px;
+      font-size: 1rem;
+      font-weight: 500;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .side-menu-buttons button:hover {
+      background: #e2e8f0;
+    }
+    .menu-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      display: none;
+    }
+    .menu-overlay.show {
+      display: block;
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -1114,9 +1186,26 @@
 </div>
 
 <div id="mainContent" style="display: none;">
+  <!-- Side menu and overlay -->
+  <div class="menu-overlay" id="menuOverlay"></div>
+  <div id="sideMenu" class="side-menu">
+    <div class="side-menu-header">
+      <h3>Menu</h3>
+      <button class="close-menu-btn" id="closeMenuBtn">&times;</button>
+    </div>
+    <div class="side-menu-buttons">
+      <button id="sideReportBtn">📊 Report</button>
+      <button id="sideReceiptBtn">📜 Receipt</button>
+      <button id="sideInventoryModeBtn">📦 Inventory Mode</button>
+      <button id="sideCollectionBtn">💵 Cash Collection</button>
+      <button id="sideDrawerBtn">💰 Open Drawer</button>
+      <button id="sideSettlementBtn">💰 Settlement</button>
+    </div>
+  </div>
+
   <div class="pos-header">
     <div style="display: flex; align-items: center; gap: 16px;">
-      <img src="https://i.imgur.com/STBkLrm.jpeg" alt="POS System Logo" class="pos-logo">
+      <img src="https://i.imgur.com/STBkLrm.jpeg" alt="POS System Logo" class="pos-logo" id="menuToggleLogo">
       <div class="store-selector-header">
         <label for="storeSelect">Store:</label>
         <select id="storeSelect" class="store-header-select">
@@ -1224,7 +1313,7 @@
   </div>
 </div>
 
-<!-- All modals (corrected) -->
+<!-- All modals (unchanged) -->
 <div id="paymentModal" class="modal-overlay"><div class="modal-container" style="max-width: 400px;"><span class="close-modal" id="closePaymentModal">×</span><div class="modal-title">💳 Select Payment Method</div><div class="payment-buttons"><button class="payment-btn" data-method="Cash">💵 Cash</button><button class="payment-btn" data-method="Card">💳 Card</button><button class="payment-btn" data-method="QR Pay">📱 QR Pay</button></div><div id="cashOptions" style="display: none;"><div class="suggestions" id="suggestionsContainer"></div><input type="number" id="customCashInput" class="custom-cash-input" placeholder="Enter amount received (RM)" step="0.01"><div class="modal-buttons"><button id="confirmCashBtn" class="modal-btn modal-btn-primary">Confirm</button><button id="cancelPaymentBtn" class="modal-btn modal-btn-secondary">Cancel</button></div></div><div id="otherPaymentOptions" style="display: none;"><div class="modal-buttons"><button id="confirmOtherBtn" class="modal-btn modal-btn-primary">Confirm</button><button id="cancelOtherBtn" class="modal-btn modal-btn-secondary">Cancel</button></div></div></div></div>
 
 <div id="luckyDrawModal" class="modal-overlay"><div class="modal-container" style="max-width: 400px;"><span class="close-modal" id="closeLuckyDrawModal">×</span><div class="modal-title">🎲 Lucky Draw</div><p>Transaction ID: <strong id="luckyTxId"></strong></p><p>Click below to enter the Lucky Draw with this receipt number.</p><div class="modal-buttons"><button id="openLuckyDrawBtn" class="modal-btn modal-btn-primary">🎁 Go to Lucky Draw</button><button id="closeLuckyDrawBtn" class="modal-btn modal-btn-secondary">Close</button></div></div></div>
@@ -1235,8 +1324,51 @@
 
 <div id="adminReportModal" class="modal-overlay"><div class="modal-container"><span class="close-modal" id="closeAdminReportModal">×</span><div class="modal-title">📊 Sales Report</div><div class="report-filters"><div class="filter-group" id="reportStoreFilterGroup" style="display: none;"><label>Store</label><select id="adminReportStoreSelect"><option value="all">All Stores</option><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div><div class="filter-group" id="employeeFilterGroup" style="display: none;"><label>Employee</label><select id="adminReportEmployeeSelect"><option value="all">All Employees</option></select></div><div class="filter-group"><label>Date Range</label><select id="adminReportDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div><div id="adminReportCustomDateRange" style="display: none;" class="date-range"><input type="date" id="adminReportFromDate"><input type="date" id="adminReportToDate"></div></div><div class="report-stats"><div class="stat-item">Total Sales: <span id="adminReportTotalSales" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">💵 Cash: <span id="adminReportCashTotal" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">💳 Card: <span id="adminReportCardTotal" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">📱 Other: <span id="adminReportOtherTotal" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">💰 Refunds: <span id="adminReportRefundTotal" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">📄 Refunded Bills: <span id="adminReportRefundedBills" class="stat-value">0</span></div><div class="stat-item">Transactions: <span id="adminReportTransactionCount" class="stat-value">0</span></div><div class="stat-item">Items Sold: <span id="adminReportTotalItems" class="stat-value">0</span></div></div><div class="chart-container" id="storeChartContainer" style="display: none;"><canvas id="storeChart" width="400" height="200"></canvas></div><div class="chart-container"><canvas id="dayChart" width="400" height="200"></canvas></div><div class="chart-container" id="employeeChartContainer" style="display: none;"><canvas id="employeeChart" width="400" height="200"></canvas></div><div class="modal-section"><button id="toggleProductDetailsBtn" class="modal-btn modal-btn-secondary" style="margin-bottom: 12px;">📦 Show Product Details</button><div id="productDetailsContainer" style="display: none;"><h3 style="margin: 0 0 12px 0;">Product Sales Breakdown</h3><div id="productDetailsTable" style="max-height: 300px; overflow-y: auto;"><table class="product-details-table"><thead><tr><th>Product</th><th>Category</th><th>Quantity</th><th>Total</th></tr></thead><tbody id="productDetailsBody"></tbody></table></div></div></div><div class="modal-buttons"><button id="closeAdminReportBtn" class="modal-btn modal-btn-secondary">Close</button></div></div></div>
 
-<div id="settlementModal" class="modal-overlay"><div class="modal-container" style="max-width: 500px;"><span class="close-modal" id="closeSettlementModal">×</span><div class="modal-title">💰 Daily Settlement</div><div class="filter-group"><label>Store Location</label><select id="settlementStoreSelect"><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div><div class="filter-group"><label>Petty Cash Float (Starting Cash)</label><input type="number" id="pettyCashFloat" class="modal-input" placeholder="Enter starting cash float" step="0.01" value="0.00"></div><div class="settlement-stats" id="systemTotalsDisplay"><p>📊 System totals for today (all employees):</p><p>💵 Cash: <strong id="sysCash">RM 0.00</strong></p><p>💳 Card: <strong id="sysCard">RM 0.00</strong></p><p>📱 QR Pay: <strong id="sysQR">RM 0.00</strong></p><p>❌ Refunds: <strong id="sysRefund">RM 0.00</strong></p><p style="font-size: 1.4rem; font-weight: 800; margin-top: 12px;">💰 Net Total: <strong id="sysNetTotal">RM 0.00</strong></p></div><div class="filter-group"><label>Cash Count (Actual)</label><input type="number" id="actualCash" class="modal-input" placeholder="Enter actual cash count" step="0.01"></div><div class="filter-group"><label>Card Settlement (Actual)</label><input type="number" id="actualCard" class="modal-input" placeholder="Enter actual card settlement" step="0.01"></div><div class="filter-group"><label>QR Settlement (Actual)</label><input type="number" id="actualQR" class="modal-input" placeholder="Enter actual QR settlement" step="0.01"></div><div id="settlementError" style="color:#ef4444; margin: 12px 0; display: none;"></div><div class="modal-buttons"><button id="checkSettlementBtn" class="modal-btn modal-btn-primary">Check</button><button id="recordSettlementBtn" class="modal-btn modal-btn-primary" style="display: none;">Record Settlement</button><button id="closeSettlementModalBtn" class="modal-btn modal-btn-secondary">Cancel</button></div></div></div>
-
+<div id="settlementModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 500px;">
+    <span class="close-modal" id="closeSettlementModal">×</span>
+    <div class="modal-title">💰 Daily Settlement</div>
+    <div class="filter-group">
+      <label>Store Location</label>
+      <select id="settlementStoreSelect">
+        <option value="queens">Queens</option>
+        <option value="sunshine">Sunshine</option>
+        <option value="gurney_paragon">Gurney Paragon</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Petty Cash Float (Starting Cash)</label>
+      <input type="number" id="pettyCashFloat" class="modal-input" placeholder="Enter starting cash float" step="0.01" value="0.00">
+    </div>
+    <div class="settlement-stats" id="systemTotalsDisplay">
+      <p>📊 System totals for today (all employees):</p>
+      <p>💵 Cash: <strong id="sysCash">RM 0.00</strong></p>
+      <p>💳 Card: <strong id="sysCard">RM 0.00</strong></p>
+      <p>📱 QR Pay: <strong id="sysQR">RM 0.00</strong></p>
+      <p>❌ Refunds: <strong id="sysRefund">RM 0.00</strong></p>
+      <!-- Net Total line with larger font -->
+      <p style="font-size: 1.4rem; font-weight: 800; margin-top: 12px;">💰 Net Total: <strong id="sysNetTotal">RM 0.00</strong></p>
+    </div>
+    <div class="filter-group">
+      <label>Cash Count (Actual)</label>
+      <input type="number" id="actualCash" class="modal-input" placeholder="Enter actual cash count" step="0.01">
+    </div>
+    <div class="filter-group">
+      <label>Card Settlement (Actual)</label>
+      <input type="number" id="actualCard" class="modal-input" placeholder="Enter actual card settlement" step="0.01">
+    </div>
+    <div class="filter-group">
+      <label>QR Settlement (Actual)</label>
+      <input type="number" id="actualQR" class="modal-input" placeholder="Enter actual QR settlement" step="0.01">
+    </div>
+    <div id="settlementError" style="color:#ef4444; margin: 12px 0; display: none;"></div>
+    <div class="modal-buttons">
+      <button id="checkSettlementBtn" class="modal-btn modal-btn-primary">Check</button>
+      <button id="recordSettlementBtn" class="modal-btn modal-btn-primary" style="display: none;">Record Settlement</button>
+      <button id="closeSettlementModalBtn" class="modal-btn modal-btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>
 <div id="collectionModal" class="modal-overlay"><div class="modal-container" style="max-width: 800px;"><span class="close-modal" id="closeCollectionModal">×</span><div class="modal-title">💵 Cash Collection</div><div class="filter-group"><label>Store</label><select id="collectionStoreSelect"><option value="all">All Stores</option><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div><div id="collectionTotal" class="settlement-stats" style="margin-top: 12px;"><p>💰 Total Outstanding Cash: <strong id="totalOutstandingCash">RM 0.00</strong></p></div><div style="overflow-x: auto;"><table class="collection-table" id="collectionTable"><thead><tr><th><input type="checkbox" id="selectAllCheckbox"></th><th>Date</th><th>Employee</th><th>Amount</th></tr></thead><tbody id="collectionTableBody"></tbody></table></div><div class="modal-buttons" style="margin-top: 16px;"><button id="collectSelectedBtn" class="modal-btn modal-btn-primary" disabled>Collect Selected</button><button id="closeCollectionModalBtn" class="modal-btn modal-btn-secondary">Close</button></div></div></div>
 
 <div id="receiptsModal" class="modal-overlay"><div class="modal-container"><span class="close-modal" id="closeReceiptsModal">×</span><div class="modal-title">📜 Receipt History</div><div class="receipts-filters"><div class="filter-group" id="receiptsStoreFilterGroup"><label>Store</label><select id="receiptsStoreSelect"><option value="all">All Stores</option></select></div><div id="receiptsEmployeeFilter" class="filter-group" style="display: none;"><label>Employee</label><select id="receiptsEmployeeSelect"><option value="all">All Employees</option></select></div><div class="filter-group"><label>Date Range</label><select id="receiptsDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div><div id="receiptsCustomDateRange" style="display: none;" class="date-range"><input type="date" id="receiptsFromDate"><input type="date" id="receiptsToDate"></div><div class="filter-group" style="flex: 2;"><label>Search (Receipt # or Product)</label><input type="text" id="receiptsSearch" placeholder="Type to filter..."></div></div><div id="receiptsList" class="receipts-list">Loading receipts...</div><div class="modal-buttons"><button id="closeReceiptsBtn" class="modal-btn modal-btn-secondary">Close</button></div></div></div>
@@ -1248,7 +1380,6 @@
 <div id="selectModal" class="modal-overlay"><div class="modal-container"><span class="close-modal" id="closeSelectModal">×</span><div class="modal-title" id="selectModalTitle"></div><select id="selectModalField" class="modal-select"></select><div class="modal-buttons"><button class="modal-btn modal-btn-secondary" id="selectModalCancel">Cancel</button><button class="modal-btn modal-btn-primary" id="selectModalOk">OK</button></div></div></div>
 
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
-
 <script>
   // ==================== CONFIGURATION ====================
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyPKpe-r1UpQ8lrzPOU7HhLCIdBD_ljuXAErrNyT-kig1oCTIx_hQ3sIox4GfO-1ph67A/exec"; // REPLACE WITH YOUR URL
@@ -1276,13 +1407,12 @@
   let loadingTimeout = null;
   let inventoryMode = false;
   let updateStockTimeout = null;
-  let stockHistory = [];
+  let stockHistory = []; // Stock adjustment log (array of entries)
   let preloadedProducts = null;
   let preloadedStore = null;
   let preloadedEmployees = null;
   let preloadedDataMap = {};
   let preloadedStores = [];
-
   // DOM elements
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -1518,6 +1648,7 @@
     const confirmed = await showConfirmModal('Clear History', `Are you sure you want to permanently delete all stock history for store "${currentStore}"? This action cannot be undone.`);
     if (!confirmed) return;
 
+    showLoading('Clearing history...');
     try {
       const formData = new URLSearchParams();
       formData.append('action', 'clearStockHistory');
@@ -1528,6 +1659,7 @@
       if (result.success) {
         stockHistory = [];
         renderStockHistory();
+        await showAlertModal('Success', 'Stock history cleared.');
       } else {
         throw new Error(result.error || 'Unknown error');
       }
@@ -1544,7 +1676,7 @@
       await showAlertModal('No History', 'There is no stock adjustment history to save.');
       return;
     }
-    
+    showLoading('Saving history...');
     try {
       const formData = new URLSearchParams();
       formData.append('action', 'saveStockHistory');
@@ -1782,9 +1914,9 @@
         ? `<div class="cart-item-category">${escapeHtml(item.product.category)}</div>`
         : '';
       const freeClass = item.freeQuantity > 0 ? 'active' : '';
-      const buttonText = item.freeQuantity > 0 
-        ? `🎁 ${item.freeQuantity} Free` 
-        : '🎁 Activate Free Gift';
+      const buttonText = item.freeQuantity > 0
+        ? `🎁 ${item.freeQuantity} Free`
+        : '🎁Activate Free Gift';
       html += `
         <div class="cart-item" data-index="${idx}">
           <div class="cart-item-info">
@@ -1880,6 +2012,7 @@
         return;
       }
       item.quantity = newQty;
+      // Cap freeQuantity to new quantity
       if (item.freeQuantity > newQty) item.freeQuantity = newQty;
     }
     updateCartUI();
@@ -1929,6 +2062,16 @@
     buy3Free1Discount = 0;
     customDiscount = 0;
     updateCartUI();
+  }
+
+  function toggleFreeCount(index) {
+    const item = cart[index];
+    if (!item) return;
+    const maxFree = item.quantity;
+    const newFree = (item.freeQuantity + 1) % (maxFree + 1);
+    item.freeQuantity = newFree;
+    updateCartUI();
+    clearPromo();
   }
 
   // ==================== CLAIM PRIZE FUNCTIONS ====================
@@ -2637,14 +2780,12 @@
     }
     let html = '';
     productsData.forEach(p => {
-      html += `
-        <tr>
-          <td>${escapeHtml(p.name)}</td>
-          <td>${escapeHtml(p.category)}</td>
-          <td style="text-align: right;">${p.quantity}</td>
-          <td style="text-align: right;">RM ${p.total.toFixed(2)}</td>
-        </tr>
-      `;
+      html += `<tr>
+        <td>${escapeHtml(p.name)}</td>
+        <td>${escapeHtml(p.category)}</td>
+        <td style="text-align: right;">${p.quantity}</td>
+        <td style="text-align: right;">RM ${p.total.toFixed(2)}</td>
+      </tr>`;
     });
     tbody.innerHTML = html;
   }
@@ -2713,7 +2854,6 @@
     const modal = document.getElementById('settlementModal');
     modal.style.display = 'flex';
 
-    // 🔄 Immediate UI reset
     document.getElementById('recordSettlementBtn').style.display = 'none';
     document.getElementById('checkSettlementBtn').style.display = 'block';
     document.getElementById('settlementError').style.display = 'none';
@@ -2726,7 +2866,6 @@
     document.getElementById('actualCard').classList.remove('error-field');
     document.getElementById('actualQR').classList.remove('error-field');
 
-    // 🚫 Disable inputs and Check button while loading
     const fieldsToDisable = ['actualCash', 'actualCard', 'actualQR'];
     fieldsToDisable.forEach(id => {
       const el = document.getElementById(id);
@@ -2735,11 +2874,9 @@
     const checkBtn = document.getElementById('checkSettlementBtn');
     if (checkBtn) checkBtn.disabled = true;
 
-    // Hide the system totals container while loading
     const totalsContainer = document.getElementById('systemTotalsDisplay');
     if (totalsContainer) totalsContainer.style.display = 'none';
 
-    // Show loading message with spinner
     let loadingMsg = document.getElementById('settlementLoadingMsg');
     if (!loadingMsg) {
       loadingMsg = document.createElement('div');
@@ -2818,7 +2955,6 @@
       document.getElementById('sysQR').innerText = `RM ${currentSettlementTotals.qr.toFixed(2)}`;
       document.getElementById('sysRefund').innerText = `RM ${Math.abs(currentSettlementTotals.refund).toFixed(2)}`;
 
-      // Net Total = Cash + Card + QR (refunds already accounted)
       const netTotal = currentSettlementTotals.cash + currentSettlementTotals.card + currentSettlementTotals.qr;
       document.getElementById('sysNetTotal').innerText = `RM ${netTotal.toFixed(2)}`;
 
@@ -2861,7 +2997,6 @@
         }
       }
     });
-    // Also set the Check button state
     const checkBtn = document.getElementById('checkSettlementBtn');
     if (checkBtn) checkBtn.disabled = !enabled;
   }
@@ -2877,10 +3012,10 @@
       const encoder = new TextEncoder();
       const employeeName = transaction.employee_name || getEmployeeName(transaction.employee_id) || 'N/A';
       const storeLocation = transaction.store ? transaction.store.charAt(0).toUpperCase() + transaction.store.slice(1) : 'Queens';
-      
+
       const paperSize = localStorage.getItem('printerPaperSize') || '80';
       const maxChars = paperSize === '58' ? 32 : 48;
-      
+
       function formatLine(left, right = null) {
         if (right === null) {
           return left.length > maxChars ? left.substring(0, maxChars - 3) + '...' : left;
@@ -2891,22 +3026,22 @@
         let rightText = right.length > rightMax ? right.substring(0, rightMax - 3) + '...' : right;
         return leftText.padEnd(leftMax) + ' ' + rightText.padStart(rightMax);
       }
-      
+
       const grouped = {};
       for (const item of transaction.items) {
         const cat = item.category || 'Uncategorized';
         if (!grouped[cat]) grouped[cat] = [];
         grouped[cat].push(item);
       }
-      
+
       const lines = [];
       const separator = '-'.repeat(maxChars);
-      
+
       lines.push('', '    UL PERFUMERY', separator);
       lines.push(formatLine(`STORE LOCATION : ${storeLocation}`));
       lines.push(formatLine(`EMPLOYEE : ${employeeName}`));
       lines.push(separator);
-      
+
       for (const [category, items] of Object.entries(grouped)) {
         let categoryTotal = 0;
         for (const item of items) {
@@ -2925,7 +3060,7 @@
           }
         }
       }
-      
+
       lines.push(separator);
       const totalAmount = transaction.total;
       lines.push(formatLine('TOTAL', `RM ${totalAmount.toFixed(2)}`));
@@ -2940,15 +3075,15 @@
       lines.push('+60134665831 ( MARCUS )');
       lines.push('GOODS SOLD ARE NOT REFUNDABLE');
       lines.push(separator);
-      
+
       const date = new Date(transaction.timestamp);
       const formattedDate = `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
       lines.push(formatLine(`TXN   : ${transaction.transaction_id}`));
       lines.push(formatLine(`DATE  : ${formattedDate}`));
       lines.push('');
-      
+
       const text = lines.join('\n');
-      
+
       let commands = [];
       commands.push(0x1B, 0x40); // Initialize
       commands.push(0x1B, 0x61, 0x01); // Center
@@ -3051,6 +3186,7 @@
         printerStatusDiv.innerText = '✅ Printer ready';
         connectBtn.innerText = '🔌 Disconnect';
         openDrawerBtn.disabled = false;
+        updateSideDrawerButtonState();
       } catch (err) {
         printerStatusDiv.innerText = `❌ ${err.message}`;
         gattServer = null;
@@ -3067,6 +3203,7 @@
       printerStatusDiv.innerText = '⚪ Not connected';
       connectBtn.innerText = '🖨️ Connect Printer';
       openDrawerBtn.disabled = true;
+      updateSideDrawerButtonState();
     }
 
     connectBtn.addEventListener('click', () => { if (!isConnected) connectPrinter(); else disconnectPrinter(); });
@@ -3174,6 +3311,84 @@
     renderProductGrid();
   }
 
+  // ==================== SIDE MENU LOGIC ====================
+  function toggleSideMenu() {
+    const sideMenu = document.getElementById('sideMenu');
+    const overlay = document.getElementById('menuOverlay');
+    const isOpen = sideMenu.classList.contains('open');
+    if (isOpen) {
+      sideMenu.classList.remove('open');
+      overlay.classList.remove('show');
+    } else {
+      sideMenu.classList.add('open');
+      overlay.classList.add('show');
+    }
+  }
+
+  function closeSideMenu() {
+    document.getElementById('sideMenu').classList.remove('open');
+    document.getElementById('menuOverlay').classList.remove('show');
+  }
+
+  function updateSideMenuPermissions() {
+    const isAdmin = currentEmployee && currentEmployee.isAdmin;
+    const inventoryBtn = document.getElementById('sideInventoryModeBtn');
+    const collectionBtn = document.getElementById('sideCollectionBtn');
+    if (inventoryBtn) inventoryBtn.style.display = isAdmin ? 'block' : 'none';
+    if (collectionBtn) collectionBtn.style.display = isAdmin ? 'block' : 'none';
+  }
+
+  function updateSideDrawerButtonState() {
+    const sideDrawerBtn = document.getElementById('sideDrawerBtn');
+    const mainDrawerBtn = document.getElementById('openDrawerBtn');
+    if (sideDrawerBtn && mainDrawerBtn) {
+      sideDrawerBtn.disabled = mainDrawerBtn.disabled;
+    }
+  }
+
+  function initSideMenu() {
+    const logo = document.getElementById('menuToggleLogo');
+    const closeBtn = document.getElementById('closeMenuBtn');
+    const overlay = document.getElementById('menuOverlay');
+    if (logo) logo.addEventListener('click', toggleSideMenu);
+    if (closeBtn) closeBtn.addEventListener('click', closeSideMenu);
+    if (overlay) overlay.addEventListener('click', closeSideMenu);
+
+    const sideReportBtn = document.getElementById('sideReportBtn');
+    const sideReceiptBtn = document.getElementById('sideReceiptBtn');
+    const sideInventoryModeBtn = document.getElementById('sideInventoryModeBtn');
+    const sideCollectionBtn = document.getElementById('sideCollectionBtn');
+    const sideDrawerBtn = document.getElementById('sideDrawerBtn');
+    const sideSettlementBtn = document.getElementById('sideSettlementBtn');
+
+    if (sideReportBtn) sideReportBtn.addEventListener('click', () => {
+      document.getElementById('reportsButton').click();
+      closeSideMenu();
+    });
+    if (sideReceiptBtn) sideReceiptBtn.addEventListener('click', () => {
+      document.getElementById('receiptsButton').click();
+      closeSideMenu();
+    });
+    if (sideInventoryModeBtn) sideInventoryModeBtn.addEventListener('click', () => {
+      document.getElementById('inventoryModeBtn').click();
+      closeSideMenu();
+    });
+    if (sideCollectionBtn) sideCollectionBtn.addEventListener('click', () => {
+      document.getElementById('collectionBtn').click();
+      closeSideMenu();
+    });
+    if (sideDrawerBtn) sideDrawerBtn.addEventListener('click', () => {
+      document.getElementById('openDrawerBtn').click();
+      closeSideMenu();
+    });
+    if (sideSettlementBtn) sideSettlementBtn.addEventListener('click', () => {
+      document.getElementById('settlementBtn').click();
+      closeSideMenu();
+    });
+  }
+
+  setInterval(updateSideDrawerButtonState, 1000);
+
   // ==================== EVENT LISTENERS ====================
   document.getElementById('confirmStoreBtn').addEventListener('click', () => {
     initialStore = document.getElementById('initialStoreSelect').value;
@@ -3255,7 +3470,8 @@
           inventoryModeBtn.style.display = 'flex';
         }
 
-        // Control visibility of settlement totals
+        updateSideMenuPermissions();
+
         const systemTotalsDiv = document.getElementById('systemTotalsDisplay');
         if (systemTotalsDiv) {
           if (!currentEmployee.isAdmin) {
@@ -3544,7 +3760,6 @@
       }
     });
   }
-
   if (document.getElementById('checkSettlementBtn')) {
     document.getElementById('checkSettlementBtn').addEventListener('click', async () => {
       const actualCash = parseFloat(document.getElementById('actualCash').value);
@@ -3602,7 +3817,6 @@
       }
     });
   }
-
   if (document.getElementById('recordSettlementBtn')) {
     document.getElementById('recordSettlementBtn').addEventListener('click', async () => {
       const store = document.getElementById('settlementStoreSelect').value;
@@ -3756,16 +3970,6 @@
       console.error(err);
       return [];
     }
-  }
-
-  function toggleFreeCount(index) {
-    const item = cart[index];
-    if (!item) return;
-    const maxFree = item.quantity;
-    const newFree = (item.freeQuantity + 1) % (maxFree + 1);
-    item.freeQuantity = newFree;
-    updateCartUI();
-    clearPromo();
   }
 
   function populateStoreSelects() {
@@ -3941,18 +4145,18 @@
   function renderCollectionTable() {
     const tbody = document.getElementById('collectionTableBody');
     if (!currentUnsettledCash.length) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No unsettled cash records found.</td></tr>';
+      tbody.innerHTML = '一道道<td colspan="4" style="text-align: center;">No unsettled cash records found.一道一道';
       return;
     }
     let html = '';
     currentUnsettledCash.forEach(rec => {
       const date = new Date(rec.timestamp).toLocaleDateString();
       html += `<tr data-id="${rec.id}">
-        <td><input type="checkbox" class="collection-checkbox" value="${rec.id}"></td>
-        <td>${date}</td>
-        <td>${getEmployeeName(rec.employee_id)}</td>
-        <td style="text-align: right;">RM ${rec.cash_actual.toFixed(2)}</td>
-      </tr>`;
+        <td><input type="checkbox" class="collection-checkbox" value="${rec.id}">一道
+        <td>${date}一道
+        <td>${getEmployeeName(rec.employee_id)}一道
+        <td style="text-align: right;">RM ${rec.cash_actual.toFixed(2)}一道
+       </tr>`;
     });
     tbody.innerHTML = html;
     document.querySelectorAll('.collection-checkbox').forEach(cb => {
@@ -3984,20 +4188,13 @@
     }
   })();
 
-  // Preload all stores in the background
   const allStores = ["queens", "sunshine", "gurney_paragon"];
   allStores.forEach(store => preloadProductsForStore(store));
-</script>
 
-<script>
-  // Service worker registration for PWA
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js')
-        .then(reg => console.log('Service Worker registered', reg))
-        .catch(err => console.log('Service Worker registration failed', err));
-    });
-  }
+  // Initialize side menu after DOM is ready
+  window.addEventListener('DOMContentLoaded', () => {
+    initSideMenu();
+  });
 </script>
 </body>
 </html>
