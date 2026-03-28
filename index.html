@@ -1218,8 +1218,51 @@
 
 <div id="adminReportModal" class="modal-overlay"><div class="modal-container"><span class="close-modal" id="closeAdminReportModal">×</span><div class="modal-title">📊 Sales Report</div><div class="report-filters"><div class="filter-group" id="reportStoreFilterGroup" style="display: none;"><label>Store</label><select id="adminReportStoreSelect"><option value="all">All Stores</option><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div><div class="filter-group" id="employeeFilterGroup" style="display: none;"><label>Employee</label><select id="adminReportEmployeeSelect"><option value="all">All Employees</option></select></div><div class="filter-group"><label>Date Range</label><select id="adminReportDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div><div id="adminReportCustomDateRange" style="display: none;" class="date-range"><input type="date" id="adminReportFromDate"><input type="date" id="adminReportToDate"></div></div><div class="report-stats"><div class="stat-item">Total Sales: <span id="adminReportTotalSales" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">💵 Cash: <span id="adminReportCashTotal" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">💳 Card: <span id="adminReportCardTotal" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">📱 Other: <span id="adminReportOtherTotal" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">💰 Refunds: <span id="adminReportRefundTotal" class="stat-value">RM 0.00</span></div><div class="stat-item breakdown">📄 Refunded Bills: <span id="adminReportRefundedBills" class="stat-value">0</span></div><div class="stat-item">Transactions: <span id="adminReportTransactionCount" class="stat-value">0</span></div><div class="stat-item">Items Sold: <span id="adminReportTotalItems" class="stat-value">0</span></div></div><div class="chart-container" id="storeChartContainer" style="display: none;"><canvas id="storeChart" width="400" height="200"></canvas></div><div class="chart-container"><canvas id="dayChart" width="400" height="200"></canvas></div><div class="chart-container" id="employeeChartContainer" style="display: none;"><canvas id="employeeChart" width="400" height="200"></canvas></div><div class="modal-section"><button id="toggleProductDetailsBtn" class="modal-btn modal-btn-secondary" style="margin-bottom: 12px;">📦 Show Product Details</button><div id="productDetailsContainer" style="display: none;"><h3 style="margin: 0 0 12px 0;">Product Sales Breakdown</h3><div id="productDetailsTable" style="max-height: 300px; overflow-y: auto;"><table class="product-details-table"><thead><tr><th>Product</th><th>Category</th><th>Quantity</th><th>Total</th></tr></thead><tbody id="productDetailsBody"></tbody></table></div></div></div><div class="modal-buttons"><button id="closeAdminReportBtn" class="modal-btn modal-btn-secondary">Close</button></div></div></div>
 
-<div id="settlementModal" class="modal-overlay"><div class="modal-container" style="max-width: 500px;"><span class="close-modal" id="closeSettlementModal">×</span><div class="modal-title">💰 Daily Settlement</div><div class="filter-group"><label>Store Location</label><select id="settlementStoreSelect"><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div><div class="filter-group"><label>Petty Cash Float (Starting Cash)</label><input type="number" id="pettyCashFloat" class="modal-input" placeholder="Enter starting cash float" step="0.01" value="0.00"></div><div class="settlement-stats" id="systemTotalsDisplay"><p>📊 System totals for today (all employees):</p><p>💵 Cash: <strong id="sysCash">RM 0.00</strong></p><p>💳 Card: <strong id="sysCard">RM 0.00</strong></p><p>📱 QR Pay: <strong id="sysQR">RM 0.00</strong></p><p>💰 Refunds: <strong id="sysRefund">RM 0.00</strong></p><p>💰 Net Total: <strong id="sysNetTotal">RM 0.00</strong></p></div><div class="filter-group"><label>Cash Count (Actual)</label><input type="number" id="actualCash" class="modal-input" placeholder="Enter actual cash count" step="0.01"></div><div class="filter-group"><label>Card Settlement (Actual)</label><input type="number" id="actualCard" class="modal-input" placeholder="Enter actual card settlement" step="0.01"></div><div class="filter-group"><label>QR Settlement (Actual)</label><input type="number" id="actualQR" class="modal-input" placeholder="Enter actual QR settlement" step="0.01"></div><div id="settlementError" style="color:#ef4444; margin: 12px 0; display: none;"></div><div class="modal-buttons"><button id="checkSettlementBtn" class="modal-btn modal-btn-primary">Check</button><button id="recordSettlementBtn" class="modal-btn modal-btn-primary" style="display: none;">Record Settlement</button><button id="closeSettlementModalBtn" class="modal-btn modal-btn-secondary">Cancel</button></div></div></div>
-
+<div id="settlementModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 500px;">
+    <span class="close-modal" id="closeSettlementModal">×</span>
+    <div class="modal-title">💰 Daily Settlement</div>
+    <div class="filter-group">
+      <label>Store Location</label>
+      <select id="settlementStoreSelect">
+        <option value="queens">Queens</option>
+        <option value="sunshine">Sunshine</option>
+        <option value="gurney_paragon">Gurney Paragon</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Petty Cash Float (Starting Cash)</label>
+      <input type="number" id="pettyCashFloat" class="modal-input" placeholder="Enter starting cash float" step="0.01" value="0.00">
+    </div>
+    <div class="settlement-stats" id="systemTotalsDisplay">
+      <p>📊 System totals for today (all employees):</p>
+      <p>💵 Cash: <strong id="sysCash">RM 0.00</strong></p>
+      <p>💳 Card: <strong id="sysCard">RM 0.00</strong></p>
+      <p>📱 QR Pay: <strong id="sysQR">RM 0.00</strong></p>
+      <p>💰 Refunds: <strong id="sysRefund">RM 0.00</strong></p>
+      <!-- Net Total line with larger font -->
+      <p style="font-size: 1.4rem; font-weight: 800; margin-top: 12px;">💰 Net Total: <strong id="sysNetTotal">RM 0.00</strong></p>
+    </div>
+    <div class="filter-group">
+      <label>Cash Count (Actual)</label>
+      <input type="number" id="actualCash" class="modal-input" placeholder="Enter actual cash count" step="0.01">
+    </div>
+    <div class="filter-group">
+      <label>Card Settlement (Actual)</label>
+      <input type="number" id="actualCard" class="modal-input" placeholder="Enter actual card settlement" step="0.01">
+    </div>
+    <div class="filter-group">
+      <label>QR Settlement (Actual)</label>
+      <input type="number" id="actualQR" class="modal-input" placeholder="Enter actual QR settlement" step="0.01">
+    </div>
+    <div id="settlementError" style="color:#ef4444; margin: 12px 0; display: none;"></div>
+    <div class="modal-buttons">
+      <button id="checkSettlementBtn" class="modal-btn modal-btn-primary">Check</button>
+      <button id="recordSettlementBtn" class="modal-btn modal-btn-primary" style="display: none;">Record Settlement</button>
+      <button id="closeSettlementModalBtn" class="modal-btn modal-btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>
 <div id="collectionModal" class="modal-overlay"><div class="modal-container" style="max-width: 800px;"><span class="close-modal" id="closeCollectionModal">×</span><div class="modal-title">💵 Cash Collection</div><div class="filter-group"><label>Store</label><select id="collectionStoreSelect"><option value="all">All Stores</option><option value="queens">Queens</option><option value="sunshine">Sunshine</option><option value="gurney_paragon">Gurney Paragon</option></select></div><div id="collectionTotal" class="settlement-stats" style="margin-top: 12px;"><p>💰 Total Outstanding Cash: <strong id="totalOutstandingCash">RM 0.00</strong></p></div><div style="overflow-x: auto;"><table class="collection-table" id="collectionTable"><thead><tr><th><input type="checkbox" id="selectAllCheckbox"></th><th>Date</th><th>Employee</th><th>Amount</th></tr></thead><tbody id="collectionTableBody"></tbody></table></div><div class="modal-buttons" style="margin-top: 16px;"><button id="collectSelectedBtn" class="modal-btn modal-btn-primary" disabled>Collect Selected</button><button id="closeCollectionModalBtn" class="modal-btn modal-btn-secondary">Close</button></div></div></div>
 
 <div id="receiptsModal" class="modal-overlay"><div class="modal-container"><span class="close-modal" id="closeReceiptsModal">×</span><div class="modal-title">📜 Receipt History</div><div class="receipts-filters"><div class="filter-group" id="receiptsStoreFilterGroup"><label>Store</label><select id="receiptsStoreSelect"><option value="all">All Stores</option></select></div><div id="receiptsEmployeeFilter" class="filter-group" style="display: none;"><label>Employee</label><select id="receiptsEmployeeSelect"><option value="all">All Employees</option></select></div><div class="filter-group"><label>Date Range</label><select id="receiptsDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div><div id="receiptsCustomDateRange" style="display: none;" class="date-range"><input type="date" id="receiptsFromDate"><input type="date" id="receiptsToDate"></div><div class="filter-group" style="flex: 2;"><label>Search (Receipt # or Product)</label><input type="text" id="receiptsSearch" placeholder="Type to filter..."></div></div><div id="receiptsList" class="receipts-list">Loading receipts...</div><div class="modal-buttons"><button id="closeReceiptsBtn" class="modal-btn modal-btn-secondary">Close</button></div></div></div>
