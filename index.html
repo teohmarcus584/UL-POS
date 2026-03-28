@@ -34,19 +34,11 @@
       align-items: center;
       flex-wrap: wrap;
     }
-    #reportsButton, #receiptsButton {
-      background: #3b82f6;
-      border: none;
-      border-radius: 40px;
-      padding: 10px 20px;
-      font-size: 0.9rem;
-      font-weight: 500;
-      color: white;
-      cursor: pointer;
+    /* Hide buttons that are now in the menu */
+    #reportsButton, #receiptsButton, #inventoryModeBtn,
+    #openDrawerBtn, #settlementBtn, #collectionBtn {
+      display: none !important;
     }
-    #receiptsButton { background: #8b5cf6; }
-    #reportsButton:hover { background: #2563eb; }
-    #receiptsButton:hover { background: #7c3aed; }
     #connectPrinterButton {
       background: #1e293b;
       border: none;
@@ -59,18 +51,6 @@
     }
     #connectPrinterButton:hover { background: #0f172a; }
     #printerStatus { font-size: 0.8rem; background: #f1f5f9; padding: 6px 12px; border-radius: 30px; color: #334155; }
-    #inventoryModeBtn {
-      background: #8b5cf6;
-      border: none;
-      border-radius: 40px;
-      padding: 10px 20px;
-      font-size: 0.9rem;
-      font-weight: 500;
-      color: white;
-      cursor: pointer;
-      display: none;
-    }
-    #inventoryModeBtn:hover { background: #7c3aed; }
     .employee-bar {
       background: white; border-radius: 28px; padding: 10px 20px; margin-bottom: 20px;
       display: flex; justify-content: space-between; align-items: center;
@@ -84,7 +64,7 @@
       gap: 12px;
       align-items: center;
     }
-    .logout-btn, .drawer-btn, .settlement-btn, .collection-btn {
+    .logout-btn {
       background: #ef4444;
       border: none;
       border-radius: 40px;
@@ -92,23 +72,6 @@
       color: white;
       font-size: 0.8rem;
       cursor: pointer;
-    }
-    .drawer-btn {
-      background: #f59e0b;
-    }
-    .settlement-btn {
-      background: #8b5cf6;
-    }
-    .collection-btn {
-      background: #10b981;
-    }
-    .drawer-btn:hover { background: #d97706; }
-    .settlement-btn:hover { background: #7c3aed; }
-    .collection-btn:hover { background: #059669; }
-    .drawer-btn:disabled, .settlement-btn:disabled, .collection-btn:disabled {
-      background: #cbd5e1;
-      cursor: not-allowed;
-      opacity: 0.6;
     }
     .logout-btn:hover { background: #dc2626; }
     .store-selector {
@@ -1216,14 +1179,15 @@
       </div>
     </div>
     <div class="header-buttons">
-      <button id="reportsButton">📊 Reports</button>
-      <button id="receiptsButton">📜 Receipts</button>
+      <!-- Hidden buttons: kept for functionality but not visible -->
+      <button id="reportsButton" style="display: none;">📊 Reports</button>
+      <button id="receiptsButton" style="display: none;">📜 Receipts</button>
+      <button id="inventoryModeBtn" style="display: none;">📦 Inventory Mode</button>
       <button id="connectPrinterButton">🖨️ Connect Printer</button>
       <select id="paperSizeSelect" style="background: #f1f5f9; border-radius: 40px; padding: 10px 16px; font-size: 0.9rem; border: none; cursor: pointer;">
         <option value="58">58mm</option>
         <option value="80">80mm</option>
       </select>
-      <button id="inventoryModeBtn">📦 Inventory Mode</button>
       <div id="printerStatus">⚪ Not connected</div>
     </div>
   </div>
@@ -1234,8 +1198,9 @@
       <button id="logoutButton" class="logout-btn">Logout</button>
     </div>
     <div class="employee-right-group">
-      <button id="openDrawerBtn" class="drawer-btn" disabled>💰 Open Drawer</button>
-      <button id="settlementBtn" class="settlement-btn">💰 Settlement</button>
+      <!-- Hidden buttons: kept for functionality -->
+      <button id="openDrawerBtn" class="drawer-btn" disabled style="display: none;">💰 Open Drawer</button>
+      <button id="settlementBtn" class="settlement-btn" style="display: none;">💰 Settlement</button>
       <button id="collectionBtn" class="collection-btn" style="display: none;">💵 Cash Collection</button>
       <div class="selector-group">
         <label>👤 Sold By:</label>
@@ -4145,7 +4110,7 @@
   function renderCollectionTable() {
     const tbody = document.getElementById('collectionTableBody');
     if (!currentUnsettledCash.length) {
-      tbody.innerHTML = '一道道<td colspan="4" style="text-align: center;">No unsettled cash records found.一道一道';
+      tbody.innerHTML = '一道一道<td colspan="4" style="text-align: center;">No unsettled cash records found.一道一道';
       return;
     }
     let html = '';
@@ -4156,7 +4121,7 @@
         <td>${date}一道
         <td>${getEmployeeName(rec.employee_id)}一道
         <td style="text-align: right;">RM ${rec.cash_actual.toFixed(2)}一道
-       </tr>`;
+        </tr>`;
     });
     tbody.innerHTML = html;
     document.querySelectorAll('.collection-checkbox').forEach(cb => {
