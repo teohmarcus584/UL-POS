@@ -1053,6 +1053,20 @@
 .free-toggle-btn.active:hover {
   background: #059669;
 }
+.settlement-loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #2c7a4b;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -2760,7 +2774,7 @@ async function openSettlementModal() {
   const checkBtn = document.getElementById('checkSettlementBtn');
   if (checkBtn) checkBtn.disabled = true;
 
-  // Show loading message
+  // Show loading message with spinner
   let loadingMsg = document.getElementById('settlementLoadingMsg');
   if (!loadingMsg) {
     loadingMsg = document.createElement('div');
@@ -2770,7 +2784,10 @@ async function openSettlementModal() {
     loadingMsg.style.background = '#f8fafc';
     loadingMsg.style.borderRadius = '12px';
     loadingMsg.style.margin = '10px 0';
-    loadingMsg.innerText = 'Loading settlement data...';
+    loadingMsg.innerHTML = `
+      <div class="settlement-loading-spinner"></div>
+      <span style="vertical-align: middle;">Loading settlement data...</span>
+    `;
     const systemTotalsDiv = document.getElementById('systemTotalsDisplay');
     if (systemTotalsDiv) systemTotalsDiv.insertAdjacentElement('afterend', loadingMsg);
   }
