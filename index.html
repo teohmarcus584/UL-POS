@@ -2774,6 +2774,10 @@ async function openSettlementModal() {
   const checkBtn = document.getElementById('checkSettlementBtn');
   if (checkBtn) checkBtn.disabled = true;
 
+  // Hide the system totals container while loading
+  const totalsContainer = document.getElementById('systemTotalsDisplay');
+  if (totalsContainer) totalsContainer.style.display = 'none';
+
   // Show loading message with spinner
   let loadingMsg = document.getElementById('settlementLoadingMsg');
   if (!loadingMsg) {
@@ -2788,8 +2792,7 @@ async function openSettlementModal() {
       <div class="settlement-loading-spinner"></div>
       <span style="vertical-align: middle;">Loading settlement data...</span>
     `;
-    const systemTotalsDiv = document.getElementById('systemTotalsDisplay');
-    if (systemTotalsDiv) systemTotalsDiv.insertAdjacentElement('afterend', loadingMsg);
+    if (totalsContainer) totalsContainer.insertAdjacentElement('afterend', loadingMsg);
   }
   loadingMsg.style.display = 'block';
 
@@ -2809,6 +2812,7 @@ async function openSettlementModal() {
 
     if (alreadySettled) {
       loadingMsg.style.display = 'none';
+      if (totalsContainer) totalsContainer.style.display = 'block'; // restore but it won't be used since modal closes
       await showAlertModal('Settlement Already Done', 'Settlement has already been recorded for today. No further settlement allowed.');
       modal.style.display = 'none';
       return;
@@ -2816,9 +2820,11 @@ async function openSettlementModal() {
 
     await refreshSettlementTotals(store);
     loadingMsg.style.display = 'none';
+    if (totalsContainer) totalsContainer.style.display = 'block'; // show totals after data loaded
   } catch (err) {
     console.error(err);
     loadingMsg.style.display = 'none';
+    if (totalsContainer) totalsContainer.style.display = 'block'; // restore visibility on error as well
     await showAlertModal('Error', 'Failed to load settlement data.');
     modal.style.display = 'none';
   }
