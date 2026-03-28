@@ -2734,11 +2734,25 @@ async function preloadProductsForStore(store) {
   }
 
   // ==================== SETTLEMENT & COLLECTION ====================
- async function openSettlementModal() {
+async function openSettlementModal() {
   const modal = document.getElementById('settlementModal');
   modal.style.display = 'flex';
 
-  // Create loading message if not exists
+  // 🔄 RESET UI IMMEDIATELY – no stale state
+  document.getElementById('recordSettlementBtn').style.display = 'none';
+  document.getElementById('checkSettlementBtn').style.display = 'block';
+  document.getElementById('checkSettlementBtn').disabled = false;
+  document.getElementById('settlementError').style.display = 'none';
+  document.getElementById('settlementError').innerHTML = '';
+  document.getElementById('actualCash').value = '';
+  document.getElementById('actualCard').value = '';
+  document.getElementById('actualQR').value = '';
+  document.getElementById('pettyCashFloat').value = '0.00';
+  document.getElementById('actualCash').classList.remove('error-field');
+  document.getElementById('actualCard').classList.remove('error-field');
+  document.getElementById('actualQR').classList.remove('error-field');
+
+  // Show loading message while fetching settlement data
   let loadingMsg = document.getElementById('settlementLoadingMsg');
   if (!loadingMsg) {
     loadingMsg = document.createElement('div');
@@ -2752,7 +2766,6 @@ async function preloadProductsForStore(store) {
     const systemTotalsDiv = document.getElementById('systemTotalsDisplay');
     if (systemTotalsDiv) systemTotalsDiv.insertAdjacentElement('afterend', loadingMsg);
   }
-  // Show loading message immediately
   loadingMsg.style.display = 'block';
 
   try {
