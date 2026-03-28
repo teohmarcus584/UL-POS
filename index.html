@@ -2770,8 +2770,8 @@ async function refreshSettlementTotals(store) {
     document.getElementById('sysQR').innerText = `RM ${currentSettlementTotals.qr.toFixed(2)}`;
     document.getElementById('sysRefund').innerText = `RM ${Math.abs(currentSettlementTotals.refund).toFixed(2)}`;
 
-    // Calculate Net Total: Cash + Card + QR - Refunds (refund is positive in the display)
-    const netTotal = currentSettlementTotals.cash + currentSettlementTotals.card + currentSettlementTotals.qr + currentSettlementTotals.refund;
+    // Net Total = Cash + Card + QR (refunds are already accounted in these totals)
+    const netTotal = currentSettlementTotals.cash + currentSettlementTotals.card + currentSettlementTotals.qr;
     document.getElementById('sysNetTotal').innerText = `RM ${netTotal.toFixed(2)}`;
 
     const alreadySettled = await checkSettlementStatus(store, todayStr);
