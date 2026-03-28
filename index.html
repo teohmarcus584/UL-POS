@@ -2738,14 +2738,9 @@ async function openSettlementModal() {
   const modal = document.getElementById('settlementModal');
   modal.style.display = 'flex';
 
-  // Hide the input fields until data is loaded
-  const inputsContainer = document.getElementById('settlementInputsContainer');
-  if (inputsContainer) inputsContainer.style.display = 'none';
-
-  // Reset UI immediately
+  // 🔄 Immediate UI reset
   document.getElementById('recordSettlementBtn').style.display = 'none';
   document.getElementById('checkSettlementBtn').style.display = 'block';
-  document.getElementById('checkSettlementBtn').disabled = false;
   document.getElementById('settlementError').style.display = 'none';
   document.getElementById('settlementError').innerHTML = '';
   document.getElementById('actualCash').value = '';
@@ -2755,6 +2750,15 @@ async function openSettlementModal() {
   document.getElementById('actualCash').classList.remove('error-field');
   document.getElementById('actualCard').classList.remove('error-field');
   document.getElementById('actualQR').classList.remove('error-field');
+
+  // 🚫 Disable inputs and Check button while loading
+  const fieldsToDisable = ['actualCash', 'actualCard', 'actualQR'];
+  fieldsToDisable.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = true;
+  });
+  const checkBtn = document.getElementById('checkSettlementBtn');
+  if (checkBtn) checkBtn.disabled = true;
 
   // Show loading message
   let loadingMsg = document.getElementById('settlementLoadingMsg');
@@ -2795,10 +2799,6 @@ async function openSettlementModal() {
 
     await refreshSettlementTotals(store);
     loadingMsg.style.display = 'none';
-
-    // After totals are loaded, show the input fields (if not settled)
-    if (inputsContainer) inputsContainer.style.display = 'block';
-
   } catch (err) {
     console.error(err);
     loadingMsg.style.display = 'none';
@@ -2832,7 +2832,7 @@ async function refreshSettlementTotals(store) {
     document.getElementById('sysQR').innerText = `RM ${currentSettlementTotals.qr.toFixed(2)}`;
     document.getElementById('sysRefund').innerText = `RM ${Math.abs(currentSettlementTotals.refund).toFixed(2)}`;
 
-    // Net Total = Cash + Card + QR (refunds are already accounted in these totals)
+    // Net Total = Cash + Card + QR (refunds already accounted)
     const netTotal = currentSettlementTotals.cash + currentSettlementTotals.card + currentSettlementTotals.qr;
     document.getElementById('sysNetTotal').innerText = `RM ${netTotal.toFixed(2)}`;
 
@@ -2861,20 +2861,23 @@ async function refreshSettlementTotals(store) {
 }
   let currentSettlementTotals = null;
 
-  function setSettlementFieldsEnabled(enabled) {
-    const fields = ['settlementStoreSelect', 'pettyCashFloat', 'actualCash', 'actualCard', 'actualQR'];
-    const isNonAdmin = !currentEmployee?.isAdmin;
-    fields.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        if (id === 'settlementStoreSelect' && isNonAdmin) {
-          el.disabled = true;
-        } else {
-          el.disabled = !enabled;
-        }
+ function setSettlementFieldsEnabled(enabled) {
+  const fields = ['settlementStoreSelect', 'pettyCashFloat', 'actualCash', 'actualCard', 'actualQR'];
+  const isNonAdmin = !currentEmployee?.isAdmin;
+  fields.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      if (id === 'settlementStoreSelect' && isNonAdmin) {
+        el.disabled = true;
+      } else {
+        el.disabled = !enabled;
       }
-    });
-  }
+    }
+  });
+  // Also set the Check button state
+  const checkBtn = document.getElementById('checkSettlementBtn');
+  if (checkBtn) checkBtn.disabled = !enabled;
+}
 
   // ==================== PRINTER SETUP ====================
   (function setupPrinter() {
