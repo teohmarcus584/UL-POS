@@ -2734,56 +2734,57 @@ async function preloadProductsForStore(store) {
   }
 
   // ==================== SETTLEMENT & COLLECTION ====================
-  async function openSettlementModal() {
-    const modal = document.getElementById('settlementModal');
-    modal.style.display = 'flex';
+ async function openSettlementModal() {
+  const modal = document.getElementById('settlementModal');
+  modal.style.display = 'flex';
 
-    let loadingMsg = document.getElementById('settlementLoadingMsg');
-    if (!loadingMsg) {
-      loadingMsg = document.createElement('div');
-      loadingMsg.id = 'settlementLoadingMsg';
-      loadingMsg.style.textAlign = 'center';
-      loadingMsg.style.padding = '20px';
-      loadingMsg.style.background = '#f8fafc';
-      loadingMsg.style.borderRadius = '12px';
-      loadingMsg.style.margin = '10px 0';
-      loadingMsg.innerText = 'Loading settlement data...';
-      const systemTotalsDiv = document.getElementById('systemTotalsDisplay');
-      if (systemTotalsDiv) systemTotalsDiv.insertAdjacentElement('afterend', loadingMsg);
-    }
-    loadingMsg.style.display = 'block';
-
-    try {
-      let store;
-      if (!currentEmployee.isAdmin) {
-        store = initialStore;
-        document.getElementById('settlementStoreSelect').value = store;
-        document.getElementById('settlementStoreSelect').disabled = true;
-      } else {
-        store = document.getElementById('settlementStoreSelect').value;
-        document.getElementById('settlementStoreSelect').disabled = false;
-      }
-
-      const todayStr = getLocalDateString(new Date());
-      const alreadySettled = await checkSettlementStatus(store, todayStr);
-
-      if (alreadySettled) {
-        loadingMsg.style.display = 'none';
-        await showAlertModal('Settlement Already Done', 'Settlement has already been recorded for today. No further settlement allowed.');
-        modal.style.display = 'none';
-        return;
-      }
-
-      await refreshSettlementTotals(store);
-      loadingMsg.style.display = 'none';
-    } catch (err) {
-      console.error(err);
-      loadingMsg.style.display = 'none';
-      await showAlertModal('Error', 'Failed to load settlement data.');
-      modal.style.display = 'none';
-    }
+  // Create loading message if not exists
+  let loadingMsg = document.getElementById('settlementLoadingMsg');
+  if (!loadingMsg) {
+    loadingMsg = document.createElement('div');
+    loadingMsg.id = 'settlementLoadingMsg';
+    loadingMsg.style.textAlign = 'center';
+    loadingMsg.style.padding = '20px';
+    loadingMsg.style.background = '#f8fafc';
+    loadingMsg.style.borderRadius = '12px';
+    loadingMsg.style.margin = '10px 0';
+    loadingMsg.innerText = 'Loading settlement data...';
+    const systemTotalsDiv = document.getElementById('systemTotalsDisplay');
+    if (systemTotalsDiv) systemTotalsDiv.insertAdjacentElement('afterend', loadingMsg);
   }
+  // Show loading message immediately
+  loadingMsg.style.display = 'block';
 
+  try {
+    let store;
+    if (!currentEmployee.isAdmin) {
+      store = initialStore;
+      document.getElementById('settlementStoreSelect').value = store;
+      document.getElementById('settlementStoreSelect').disabled = true;
+    } else {
+      store = document.getElementById('settlementStoreSelect').value;
+      document.getElementById('settlementStoreSelect').disabled = false;
+    }
+
+    const todayStr = getLocalDateString(new Date());
+    const alreadySettled = await checkSettlementStatus(store, todayStr);
+
+    if (alreadySettled) {
+      loadingMsg.style.display = 'none';
+      await showAlertModal('Settlement Already Done', 'Settlement has already been recorded for today. No further settlement allowed.');
+      modal.style.display = 'none';
+      return;
+    }
+
+    await refreshSettlementTotals(store);
+    loadingMsg.style.display = 'none';
+  } catch (err) {
+    console.error(err);
+    loadingMsg.style.display = 'none';
+    await showAlertModal('Error', 'Failed to load settlement data.');
+    modal.style.display = 'none';
+  }
+}
   async function checkSettlementStatus(store, date) {
     try {
       const url = `${APPS_SCRIPT_URL}?action=getSettlementStatus&store=${store}&date=${date}`;
