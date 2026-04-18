@@ -1,9 +1,10 @@
 const CACHE_NAME = 'pos-cache-v1';
 const urlsToCache = [
-  '/',
-  '/index.html',          // or your actual HTML filename
-  '/manifest.json',
-  // Add any external CSS/JS if they are local. For CDN resources (like Chart.js), you may skip caching.
+  './',
+  './index.html',
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
 self.addEventListener('install', event => {
