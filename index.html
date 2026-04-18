@@ -1405,7 +1405,7 @@
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
-  <link rel="manifest" href="./manifest.json">
+ <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
   
 <body>
@@ -6270,7 +6270,7 @@ function updateReceipts() {
   <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/service-worker.js')
+     navigator.serviceWorker.register('./service-worker.js')
         .then(reg => console.log('SW registered:', reg))
         .catch(err => console.error('SW registration failed:', err));
     });
