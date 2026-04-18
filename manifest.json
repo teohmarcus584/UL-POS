@@ -1,7 +1,7 @@
 {
   "name": "UL Perfumery POS",
   "short_name": "POS System",
-  "description": "Smart POS with local cache, inventory, and receipts",
+  "description": "Smart POS with local cache, inventory management, sales reports, and receipt printing",
   "start_url": "/",
   "display": "standalone",
   "theme_color": "#2c7a4b",
