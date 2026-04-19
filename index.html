@@ -3525,6 +3525,7 @@ function applyCustomDiscount() {
     document.getElementById('cancelOtherBtn').onclick = () => modal.style.display = 'none';
     document.getElementById('closePaymentModal').onclick = () => modal.style.display = 'none';
   }
+
 async function completeCheckout(paymentMethod, cashReceived) {
   document.getElementById('paymentModal').style.display = 'none';
   const totalAmount = pendingTransaction.totalAmount;
@@ -3541,27 +3542,22 @@ async function completeCheckout(paymentMethod, cashReceived) {
     total: (item.quantity - item.freeQuantity) * item.product.price
   }));
 
-  // Get the selected employee's name from the cart dropdown
-  const selectedEmployeeId = soldBySelectCart.value;
-  const selectedEmployeeName = employeeNameMap[selectedEmployeeId] || currentEmployee.name;
-
   const transaction = {
-    transaction_id: transactionId,
-    items: saleItems,
-    total: totalAmount,
-    payment_method: paymentMethod,
-    cash_received: cashReceived,
-    timestamp: new Date().toISOString(),
-    discount: discountAmount,
-    buy2_free1_discount: buy2Free1Discount,
-    buy3_free1_discount: buy3Free1Discount,
-    custom_discount: customDiscount,
-    prize_claimed: claimedReceiptInfo,
-    customer_id: selectedCustomer ? selectedCustomer.id : null,
-    store: currentStore,
-    employee_name: selectedEmployeeName,   // ← uses cart‑selected employee
-    employee_id: selectedEmployeeId        // also store the ID for consistency
-  };
+  transaction_id: transactionId,
+  items: saleItems,
+  total: totalAmount,
+  payment_method: paymentMethod,
+  cash_received: cashReceived,
+  timestamp: new Date().toISOString(),
+  discount: discountAmount,
+  buy2_free1_discount: buy2Free1Discount,
+  buy3_free1_discount: buy3Free1Discount,
+  custom_discount: customDiscount,
+  prize_claimed: claimedReceiptInfo,
+  customer_id: selectedCustomer ? selectedCustomer.id : null,
+  store: currentStore,                    // ✅ ADD THIS LINE
+  employee_name: currentEmployee.name     // already present
+};
 
   queueSale(transaction);
   const success = true; // assume success, will sync later
@@ -3610,7 +3606,7 @@ async function completeCheckout(paymentMethod, cashReceived) {
       total: transaction.total,
       payment_method: transaction.payment_method,
       store: currentStore,
-      employee_id: selectedEmployeeId,
+      employee_id: currentEmployee.id,
       refunded: false,
       discount: discountAmount,
       buy2_free1_discount: buy2Free1Discount,
@@ -3629,12 +3625,12 @@ async function completeCheckout(paymentMethod, cashReceived) {
     // ✅ Force a background refresh of the receipt cache (will replace fake with real data after sync)
     fetchAndCacheReceipts();
 
-    if (window.printerAPI?.isConnected() && window.printerAPI.printReceipt) {
-      const transactionWithName = { ...transaction, employee_name: selectedEmployeeName };
-      await window.printerAPI.printReceipt(transactionWithName);
-    } else {
-      await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
-    }
+   if (window.printerAPI?.isConnected() && window.printerAPI.printReceipt) {
+  const transactionWithName = { ...transaction, employee_name: currentEmployee.name };
+  await window.printerAPI.printReceipt(transactionWithName);
+} else {
+  await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
+}
 
     await showAlertModal('✅ Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
 
@@ -4728,13 +4724,14 @@ async function printReceipt(transaction) {
     }
 
     const lines = [];
+    const separator = '-'.repeat(maxChars);
 
     // ----- Store info -----
     lines.push(`STORE LOCATION : ${storeLocation}`);
     lines.push(`EMPLOYEE : ${employeeName}`);
-    lines.push(''); // blank line after employee
+    lines.push(separator);
 
-    // ----- Items (no category grouping, no separator after items) -----
+    // ----- Items (no category grouping) -----
     for (const item of transaction.items) {
       const paidQty = item.quantity - (item.free_quantity || 0);
       if (paidQty > 0) {
@@ -4749,7 +4746,7 @@ async function printReceipt(transaction) {
       }
     }
 
-    lines.push(''); // blank line after items
+    lines.push(separator);
 
     // ----- Discounts -----
     if (transaction.discount > 0) lines.push(`Lucky Draw Discount : -RM ${transaction.discount.toFixed(2)}`);
@@ -4757,19 +4754,7 @@ async function printReceipt(transaction) {
     if (transaction.buy3_free1_discount > 0) lines.push(`15ml Perfume EDP Promo : -RM ${transaction.buy3_free1_discount.toFixed(2)}`);
     if (transaction.custom_discount > 0) lines.push(`Custom Discount     : -RM ${transaction.custom_discount.toFixed(2)}`);
 
-    if (transaction.discount > 0 || transaction.buy2_free1_discount > 0 || transaction.buy3_free1_discount > 0 || transaction.custom_discount > 0) {
-      lines.push(''); // blank line after discounts
-    }
-
-    // ----- Payment method -----
-    lines.push(`PAYMENT METHOD : ${transaction.payment_method}`);
-    if (transaction.cash_received && transaction.payment_method === 'Cash') {
-      const change = transaction.cash_received - transaction.total;
-      lines.push(`CHANGE : RM ${change.toFixed(2)}`);
-    }
-    lines.push(''); // blank line before total
-
-    // ----- Total line (will be printed with larger font) -----
+    // ----- TOTAL line (left TOTAL, right amount) -----
     const totalAmount = transaction.total;
     const totalLabel = "TOTAL";
     const totalValueStr = `RM ${totalAmount.toFixed(2)}`;
@@ -4782,12 +4767,18 @@ async function printReceipt(transaction) {
     }
     totalLine += totalValueStr;
 
-    // ----- Footer -----
+    lines.push(separator);
+    lines.push(`PAYMENT METHOD : ${transaction.payment_method}`);
+    if (transaction.cash_received && transaction.payment_method === 'Cash') {
+      const change = transaction.cash_received - totalAmount;
+      lines.push(`CHANGE : RM ${change.toFixed(2)}`);
+    }
+    lines.push(separator);
     lines.push('THANK YOU FOR YOUR PURCHASE');
     lines.push('ANY ENQUIRY PLEASE CONTACT');
     lines.push('+60134665831 ( MARCUS )');
     lines.push('GOODS SOLD ARE NOT REFUNDABLE');
-    lines.push('');
+    lines.push(separator);
 
     const date = new Date(transaction.timestamp);
     const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
@@ -4813,20 +4804,19 @@ async function printReceipt(transaction) {
     commands.push(0x1B, 0x61, 0x00);           // Left align
     commands.push(0x0A);                       // Extra line after title
 
-    // ----- Print the main receipt body (normal font, left aligned) -----
+    // ----- Print the rest of the receipt (left aligned, normal font) -----
     const text = lines.join('\n');
     commands.push(...encoder.encode(text));
 
-    // ----- Print TOTAL line with larger font (double width+height) -----
+    // ----- Print TOTAL line with left label + right amount (bold) -----
+    commands.push(0x0A);
     commands.push(0x1B, 0x45, 0x01);           // Bold on
-    commands.push(0x1D, 0x21, 0x11);           // Double width + double height
     for (let i = 0; i < totalLine.length; i++) {
       commands.push(totalLine.charCodeAt(i));
     }
-    commands.push(0x1D, 0x21, 0x00);           // Back to normal size
     commands.push(0x1B, 0x45, 0x00);           // Bold off
     commands.push(0x0A);
-    commands.push(0x0A);                       // Extra blank lines
+    commands.push(0x0A);
 
     // ----- Cut paper & open drawer if cash -----
     commands.push(0x1D, 0x56, 0x41, 0x00);     // Cut paper
@@ -4842,6 +4832,7 @@ async function printReceipt(transaction) {
     return false;
   }
 }
+
 async function printPrizeVoucher(prizeLabel, receiptNumber, spinDate = new Date()) {
   if (!isPrinterConnected || !printerCharacteristic) {
     await showAlertModal('Printer not connected', 'Please connect a printer first.');
