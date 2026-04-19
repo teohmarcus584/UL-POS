@@ -5327,63 +5327,33 @@ if (inventoryMode) {
 // Auto‑proceed after location detection (no Next button) – TEXT VERSION
 async function autoSelectAndProceed() {
   const statusDiv = document.getElementById('locationStatus');
-  const displayDiv = document.getElementById('detectedStoreDisplay');
-  if (!statusDiv) return;
+  if (statusDiv) statusDiv.innerHTML = '<span>📍 DETECTING LOCATION...</span>';
 
-  statusDiv.innerHTML = '📍 DETECTING LOCATION...';
-  statusDiv.style.color = '#00f3ff';
+  let storeId = null;
+  try {
+    storeId = await autoSelectStoreByLocation();
+  } catch (err) {
+    console.warn(err);
+  }
 
-  // Force fallback after 5 seconds if location is stuck
-  let fallbackTimer = setTimeout(() => {
-    if (!window._locationResolved) {
-      console.warn("Location detection timed out – using fallback store");
-      window._locationResolved = true;
-      // Use Queens as fallback
-      const fallbackStore = "queens";
-      initialStore = fallbackStore;
-      currentStore = fallbackStore;
-      storeSelect.value = fallbackStore;
-      if (displayDiv) displayDiv.textContent = "Queens (fallback)";
-      statusDiv.innerHTML = '⚠️ LOCATION UNAVAILABLE – USING DEFAULT STORE<br>CLOSING IN 2 SECONDS';
-      statusDiv.style.color = '#f59e0b';
-      setTimeout(() => {
-        document.getElementById('storeSelectModal').style.display = 'none';
-        document.getElementById('loginModal').style.display = 'flex';
-        document.getElementById('pinInput').focus();
-      }, 2000);
-    }
-  }, 5000);
-
-  const storeId = await autoSelectStoreByLocation();
-  clearTimeout(fallbackTimer);
-  
   if (storeId) {
-    window._locationResolved = true;
-    const storeName = displayDiv ? displayDiv.textContent : "Unknown";
-    initialStore = storeId;
-    currentStore = storeId;
+    const storeName = storeId === 'queens' ? 'Queens' : 
+                      storeId === 'sunshine' ? 'Sunshine' : 'Gurney Paragon';
     storeSelect.value = storeId;
-    statusDiv.innerHTML = `✅ LOCATION FOUND – WITHIN PERIMETER – CLOSING IN 2 SECONDS<br>Nearest store: ${storeName}`;
-    statusDiv.style.color = '#4ade80';
+    currentStore = storeId;
+    if (statusDiv) statusDiv.innerHTML = `<span>✅ WITHIN PERIMETER – ${storeName} selected</span>`;
     setTimeout(() => {
       document.getElementById('storeSelectModal').style.display = 'none';
       document.getElementById('loginModal').style.display = 'flex';
       document.getElementById('pinInput').focus();
-    }, 2000);
-  } else if (!window._locationResolved) {
-    // If autoSelectStoreByLocation returns null but fallback didn't run (should not happen)
-    window._locationResolved = true;
-    const fallbackStore = "queens";
-    initialStore = fallbackStore;
-    currentStore = fallbackStore;
-    storeSelect.value = fallbackStore;
-    if (displayDiv) displayDiv.textContent = "Queens (fallback)";
-    statusDiv.innerHTML = '⚠️ LOCATION UNAVAILABLE – USING DEFAULT STORE<br>CLOSING IN 2 SECONDS';
-    statusDiv.style.color = '#f59e0b';
+    }, 1500);
+  } else {
+    storeSelect.value = 'queens';
+    currentStore = 'queens';
+    if (statusDiv) statusDiv.innerHTML = '<span>⚠️ LOCATION UNAVAILABLE – using Queens (default)</span>';
     setTimeout(() => {
       document.getElementById('storeSelectModal').style.display = 'none';
       document.getElementById('loginModal').style.display = 'flex';
-      document.getElementById('pinInput').focus();
     }, 2000);
   }
 }
@@ -6247,6 +6217,7 @@ async function fetchReceiptById(txId) {
   }
   return null;
 }
+
 // Full updateReceipts function with local date fix
 function updateReceipts() {
   let store;
@@ -6448,7 +6419,11 @@ function updateReceipts() {
         .catch(err => console.error('SW registration failed:', err));
     });
   }
-    autoSelectAndProceed();
+  // Start automatic store detection as soon as the page is ready
+window.addEventListener('DOMContentLoaded', () => {
+  autoSelectAndProceed();  // this function already exists in your POS code
+});
+    
 </script>
 </body>
 </html>
