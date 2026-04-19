@@ -646,9 +646,9 @@
     .pin-input {
       width: 100%;
       text-align: center;
-      font-size: 3rem;
+      font-size: 2rem;
       letter-spacing: 8px;
-      padding: 20px;
+      padding: 12px;
       border-radius: 60px;
       border: 1px solid #cbd5e1;
       font-family: monospace;
@@ -662,9 +662,9 @@
     .keypad-btn {
       background: #f1f5f9;
       border: none;
-      padding: 25px;
+      padding: 16px;
       border-radius: 60px;
-      font-size: 2rem;
+      font-size: 1.5rem;
       font-weight: 600;
       cursor: pointer;
       transition: 0.1s;
@@ -966,7 +966,7 @@
     .side-menu .menu-header h3 { font-size: 1.2rem; font-weight: 600; color: #0f172a; }
     .side-menu .close-menu { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; }
     .side-menu .menu-buttons { display: flex; flex-direction: column; gap: 12px; padding: 20px; }
-    .side-menu .menu-btn { background: #f1f5f9; border: none; border-radius: 40px; padding: 12px 20px; font-size: 1.2rem; font-weight: 500; text-align: left; cursor: pointer; transition: 0.2s; color: #1e293b; }
+    .side-menu .menu-btn { background: #f1f5f9; border: none; border-radius: 40px; padding: 12px 20px; font-size: 1rem; font-weight: 500; text-align: left; cursor: pointer; transition: 0.2s; color: #1e293b; }
     .side-menu .menu-btn:hover { background: #e2e8f0; }
     .side-menu .menu-btn:active { transform: scale(0.98); }
     .customer-info {
@@ -1402,33 +1402,20 @@
   font-size: 1rem;
   padding: 10px 14px;
 }
-/* Make the PIN modal container wider */
-#loginModal .modal-container {
-  max-width: 600px;   /* Change from 400px to 600px or 700px */
-  width: 90%;
-}
-
-/* Optionally enlarge the PIN input and buttons for better proportion */
-#loginModal .pin-input {
-  font-size: 2.5rem;
-  padding: 20px;
-  letter-spacing: 12px;
-}
-
-#loginModal .keypad-btn {
-  padding: 24px;
-  font-size: 2rem;
-  border-radius: 80px;
-}
-
-#loginModal .pin-keypad {
-  gap: 16px;
-}
+      @media (orientation: landscape) and (min-width: 800px) {
+    .product-grid {
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+    .cart-panel {
+      max-width: 35%;
+    }
+  }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
-  <link rel="manifest" href="./manifest.json">
+ <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
+  
 <body>
 <!-- Store Select Modal -->
 <div id="storeSelectModal" class="modal-overlay" style="display: flex;">
@@ -1490,8 +1477,8 @@
         <button id="lowStockToggleBtn" class="low-stock-toggle">⚠️ Low Stock</button>
         <div class="view-toggle">
           <button id="backToCategoriesBtn" style="display:none;" class="refresh-btn">← Categories</button>
-         <button id="gridViewBtn" title="Grid view">⊞</button>
-<button id="listViewBtn" class="active" title="List view">≡</button>
+          <button id="gridViewBtn" class="active" title="Grid view">⊞</button>
+          <button id="listViewBtn" title="List view">≡</button>
         </div>
       </div>
       <div id="productGrid" class="product-grid">Loading products...</div>
@@ -1797,7 +1784,7 @@
   let cart = [];
   let currentStore = "queens";
   let currentEmployee = null;
-  let viewMode = "list";
+  let viewMode = "grid";
   let productDetailsVisible = false;
   let lastProductData = null;
   let employeeNameMap = {};
@@ -3614,13 +3601,12 @@ async function completeCheckout(paymentMethod, cashReceived) {
 
     // ✅ Force a background refresh of the receipt cache (will replace fake with real data after sync)
     fetchAndCacheReceipts();
-
-    if (window.printerAPI?.isConnected && window.printerAPI.printReceipt) {
-      const transactionWithName = { ...transaction, employee_name: currentEmployee.name };
-      await window.printerAPI.printReceipt(transactionWithName);
-    } else {
-      await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
-    }
+if (window.printerAPI?.isConnected() && window.printerAPI.printReceipt) {
+  const transactionWithName = { ...transaction, employee_name: currentEmployee.name };
+  await window.printerAPI.printReceipt(transactionWithName);
+} else {
+  await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
+}
 
     await showAlertModal('✅ Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
 
@@ -4630,78 +4616,65 @@ async function openSettlementModal() {
     if (checkBtn) checkBtn.disabled = !enabled;
   }
 
-  // ==================== PRINTER SETUP ====================
-  (function setupPrinter() {
-    let gattServer = null, printerCharacteristic = null, isConnected = false;
-    const printerModal = document.getElementById('printerModal');
-    const connectBtnModal = document.getElementById('connectPrinterModalBtn');
-    const printerStatusModal = document.getElementById('printerStatusModal');
-    const paperSizeSelectModal = document.getElementById('paperSizeSelectModal');
-    const printerIconBtn = document.getElementById('printerIconBtn');
-    const closePrinterModal = document.getElementById('closePrinterModal');
-    const closePrinterModalBtn = document.getElementById('closePrinterModalBtn');
-window.connectPrinter = connectPrinter;
-  function updatePrinterStatusUI() {
-  const statusSpan = document.getElementById('printerStatusModal');
-  if (window.isPrinterConnected) {
-    statusSpan.innerText = '✅ Printer connected';
-    statusSpan.style.color = '#2c7a4b';
+ // ==================== PRINTER SETUP (with auto‑reconnect & caching) ====================
+let gattServer = null;
+let printerCharacteristic = null;
+let isPrinterConnected = false;
+
+const printerModal = document.getElementById('printerModal');
+const connectBtnModal = document.getElementById('connectPrinterModalBtn');
+const printerStatusModal = document.getElementById('printerStatusModal');
+const paperSizeSelectModal = document.getElementById('paperSizeSelectModal');
+const printerIconBtn = document.getElementById('printerIconBtn');
+const closePrinterModal = document.getElementById('closePrinterModal');
+const closePrinterModalBtn = document.getElementById('closePrinterModalBtn');
+
+function updatePrinterStatusUI() {
+  if (isPrinterConnected) {
+    printerStatusModal.innerText = '✅ Printer connected';
+    printerStatusModal.style.color = '#2c7a4b';
   } else {
-    statusSpan.innerText = '⚪ Not connected';
-    statusSpan.style.color = '#64748b';
+    printerStatusModal.innerText = '⚪ Not connected';
+    printerStatusModal.style.color = '#64748b';
   }
 }
-async function checkSavedPrinter() {
-  const savedId = localStorage.getItem('printerDeviceId');
-  if (!savedId) return;
-  if (navigator.bluetooth.getDevices) {
-    const devices = await navigator.bluetooth.getDevices();
-    const device = devices.find(d => d.id === savedId);
-    if (device) {
-      // Show a hint in the printer modal that a printer is remembered
-      const statusSpan = document.getElementById('printerStatusModal');
-      if (statusSpan) statusSpan.innerText = '🔌 Saved printer found. Click "Connect Printer" to reconnect.';
+
+async function sendChunkedData(data, chunkSize = 500) {
+  if (!printerCharacteristic) return false;
+  let offset = 0;
+  while (offset < data.length) {
+    const chunk = data.slice(offset, offset + chunkSize);
+    try {
+      await printerCharacteristic.writeValueWithResponse(chunk);
+      await new Promise(resolve => setTimeout(resolve, 50));
+    } catch (err) {
+      console.error('Chunk write failed:', err);
+      throw err;
     }
+    offset += chunkSize;
+  }
+  return true;
+}
+
+async function openCashDrawer() {
+  if (!isPrinterConnected || !printerCharacteristic) {
+    await showAlertModal('Printer not connected', 'Please connect a printer first.');
+    return false;
+  }
+  try {
+    const drawerCommand = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]);
+    await printerCharacteristic.writeValueWithResponse(drawerCommand);
+    await showAlertModal('Drawer Opened', 'Cash drawer opened successfully.');
+    return true;
+  } catch (err) {
+    console.error(err);
+    await showAlertModal('Drawer Error', 'Failed to open drawer.');
+    return false;
   }
 }
-// Call this inside finishLoginAfterVerification()
-checkSavedPrinter();
-    async function sendChunkedData(data, chunkSize = 500) {
-      if (!printerCharacteristic) return false;
-      let offset = 0;
-      while (offset < data.length) {
-        const chunk = data.slice(offset, offset + chunkSize);
-        try {
-          await printerCharacteristic.writeValueWithResponse(chunk);
-          await new Promise(resolve => setTimeout(resolve, 50));
-        } catch (err) {
-          console.error('Chunk write failed:', err);
-          throw err;
-        }
-        offset += chunkSize;
-      }
-      return true;
-    }
 
-    async function openCashDrawer() {
-      if (!isConnected || !printerCharacteristic) {
-        await showAlertModal('Printer not connected', 'Please connect a printer first.');
-        return false;
-      }
-      try {
-        const drawerCommand = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]);
-        await printerCharacteristic.writeValueWithResponse(drawerCommand);
-        await showAlertModal('Drawer Opened', 'Cash drawer opened successfully.');
-        return true;
-      } catch (err) {
-        console.error(err);
-        await showAlertModal('Drawer Error', 'Failed to open drawer.');
-        return false;
-      }
-    }
-
-    async function printReceipt(transaction) {
-  if (!isConnected || !printerCharacteristic) {
+async function printReceipt(transaction) {
+  if (!isPrinterConnected || !printerCharacteristic) {
     await showAlertModal('Printer required', 'Connect Bluetooth printer first.');
     return false;
   }
@@ -4714,11 +4687,8 @@ checkSavedPrinter();
     const storeLocation = transaction.store ? transaction.store.charAt(0).toUpperCase() + transaction.store.slice(1) : 'Queens';
     const maxChars = paperSize === '58' ? 32 : 48;
 
-    // Format a product: name line (no price), then qty+price+total line (total bold)
     function formatProductLine(name, price, qty, total) {
-      // Name line: just the name – let printer wrap if needed
       const nameLine = name;
-      // Second line: quantity x price (left) and total (right, bold)
       const qtyStr = `${qty} x RM ${price.toFixed(2)}`;
       const totalStr = `RM ${total.toFixed(2)}`;
       let spaceNeeded = maxChars - totalStr.length;
@@ -4728,20 +4698,17 @@ checkSavedPrinter();
       } else {
         qtyLine = qtyLine.padEnd(spaceNeeded);
       }
-      // Add bold around the total
       qtyLine += `\x1B\x45\x01${totalStr}\x1B\x45\x00`;
       return [nameLine, qtyLine];
     }
 
     const lines = [];
     const separator = '-'.repeat(maxChars);
-
     lines.push('', '    UL PERFUMERY', separator);
     lines.push(`STORE LOCATION : ${storeLocation}`);
     lines.push(`EMPLOYEE : ${employeeName}`);
     lines.push(separator);
 
-    // Group items by category
     const grouped = {};
     for (const item of transaction.items) {
       const cat = item.category || 'Uncategorized';
@@ -4768,23 +4735,12 @@ checkSavedPrinter();
     }
 
     lines.push(separator);
-
-    // Discounts (if any)
-    if (transaction.discount > 0) {
-      lines.push(`Lucky Draw Discount : -RM ${transaction.discount.toFixed(2)}`);
-    }
-   if (transaction.buy2_free1_discount > 0) {
-  lines.push(`Car Aromatic Promo : -RM ${transaction.buy2_free1_discount.toFixed(2)}`);
-}
-if (transaction.buy3_free1_discount > 0) {
-  lines.push(`15ml Perfume EDP Promo : -RM ${transaction.buy3_free1_discount.toFixed(2)}`);
-}
-    if (transaction.custom_discount > 0) {
-      lines.push(`Custom Discount     : -RM ${transaction.custom_discount.toFixed(2)}`);
-    }
+    if (transaction.discount > 0) lines.push(`Lucky Draw Discount : -RM ${transaction.discount.toFixed(2)}`);
+    if (transaction.buy2_free1_discount > 0) lines.push(`Car Aromatic Promo : -RM ${transaction.buy2_free1_discount.toFixed(2)}`);
+    if (transaction.buy3_free1_discount > 0) lines.push(`15ml Perfume EDP Promo : -RM ${transaction.buy3_free1_discount.toFixed(2)}`);
+    if (transaction.custom_discount > 0) lines.push(`Custom Discount     : -RM ${transaction.custom_discount.toFixed(2)}`);
 
     const totalAmount = transaction.total;
-    // Total line in bold
     lines.push(`\x1B\x45\x01TOTAL : RM ${totalAmount.toFixed(2)}\x1B\x45\x00`);
     lines.push(`PAYMENT METHOD : ${transaction.payment_method}`);
     if (transaction.cash_received && transaction.payment_method === 'Cash') {
@@ -4805,13 +4761,12 @@ if (transaction.buy3_free1_discount > 0) {
     lines.push('');
 
     const text = lines.join('\n');
-
     let commands = [];
-    commands.push(0x1B, 0x40); // Initialize
-    commands.push(0x1B, 0x61, 0x00); // Left align
+    commands.push(0x1B, 0x40);
+    commands.push(0x1B, 0x61, 0x00);
     commands.push(...encoder.encode(text));
-    commands.push(0x1B, 0x64, 0x03); // Feed 3 lines
-    commands.push(0x1D, 0x56, 0x41, 0x00); // Cut
+    commands.push(0x1B, 0x64, 0x03);
+    commands.push(0x1D, 0x56, 0x41, 0x00);
     if (openDrawer) {
       const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
       commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
@@ -4823,75 +4778,57 @@ if (transaction.buy3_free1_discount > 0) {
     return false;
   }
 }
-    async function printPrizeVoucher(prizeLabel, receiptNumber, spinDate = new Date()) {
-      if (!isConnected || !printerCharacteristic) {
-        await showAlertModal('Printer not connected', 'Please connect a printer first.');
-        return false;
-      }
-      try {
-        const encoder = new TextEncoder();
-        function formatDate(date) {
-          const d = date.getDate().toString().padStart(2, '0');
-          const m = (date.getMonth() + 1).toString().padStart(2, '0');
-          const y = date.getFullYear();
-          return `${d}/${m}/${y}`;
-        }
-        const validFrom = new Date(spinDate.getFullYear(), spinDate.getMonth(), spinDate.getDate());
-        const validTill = new Date(validFrom);
-        validTill.setDate(validTill.getDate() + 30);
-        const lines = [
-          '',
-          'LUCKY DRAW',
-          'CONGRATULATIONS',
-          'YOU ARE ENTITLED',
-          '',
-          `FREE ${prizeLabel}`,
-          'WITH ANY PURCHASE',
-          '(EXCEPT OPENING PROMOTION)',
-          '',
-          `VALID FROM ${formatDate(validFrom)}`,
-          `TILL ${formatDate(validTill)}`,
-          `Receipt No: ${receiptNumber}`,
-          ''
-        ];
-        const text = lines.join('\n');
-        const commands = [];
-        commands.push(0x1B, 0x40); // init
-        commands.push(0x1B, 0x52, 0x00); // international character set
-        commands.push(0x1B, 0x21, 0x00); // font normal
-        commands.push(0x1B, 0x61, 0x01); // center alignment
-        for (let i = 0; i < text.length; i++) {
-          commands.push(text.charCodeAt(i));
-        }
-        commands.push(0x0A); // newline
 
-        commands.push(0x1D, 0x68, 0x32); // barcode height = 50 dots
-        commands.push(0x1D, 0x77, 0x01); // barcode width = 1
-        commands.push(0x1B, 0x61, 0x01); // center barcode
-        const barcodeData = encoder.encode(receiptNumber);
-        const len = barcodeData.length;
-        commands.push(0x1D, 0x6B, 0x49, len);
-        for (let i = 0; i < len; i++) commands.push(barcodeData[i]);
-        commands.push(0x0A, 0x0A);
-        commands.push(0x1B, 0x64, 0x03);
-        commands.push(0x1D, 0x56, 0x41, 0x00);
-
-        await sendChunkedData(new Uint8Array(commands), 500);
-        return true;
-      } catch (err) {
-        console.error('Print voucher error:', err);
-        return false;
-      }
+async function printPrizeVoucher(prizeLabel, receiptNumber, spinDate = new Date()) {
+  if (!isPrinterConnected || !printerCharacteristic) {
+    await showAlertModal('Printer not connected', 'Please connect a printer first.');
+    return false;
+  }
+  try {
+    const encoder = new TextEncoder();
+    function formatDate(date) {
+      return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
     }
+    const validFrom = new Date(spinDate.getFullYear(), spinDate.getMonth(), spinDate.getDate());
+    const validTill = new Date(validFrom);
+    validTill.setDate(validTill.getDate() + 30);
+    const lines = [
+      '', 'LUCKY DRAW', 'CONGRATULATIONS', 'YOU ARE ENTITLED', '',
+      `FREE ${prizeLabel}`, 'WITH ANY PURCHASE', '(EXCEPT OPENING PROMOTION)', '',
+      `VALID FROM ${formatDate(validFrom)}`, `TILL ${formatDate(validTill)}`,
+      `Receipt No: ${receiptNumber}`, ''
+    ];
+    const text = lines.join('\n');
+    const commands = [];
+    commands.push(0x1B, 0x40);
+    commands.push(0x1B, 0x52, 0x00);
+    commands.push(0x1B, 0x21, 0x00);
+    commands.push(0x1B, 0x61, 0x01);
+    for (let i = 0; i < text.length; i++) commands.push(text.charCodeAt(i));
+    commands.push(0x0A);
+    commands.push(0x1D, 0x68, 0x32);
+    commands.push(0x1D, 0x77, 0x01);
+    commands.push(0x1B, 0x61, 0x01);
+    const barcodeData = encoder.encode(receiptNumber);
+    const len = barcodeData.length;
+    commands.push(0x1D, 0x6B, 0x49, len);
+    for (let i = 0; i < len; i++) commands.push(barcodeData[i]);
+    commands.push(0x0A, 0x0A);
+    commands.push(0x1B, 0x64, 0x03);
+    commands.push(0x1D, 0x56, 0x41, 0x00);
+    await sendChunkedData(new Uint8Array(commands), 500);
+    return true;
+  } catch (err) {
+    console.error('Print voucher error:', err);
+    return false;
+  }
+}
 
-// Place this at the top of your script (global scope)
-// Replace your existing connectPrinter function with this one
+// Improved connect function with caching and auto‑reconnect
 let cachedDevice = null;
-
 async function connectPrinter() {
-  const connectBtn = document.getElementById('connectPrinterModalBtn');
-  const statusSpan = document.getElementById('printerStatusModal');
-
+  const connectBtn = connectBtnModal;
+  const statusSpan = printerStatusModal;
   try {
     connectBtn.disabled = true;
     statusSpan.innerText = '🔍 Connecting...';
@@ -4899,29 +4836,13 @@ async function connectPrinter() {
     let device = cachedDevice;
     const savedId = localStorage.getItem('printerDeviceId');
 
-    // 1. If we already have a device object in memory, try to reconnect
-    if (device) {
-      try {
-        if (!device.gatt.connected) {
-          await device.gatt.connect();
-        }
-        await finishPrinterConnection(device);
-        return;
-      } catch (err) {
-        console.warn('Cached device reconnect failed', err);
-        device = null;
-      }
-    }
-
-    // 2. Try to get already paired devices (no picker) using saved ID
+    // Try to use already paired device (no picker)
     if (navigator.bluetooth.getDevices) {
       const devices = await navigator.bluetooth.getDevices();
       if (savedId) {
         device = devices.find(d => d.id === savedId);
       }
-      if (!device && devices.length > 0) {
-        device = devices[0]; // optionally let user choose, but auto-pick first
-      }
+      if (!device && devices.length > 0) device = devices[0];
       if (device) {
         await device.gatt.connect();
         localStorage.setItem('printerDeviceId', device.id);
@@ -4931,7 +4852,7 @@ async function connectPrinter() {
       }
     }
 
-    // 3. Fallback: request a new device (shows picker – only once per session)
+    // Fallback: show device picker
     statusSpan.innerText = '📱 Select your printer...';
     device = await navigator.bluetooth.requestDevice({
       acceptAllDevices: true,
@@ -4941,18 +4862,17 @@ async function connectPrinter() {
     localStorage.setItem('printerDeviceId', device.id);
     cachedDevice = device;
     await finishPrinterConnection(device);
-
   } catch (err) {
     console.error(err);
     statusSpan.innerText = `❌ ${err.message}`;
     localStorage.removeItem('printerDeviceId');
     cachedDevice = null;
+    isPrinterConnected = false;
   } finally {
     connectBtn.disabled = false;
   }
 }
 
-// Helper to set up the printer after connection
 async function finishPrinterConnection(device) {
   const server = device.gatt;
   const services = await server.getPrimaryServices();
@@ -4969,58 +4889,68 @@ async function finishPrinterConnection(device) {
   }
   if (!foundChar) throw new Error('No writable characteristic');
 
-  // These variables must be accessible in the printer module
-  window.gattServer = server;
-  window.printerCharacteristic = foundChar;
-  window.isPrinterConnected = true;
-
-  window.printerAPI = {
-    isConnected: true,
-    printReceipt: printReceipt,
-    openDrawer: openCashDrawer,
-    printPrizeVoucher: printPrizeVoucher
-  };
+  gattServer = server;
+  printerCharacteristic = foundChar;
+  isPrinterConnected = true;
   updatePrinterStatusUI();
   await showAlertModal('Printer Connected', 'Bluetooth printer is ready.');
 }
 
-// Expose the function globally so other parts can call it
-window.connectPrinter = connectPrinter;
-
- function disconnectPrinter() {
-  if (window.gattServer) {
-    window.gattServer.disconnect();
-    window.gattServer = null;
-    window.printerCharacteristic = null;
+function disconnectPrinter() {
+  if (gattServer) {
+    gattServer.disconnect();
+    gattServer = null;
+    printerCharacteristic = null;
   }
-  window.isPrinterConnected = false;
-  window.printerAPI = { 
-    isConnected: false, 
-    printReceipt: printReceipt, 
-    openDrawer: openCashDrawer, 
-    printPrizeVoucher: printPrizeVoucher 
-  };
+  isPrinterConnected = false;
   localStorage.removeItem('printerDeviceId');
   cachedDevice = null;
   updatePrinterStatusUI();
 }
 
-    printerIconBtn.addEventListener('click', () => {
-      printerModal.style.display = 'flex';
-      updatePrinterStatusUI();
-    });
-    connectBtnModal.addEventListener('click', () => {
-      if (!isConnected) connectPrinter();
-      else disconnectPrinter();
-    });
-    function closeModal() { printerModal.style.display = 'none'; }
-    if (closePrinterModal) closePrinterModal.addEventListener('click', closeModal);
-if (closePrinterModalBtn) closePrinterModalBtn.addEventListener('click', closeModal);
-    const savedSize = localStorage.getItem('printerPaperSize') || '80';
-    paperSizeSelectModal.value = savedSize;
+// Event listeners
+printerIconBtn.addEventListener('click', () => {
+  printerModal.style.display = 'flex';
+  updatePrinterStatusUI();
+});
+connectBtnModal.addEventListener('click', () => {
+  if (!isPrinterConnected) connectPrinter();
+  else disconnectPrinter();
+});
+function closePrinterModalFunc() { printerModal.style.display = 'none'; }
+if (closePrinterModal) closePrinterModal.addEventListener('click', closePrinterModalFunc);
+if (closePrinterModalBtn) closePrinterModalBtn.addEventListener('click', closePrinterModalFunc);
 
-    window.printerAPI = { isConnected: false, printReceipt: printReceipt, openDrawer: openCashDrawer, printPrizeVoucher: printPrizeVoucher };
-  })();
+const savedSize = localStorage.getItem('printerPaperSize') || '80';
+paperSizeSelectModal.value = savedSize;
+
+window.printerAPI = {
+  isConnected: () => isPrinterConnected,
+  printReceipt: printReceipt,
+  openDrawer: openCashDrawer,
+  printPrizeVoucher: printPrizeVoucher,
+  connectPrinter: connectPrinter
+};
+
+// Try to auto‑connect to a saved printer on page load (optional)
+async function autoConnectSavedPrinter() {
+  const savedId = localStorage.getItem('printerDeviceId');
+  if (!savedId) return;
+  if (navigator.bluetooth.getDevices) {
+    const devices = await navigator.bluetooth.getDevices();
+    const device = devices.find(d => d.id === savedId);
+    if (device) {
+      try {
+        await device.gatt.connect();
+        await finishPrinterConnection(device);
+      } catch (err) {
+        console.warn('Auto‑connect failed:', err);
+      }
+    }
+  }
+}
+// Call this after login if you want auto‑connection
+// autoConnectSavedPrinter();
 
   // ==================== RENDER PRODUCT GRID ====================
 function renderProductGrid() {
@@ -5051,6 +4981,7 @@ function renderProductGrid() {
     let html = '';
     filteredCategories.forEach(cat => {
       const productCount = products.filter(p => p.category === cat).length;
+      // Use category image mapping (categoryImages defined globally)
       const imgUrl = (categoryImages && categoryImages[cat]) || (categoryImages && categoryImages["default"]) || "https://via.placeholder.com/150?text=📦";
       html += `
         <div class="category-card" data-category="${escapeHtml(cat)}">
@@ -5064,27 +4995,32 @@ function renderProductGrid() {
     });
 
     productGridEl.innerHTML = html;
+    // ✅ FORCE GRID MODE for category cards (ignore viewMode)
     productGridEl.className = 'product-grid';
 
+    // Attach click event to each category card
     document.querySelectorAll('.category-card').forEach(card => {
       card.addEventListener('click', () => {
         const category = card.dataset.category;
         categorySelect.value = category;
-        renderProductGrid();
+        renderProductGrid();   // re-render to show products of that category
       });
     });
 
+    // Hide back button when in category cards mode
     const backBtn = document.getElementById('backToCategoriesBtn');
     if (backBtn) backBtn.style.display = 'none';
-    return;
+    return;   // exit – do not show product list
   }
 
   // ==================== PRODUCT LIST MODE ====================
+  // Show/hide back button (only when a specific category is selected and not inventory mode)
   const backBtn = document.getElementById('backToCategoriesBtn');
   if (backBtn) {
     backBtn.style.display = (selectedCategory !== 'all' && !inventoryMode) ? 'inline-flex' : 'none';
   }
 
+  // Filter products by category, search, and low stock
   let filtered = products.slice();
   if (selectedCategory !== 'all') {
     filtered = filtered.filter(p => p.category === selectedCategory);
@@ -5096,6 +5032,7 @@ function renderProductGrid() {
     filtered = filtered.filter(p => p.stock < LOW_STOCK_THRESHOLD);
   }
 
+  // Handle empty products (loading state)
   if (products.length === 0) {
     productGridEl.innerHTML = `
       <div style="text-align:center; padding:20px;">
@@ -5109,109 +5046,98 @@ function renderProductGrid() {
     return;
   }
 
+  // No products match filters
   if (filtered.length === 0) {
     productGridEl.innerHTML = '<div style="text-align:center; padding:20px;">No products match your filters.</div>';
     productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
     return;
   }
+// ==================== RENDER PRODUCTS (grid/list) ====================
+let html = '';
+filtered.forEach(prod => {
+  const isLowStock = prod.stock < LOW_STOCK_THRESHOLD;
+  const lowStockClass = (inventoryMode && isLowStock) ? 'low-stock-card' : '';
 
-  let html = '';
-  filtered.forEach(prod => {
-    const isLowStock = prod.stock < LOW_STOCK_THRESHOLD;
-    const lowStockClass = (inventoryMode && isLowStock) ? 'low-stock-card' : '';
+  if (inventoryMode) {
+    // Inventory mode: stock adjustment controls
+    html += `<div class="product-card ${lowStockClass}">
+      <div class="product-name">${escapeHtml(prod.name)}</div>
+      <div class="product-category">${escapeHtml(prod.category)}</div>
+      <div class="product-price">RM ${prod.price.toFixed(2)}</div>
+      <div class="inventory-controls">
+        <button class="inventory-btn dec-stock" data-id="${prod.id}" data-current="${prod.stock}">−</button>
+        <span class="stock-display" data-id="${prod.id}">${prod.stock}</span>
+        <button class="inventory-btn inc-stock" data-id="${prod.id}" data-current="${prod.stock}">+</button>
+      </div>
+    </div>`;
+  } else {
+    // Normal mode: add to cart – whole card clickable
+    const stockStatus = `📦 Stock: ${prod.stock}`;
+    html += `<div class="product-card ${lowStockClass}" data-id="${prod.id}">
+      <div class="product-name">${escapeHtml(prod.name)}</div>
+      <div class="product-category">${escapeHtml(prod.category)}</div>
+      <div class="product-price">RM ${prod.price.toFixed(2)}</div>
+      <div class="product-stock">${stockStatus}</div>
+    
+    </div>`;
+  }
+});
 
-    if (inventoryMode) {
-      html += `<div class="product-card ${lowStockClass}">
-        <div class="product-name">${escapeHtml(prod.name)}</div>
-        <div class="product-category">${escapeHtml(prod.category)}</div>
-        <div class="product-price">RM ${prod.price.toFixed(2)}</div>
-        <div class="inventory-controls">
-          <button class="inventory-btn dec-stock" data-id="${prod.id}" data-current="${prod.stock}">−</button>
-          <span class="stock-display" data-id="${prod.id}">${prod.stock}</span>
-          <button class="inventory-btn inc-stock" data-id="${prod.id}" data-current="${prod.stock}">+</button>
-        </div>
-      </div>`;
-    } else {
-      const stockStatus = `📦 Stock: ${prod.stock}`;
-      html += `<div class="product-card ${lowStockClass}" data-id="${prod.id}">
-        <div class="product-name">${escapeHtml(prod.name)}</div>
-        <div class="product-category">${escapeHtml(prod.category)}</div>
-        <div class="product-price">RM ${prod.price.toFixed(2)}</div>
-        <div class="product-stock">${stockStatus}</div>
-      </div>`;
-    }
+productGridEl.innerHTML = html;
+productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
+
+// Attach event listeners
+if (inventoryMode) {
+  document.querySelectorAll('.dec-stock').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = btn.dataset.id;
+      const product = products.find(p => p.id == id);
+      if (product) {
+        const oldStock = product.stock;
+        const newStock = product.stock - 1;
+        product.stock = newStock;
+        const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
+        if (displaySpan) displaySpan.innerText = newStock;
+        scheduleStockUpdate(id, newStock);
+        logStockChange(product.id, product.name, product.category, oldStock, newStock, -1);
+        checkAndNotifyOutOfStock(product.id, product.name, newStock);
+        refreshCategoryHighlighting();
+      }
+      e.stopPropagation();
+    });
   });
 
-  productGridEl.innerHTML = html;
-  productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
-
-  // Attach event listeners
-  if (inventoryMode) {
-    document.querySelectorAll('.dec-stock').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const id = btn.dataset.id;
-        const product = products.find(p => p.id == id);
-        if (product) {
-          const oldStock = product.stock;
-          const newStock = product.stock - 1;
-          product.stock = newStock;
-          const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
-          if (displaySpan) displaySpan.innerText = newStock;
-          scheduleStockUpdate(id, newStock);
-          logStockChange(product.id, product.name, product.category, oldStock, newStock, -1);
-          checkAndNotifyOutOfStock(product.id, product.name, newStock);
-          refreshCategoryHighlighting();
-        }
-        e.stopPropagation();
-      });
-    });
-
-    document.querySelectorAll('.inc-stock').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const id = btn.dataset.id;
-        const product = products.find(p => p.id == id);
-        if (product) {
-          const oldStock = product.stock;
-          const newStock = product.stock + 1;
-          product.stock = newStock;
-          const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
-          if (displaySpan) displaySpan.innerText = newStock;
-          scheduleStockUpdate(id, newStock);
-          logStockChange(product.id, product.name, product.category, oldStock, newStock, 1);
-          checkAndNotifyOutOfStock(product.id, product.name, newStock);
-          refreshCategoryHighlighting();
-        }
-        e.stopPropagation();
-      });
-    });
-  } else {
-    // ✅ MODIFIED: Normal mode – ensure printer connected before adding to cart
-    document.querySelectorAll('.product-card').forEach(card => {
-      const productId = card.dataset.id;
-      const product = products.find(p => p.id == productId);
+  document.querySelectorAll('.inc-stock').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = btn.dataset.id;
+      const product = products.find(p => p.id == id);
       if (product) {
-        card.addEventListener('click', async (e) => {
-          // Ensure printer is connected before adding to cart
-          await ensurePrinterConnected();
-          addToCart(product);
-        });
+        const oldStock = product.stock;
+        const newStock = product.stock + 1;
+        product.stock = newStock;
+        const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
+        if (displaySpan) displaySpan.innerText = newStock;
+        scheduleStockUpdate(id, newStock);
+        logStockChange(product.id, product.name, product.category, oldStock, newStock, 1);
+        checkAndNotifyOutOfStock(product.id, product.name, newStock);
+        refreshCategoryHighlighting();
       }
+      e.stopPropagation();
     });
-  }
-}
-// Helper: ensure printer is connected before proceeding
-async function ensurePrinterConnected() {
-  if (window.printerAPI && window.printerAPI.isConnected) {
-    return true;
-  }
-  // Attempt to connect using the globally exposed function
-  if (typeof window.connectPrinter === 'function') {
-    await window.connectPrinter();
-    // After connection attempt, check again
-    return window.printerAPI && window.printerAPI.isConnected;
-  }
-  return false;
-}
+  });
+} else {
+  // Normal mode: whole card clickable (add to cart)
+  document.querySelectorAll('.product-card').forEach(card => {
+    const productId = card.dataset.id;
+    const product = products.find(p => p.id == productId);
+    if (product) {
+      card.addEventListener('click', (e) => {
+        // If the click is on the button itself, still add (no double because button has no separate listener)
+        addToCart(product);
+      });
+    }
+  });
+}}
   // ==================== VIEW TOGGLE ====================
   function setViewMode(mode) {
     viewMode = mode;
@@ -5466,96 +5392,96 @@ async function ensurePrinterConnected() {
   document.getElementById('saveTelegramSettingsBtn')?.addEventListener('click', saveTelegramSettings);
   document.getElementById('closeTelegramModal')?.addEventListener('click', () => document.getElementById('telegramModal').style.display = 'none');
   document.getElementById('closeTelegramModalBtn')?.addEventListener('click', () => document.getElementById('telegramModal').style.display = 'none');
-async function finishLoginAfterVerification() {
-  if (window.autoSyncInterval) clearInterval(window.autoSyncInterval);
-  await loadInitialData();
-  soldBySelectCart.value = currentEmployee.id;
 
-  const sideInventory = document.getElementById('sideInventoryBtn');
-  const sideCollection = document.getElementById('sideCollectionBtn');
-  if (currentEmployee.isAdmin) {
-    if (sideInventory) sideInventory.style.display = 'flex';
-    if (sideCollection) sideCollection.style.display = 'flex';
-    storeSelect.disabled = false;
-  } else {
-    if (sideInventory) sideInventory.style.display = 'none';
-    if (sideCollection) sideCollection.style.display = 'none';
-    storeSelect.disabled = true;
-  }
+  async function finishLoginAfterVerification() {
+    if (window.autoSyncInterval) clearInterval(window.autoSyncInterval);
+    await loadInitialData();
+    soldBySelectCart.value = currentEmployee.id;
 
-  const systemTotalsDiv = document.getElementById('systemTotalsDisplay');
-  if (systemTotalsDiv) {
-    if (!currentEmployee.isAdmin) {
-      systemTotalsDiv.style.display = 'block';
-      const breakdownIds = ['sysCash', 'sysCard', 'sysQR', 'sysRefund', 'sysAlipay'];
-      breakdownIds.forEach(id => {
-        const el = document.getElementById(id);
-        if (el && el.parentElement) el.parentElement.style.display = 'none';
-      });
-      const netTotalParent = document.getElementById('sysNetTotal')?.parentElement;
-      if (netTotalParent) netTotalParent.style.display = 'block';
+    const sideInventory = document.getElementById('sideInventoryBtn');
+    const sideCollection = document.getElementById('sideCollectionBtn');
+    if (currentEmployee.isAdmin) {
+      if (sideInventory) sideInventory.style.display = 'flex';
+      if (sideCollection) sideCollection.style.display = 'flex';
+      storeSelect.disabled = false;
     } else {
-      systemTotalsDiv.style.display = 'block';
-      const allIds = ['sysCash', 'sysCard', 'sysQR', 'sysRefund', 'sysAlipay', 'sysNetTotal'];
-      allIds.forEach(id => {
+      if (sideInventory) sideInventory.style.display = 'none';
+      if (sideCollection) sideCollection.style.display = 'none';
+      storeSelect.disabled = true;
+    }
+
+    const systemTotalsDiv = document.getElementById('systemTotalsDisplay');
+    if (systemTotalsDiv) {
+      if (!currentEmployee.isAdmin) {
+        systemTotalsDiv.style.display = 'block';
+        const breakdownIds = ['sysCash', 'sysCard', 'sysQR', 'sysRefund', 'sysAlipay'];
+        breakdownIds.forEach(id => {
+          const el = document.getElementById(id);
+          if (el && el.parentElement) el.parentElement.style.display = 'none';
+        });
+        const netTotalParent = document.getElementById('sysNetTotal')?.parentElement;
+        if (netTotalParent) netTotalParent.style.display = 'block';
+      } else {
+        systemTotalsDiv.style.display = 'block';
+        const allIds = ['sysCash', 'sysCard', 'sysQR', 'sysRefund', 'sysAlipay', 'sysNetTotal'];
+        allIds.forEach(id => {
+          const el = document.getElementById(id);
+          if (el && el.parentElement) el.parentElement.style.display = 'block';
+        });
+      }
+    }
+
+    const reportStoreFilter = document.getElementById('reportStoreFilterGroup');
+    const employeeFilterGroup = document.getElementById('employeeFilterGroup');
+    const storeChartContainer = document.getElementById('storeChartContainer');
+    const employeeChartContainer = document.getElementById('employeeChartContainer');
+    if (currentEmployee.isAdmin) {
+      if (reportStoreFilter) reportStoreFilter.style.display = 'flex';
+      if (employeeFilterGroup) employeeFilterGroup.style.display = 'flex';
+      if (storeChartContainer) storeChartContainer.style.display = 'block';
+      if (employeeChartContainer) employeeChartContainer.style.display = 'block';
+    } else {
+      if (reportStoreFilter) reportStoreFilter.style.display = 'none';
+      if (employeeFilterGroup) employeeFilterGroup.style.display = 'none';
+      if (storeChartContainer) storeChartContainer.style.display = 'none';
+      if (employeeChartContainer) employeeChartContainer.style.display = 'none';
+      const paymentBreakdownIds = [
+        'adminReportCashTotal',
+        'adminReportCardTotal',
+        'adminReportQRTotal',
+        'adminReportAlipayTotal'
+      ];
+      paymentBreakdownIds.forEach(id => {
         const el = document.getElementById(id);
-        if (el && el.parentElement) el.parentElement.style.display = 'block';
+        if (el && el.parentElement && el.parentElement.classList.contains('stat-item')) {
+          el.parentElement.style.display = 'none';
+        }
       });
     }
-  }
 
-  const reportStoreFilter = document.getElementById('reportStoreFilterGroup');
-  const employeeFilterGroup = document.getElementById('employeeFilterGroup');
-  const storeChartContainer = document.getElementById('storeChartContainer');
-  const employeeChartContainer = document.getElementById('employeeChartContainer');
-  if (currentEmployee.isAdmin) {
-    if (reportStoreFilter) reportStoreFilter.style.display = 'flex';
-    if (employeeFilterGroup) employeeFilterGroup.style.display = 'flex';
-    if (storeChartContainer) storeChartContainer.style.display = 'block';
-    if (employeeChartContainer) employeeChartContainer.style.display = 'block';
-  } else {
-    if (reportStoreFilter) reportStoreFilter.style.display = 'none';
-    if (employeeFilterGroup) employeeFilterGroup.style.display = 'none';
-    if (storeChartContainer) storeChartContainer.style.display = 'none';
-    if (employeeChartContainer) employeeChartContainer.style.display = 'none';
-    const paymentBreakdownIds = [
-      'adminReportCashTotal',
-      'adminReportCardTotal',
-      'adminReportQRTotal',
-      'adminReportAlipayTotal'
-    ];
-    paymentBreakdownIds.forEach(id => {
-      const el = document.getElementById(id);
-      if (el && el.parentElement && el.parentElement.classList.contains('stat-item')) {
-        el.parentElement.style.display = 'none';
+    const settlementStoreSelect = document.getElementById('settlementStoreSelect');
+    if (!currentEmployee.isAdmin) {
+      if (settlementStoreSelect) {
+        settlementStoreSelect.value = initialStore;
+        settlementStoreSelect.disabled = true;
       }
-    });
-  }
-
-  const settlementStoreSelect = document.getElementById('settlementStoreSelect');
-  if (!currentEmployee.isAdmin) {
-    if (settlementStoreSelect) {
-      settlementStoreSelect.value = initialStore;
-      settlementStoreSelect.disabled = true;
+    } else {
+      if (settlementStoreSelect) settlementStoreSelect.disabled = false;
     }
-  } else {
-    if (settlementStoreSelect) settlementStoreSelect.disabled = false;
-  }
 
-  startReceiptPolling();
-  updateCartUI();
-  checkNotificationSupport();
-  updateStockAlertButtonUI();
-  loadPendingSales();
-  syncPendingSales();
-  preloadSettlement();
-  preloadReport();
-  enableBarcodeScanner();
-  refreshCategoryHighlighting();
-  if (window.autoSyncInterval) clearInterval(window.autoSyncInterval);
-  window.autoSyncInterval = setInterval(() => backgroundSync(), 60000);
-}   // ← Closing brace – function ends here
- 
+    startReceiptPolling();
+    updateCartUI();
+    checkNotificationSupport();
+    updateStockAlertButtonUI();
+    loadPendingSales();
+    syncPendingSales();
+    preloadSettlement();
+    preloadReport();
+    enableBarcodeScanner();
+    refreshCategoryHighlighting();
+    if (window.autoSyncInterval) clearInterval(window.autoSyncInterval);
+    window.autoSyncInterval = setInterval(() => backgroundSync(), 60000);
+  }
 
 async function openReportsModal() {
   // 1. Close side menu IMMEDIATELY
@@ -6392,7 +6318,7 @@ function updateReceipts() {
   <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./service-worker.js')
+     navigator.serviceWorker.register('./service-worker.js')
         .then(reg => console.log('SW registered:', reg))
         .catch(err => console.error('SW registration failed:', err));
     });
