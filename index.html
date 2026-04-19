@@ -1402,6 +1402,14 @@
   font-size: 1rem;
   padding: 10px 14px;
 }
+      @media (orientation: landscape) and (min-width: 800px) {
+    .product-grid {
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+    .cart-panel {
+      max-width: 35%;
+    }
+  }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
