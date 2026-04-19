@@ -3809,7 +3809,7 @@ async function fetchAndCacheReceipts() {
   }
 }
   // ========== UPDATED RECEIPT RENDERING WITH DETAILED ITEMS, DISCOUNTS, FREE GIFTS ==========
- function renderReceiptsList(receipts) {
+function renderReceiptsList(receipts) {
   const container = document.getElementById('receiptsList');
   if (!receipts.length) {
     container.innerHTML = '<div style="text-align:center; padding:30px;">No receipts found.</div>';
@@ -3821,7 +3821,6 @@ async function fetchAndCacheReceipts() {
     const date = new Date(rec.timestamp).toLocaleString();
     const employeeName = getEmployeeName(rec.employee_id);
     const isRefund = rec.total < 0;
-    const isRefundedOriginal = rec.refunded === true && !isRefund;
     const refundClass = isRefund ? 'refund-receipt' : '';
     const receiptIdHtml = isRefund
       ? `<span class="receipt-id">[REFUND] ${rec.transaction_id}</span>`
@@ -3835,7 +3834,6 @@ async function fetchAndCacheReceipts() {
       const itemTotal = paidQty * item.price;
       subtotal += itemTotal;
 
-      // Main paid line
       itemsHtml += `
         <div class="receipt-item-row">
           <span class="receipt-item-name">${escapeHtml(item.name)}</span>
@@ -3843,7 +3841,6 @@ async function fetchAndCacheReceipts() {
           <span class="receipt-item-detail">RM ${itemTotal.toFixed(2)}</span>
         </div>
       `;
-      // Free gift line
       if (item.free_quantity > 0) {
         itemsHtml += `
           <div class="receipt-item-row" style="color:#10b981; font-style:italic;">
@@ -3856,7 +3853,7 @@ async function fetchAndCacheReceipts() {
     }
     itemsHtml += '</div>';
 
-    // Discounts (if any)
+    // Discounts
     let discountsHtml = '';
     if (rec.discount && rec.discount > 0) {
       discountsHtml += `<div class="receipt-discount-row"><span>🎲 Lucky Draw Discount</span><span>-RM ${rec.discount.toFixed(2)}</span></div>`;
@@ -3873,7 +3870,6 @@ async function fetchAndCacheReceipts() {
 
     const total = rec.total;
 
-    // Actions: reprint + refund (only if not already refunded and not a refund itself)
     const actionsHtml = `
       <div class="receipt-actions">
         <button class="reprint-btn" data-txid="${rec.transaction_id}">🖨️ Reprint</button>
@@ -3881,21 +3877,22 @@ async function fetchAndCacheReceipts() {
       </div>
     `;
 
+    // NEW HEADER: Left side (TXN ID + Payment Method + Total), Right side (Date)
     html += `
       <div class="receipt-item ${refundClass}" data-txid="${rec.transaction_id}">
-   <div class="receipt-header" style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap;">
-  <div style="display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap;">
-    ${receiptIdHtml}
-    <strong>Payment: ${rec.payment_method}</strong>
-  </div>
-  <div style="display: flex; gap: 16px; align-items: baseline;">
-    <span class="receipt-date">${date}</span>
-    <span class="receipt-total">RM ${total.toFixed(2)}</span>
-  </div>
-</div>
-<div class="receipt-details">
-  <div>Store: ${rec.store} | Employee: ${employeeName}</div>
-</div>
+        <div class="receipt-header" style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap;">
+          <div style="display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap;">
+            ${receiptIdHtml}
+            <strong>Payment: ${rec.payment_method}</strong>
+            <span class="receipt-total">RM ${total.toFixed(2)}</span>
+          </div>
+          <div>
+            <span class="receipt-date">${date}</span>
+          </div>
+        </div>
+        <div class="receipt-details">
+          <div>Store: ${rec.store} | Employee: ${employeeName}</div>
+        </div>
         ${itemsHtml}
         ${discountsHtml ? `<div class="receipt-items-list" style="margin-top:4px;">${discountsHtml}</div>` : ''}
         <div class="receipt-item-row total-row" style="margin-top:8px; padding-top:6px; border-top:1px dashed #cbd5e1;">
@@ -3909,31 +3906,26 @@ async function fetchAndCacheReceipts() {
   container.innerHTML = html;
 
   // Attach event listeners for reprint and refund
- document.querySelectorAll('.reprint-btn').forEach(btn => {
-  btn.addEventListener('click', (e) => {
-    const txId = btn.dataset.txid;
-    // First try cache
-    let receipt = cachedReceipts ? cachedReceipts.find(r => r.transaction_id === txId) : null;
-    // Fallback: find receipt in the currently rendered list (the receipt element)
-    if (!receipt) {
-      const receiptElement = btn.closest('.receipt-item');
-      if (receiptElement) {
-        // Extract data from DOM (only as last resort)
-        const txIdSpan = receiptElement.querySelector('.receipt-id');
-        if (txIdSpan) {
-          const text = txIdSpan.innerText.replace(/\[REFUND\]\s*/, '');
-          // If still not found, try to fetch from server directly
-          fetchReceiptById(txId).then(r => { if(r) reprintReceipt(r); });
-          return;
+  document.querySelectorAll('.reprint-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const txId = btn.dataset.txid;
+      let receipt = cachedReceipts ? cachedReceipts.find(r => r.transaction_id === txId) : null;
+      if (!receipt) {
+        const receiptElement = btn.closest('.receipt-item');
+        if (receiptElement) {
+          const txIdSpan = receiptElement.querySelector('.receipt-id');
+          if (txIdSpan) {
+            fetchReceiptById(txId).then(r => { if(r) reprintReceipt(r); });
+            return;
+          }
         }
+        showAlertModal('Error', 'Receipt data not found. Please refresh.');
+        return;
       }
-      showAlertModal('Error', 'Receipt data not found. Please refresh.');
-      return;
-    }
-    reprintReceipt(receipt);
-    e.stopPropagation();
+      reprintReceipt(receipt);
+      e.stopPropagation();
+    });
   });
-});
 
   document.querySelectorAll('.refund-btn').forEach(btn => {
     btn.addEventListener('click', async (e) => {
