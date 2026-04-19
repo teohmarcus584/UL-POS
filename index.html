@@ -3987,13 +3987,18 @@ function renderReceiptsList(receipts) {
 
     // Discounts
     let discountsHtml = '';
-    if (rec.discount && rec.discount > 0) {
-     discountsHtml += `<div class="receipt-discount-row"><span>🎲 Lucky Draw Discount</span><span>-RM ${rec.discount.toFixed(2)}</span></div>`;
-discountsHtml += `<div class="receipt-discount-row"><span>🚗 Car Aromatic Promo</span><span>-RM ${rec.buy2_free1_discount.toFixed(2)}</span></div>`;
-discountsHtml += `<div class="receipt-discount-row"><span>🌸 15ml Perfume EDP Promo</span><span>-RM ${rec.buy3_free1_discount.toFixed(2)}</span></div>`;
-discountsHtml += `<div class="receipt-discount-row"><span>💰 Custom Discount</span><span>-RM ${rec.custom_discount.toFixed(2)}</span></div>`;
-
-    const total = rec.total;
+if (rec.discount && rec.discount > 0) {
+  discountsHtml += `<div class="receipt-discount-row"><span>🎲 Lucky Draw Discount</span><span>-RM ${rec.discount.toFixed(2)}</span></div>`;
+}
+if (rec.buy2_free1_discount && rec.buy2_free1_discount > 0) {
+  discountsHtml += `<div class="receipt-discount-row"><span>🚗 Car Aromatic Promo</span><span>-RM ${rec.buy2_free1_discount.toFixed(2)}</span></div>`;
+}
+if (rec.buy3_free1_discount && rec.buy3_free1_discount > 0) {
+  discountsHtml += `<div class="receipt-discount-row"><span>🌸 15ml Perfume EDP Promo</span><span>-RM ${rec.buy3_free1_discount.toFixed(2)}</span></div>`;
+}
+if (rec.custom_discount && rec.custom_discount > 0) {
+  discountsHtml += `<div class="receipt-discount-row"><span>💰 Custom Discount</span><span>-RM ${rec.custom_discount.toFixed(2)}</span></div>`;
+}
 
     const actionsHtml = `
       <div class="receipt-actions">
