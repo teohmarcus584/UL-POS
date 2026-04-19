@@ -1442,11 +1442,14 @@
 <div id="storeSelectModal" class="modal-overlay" style="display: flex;">
   <div class="modal-container" style="max-width: 400px;">
     <img src="https://i.imgur.com/HTHfWnm.jpeg" alt="Select Store" style="width: 100%; border-radius: 20px; margin-bottom: 20px;">
-   <div id="detectedStoreDisplay" class="store-select-modal" style="text-align: center; font-weight: bold; background: #f0fdf4; color: #2c7a4b;">
-  -- detecting --
-</div>
-    <!-- Location status will appear here -->
-    <div id="locationStatus" class="mt-4 text-center font-bold" style="font-size: 1rem; margin-top: 20px;"></div>
+    <select id="initialStoreSelect" class="store-select-modal">
+      <option value="queens">Queens</option>
+      <option value="sunshine">Sunshine</option>
+      <option value="gurney_paragon">Gurney Paragon</option>
+    </select>
+    <div class="modal-buttons" style="margin-top: 24px;">
+      <button id="confirmStoreBtn" class="modal-btn modal-btn-primary">Next →</button>
+    </div>
   </div>
 </div>
 
@@ -1864,39 +1867,7 @@ if (!telegramAccounts) {
   localStorage.setItem('telegramAccounts', telegramAccounts);
   console.log("Telegram accounts loaded and normalized from localStorage.");
 }
-// Store coordinates for location matching
-const storeLocations = {
-  queens:       { lat: 5.334932, lng: 100.306625 },   // Queensbay Mall
-  sunshine:     { lat: 5.398593, lng: 100.286827 },   // Sunshine Central
-  gurney_paragon: { lat: 5.434950, lng: 100.310854 }  // Gurney Paragon
-};
-// Calculate distance between two coordinates (meters)
-function getDistance(lat1, lng1, lat2, lng2) {
-  const R = 6371e3;
-  const φ1 = lat1 * Math.PI / 180;
-  const φ2 = lat2 * Math.PI / 180;
-  const Δφ = (lat2 - lat1) * Math.PI / 180;
-  const Δλ = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-            Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ/2) * Math.sin(Δλ/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
-}
 
-// Find nearest store from current location
-function findNearestStore(lat, lng) {
-  let nearestStore = null;
-  let shortestDistance = Infinity;
-  for (const [storeId, coords] of Object.entries(storeLocations)) {
-    const distance = getDistance(lat, lng, coords.lat, coords.lng);
-    if (distance < shortestDistance) {
-      shortestDistance = distance;
-      nearestStore = storeId;
-    }
-  }
-  return { storeId: nearestStore, distance: shortestDistance };
-}
   // ==================== DOM ELEMENTS ====================
   const productGridEl = document.getElementById('productGrid');
   const cartContainer = document.getElementById('cartItemsContainer');
@@ -2149,68 +2120,7 @@ function toggleLowStockFilter() {
       closeBtn.addEventListener('click', cancel);
     });
   }
-// Request location and auto‑select nearest store
-async function autoSelectStoreByLocation() {
-  return new Promise((resolve) => {
-    if (!navigator.geolocation) {
-      console.warn("Geolocation not supported");
-      resolve(null);
-      return;
-    }
 
-    const modalTitle = document.querySelector('#storeSelectModal .modal-title');
-    const originalText = modalTitle.innerText;
-    modalTitle.innerText = "📍 DETECTING LOCATION...";
-    
-    let resolved = false;
-    let timeoutId = null;
-
-    // Timeout fallback – if location takes too long, treat as failure
-    timeoutId = setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        modalTitle.innerText = originalText;
-        console.warn("Location detection timed out");
-        resolve(null);
-      }
-    }, 10000); // 10 seconds
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        if (resolved) return;
-        resolved = true;
-        clearTimeout(timeoutId);
-        
-        const { latitude, longitude } = position.coords;
-        const { storeId, distance } = findNearestStore(latitude, longitude);
-        const displayDiv = document.getElementById('detectedStoreDisplay');
-        
-        if (storeId && distance <= 50000) {
-          let storeName = "";
-          if (storeId === 'queens') storeName = "Queens";
-          else if (storeId === 'sunshine') storeName = "Sunshine";
-          else if (storeId === 'gurney_paragon') storeName = "Gurney Paragon";
-          if (displayDiv) displayDiv.textContent = storeName;
-          modalTitle.innerText = originalText;
-          resolve(storeId);
-        } else {
-          if (displayDiv) displayDiv.textContent = "No store in range";
-          modalTitle.innerText = originalText;
-          resolve(null);
-        }
-      },
-      (error) => {
-        if (resolved) return;
-        resolved = true;
-        clearTimeout(timeoutId);
-        console.warn("Location error:", error.message);
-        modalTitle.innerText = originalText;
-        resolve(null);
-      },
-      { enableHighAccuracy: true, timeout: 8000 } // inner timeout for position fix
-    );
-  });
-}
   function showConfirmModal(title, message) {
     return new Promise((resolve) => {
       const modal = document.createElement('div');
@@ -3621,11 +3531,6 @@ async function completeCheckout(paymentMethod, cashReceived) {
   const totalAmount = pendingTransaction.totalAmount;
 
   const transactionId = await getNextTransactionNumber(currentStore);
-// ✅ Get selected employee name from cart dropdown
-  const selectedEmployeeId = soldBySelectCart.value;
-  const selectedEmployeeName = (selectedEmployeeId && employeeNameMap[selectedEmployeeId])
-    ? employeeNameMap[selectedEmployeeId]
-    : currentEmployee.name;
 
   const saleItems = cart.map(item => ({
     id: item.product.id,
@@ -3651,7 +3556,7 @@ async function completeCheckout(paymentMethod, cashReceived) {
   prize_claimed: claimedReceiptInfo,
   customer_id: selectedCustomer ? selectedCustomer.id : null,
   store: currentStore,                    // ✅ ADD THIS LINE
-  employee_name: selectedEmployeeName
+   employee_name: selectedEmployeeName   // ✅ now uses selected employee
 };
 
   queueSale(transaction);
@@ -3721,7 +3626,8 @@ async function completeCheckout(paymentMethod, cashReceived) {
     fetchAndCacheReceipts();
 
    if (window.printerAPI?.isConnected() && window.printerAPI.printReceipt) {
-  await window.printerAPI.printReceipt(transaction);
+  const transactionWithName = { ...transaction, employee_name: currentEmployee.name };
+  await window.printerAPI.printReceipt(transactionWithName);
 } else {
   await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
 }
@@ -5324,39 +5230,61 @@ if (inventoryMode) {
     }
   }
 
-// Auto‑proceed after location detection (no Next button) – TEXT VERSION
-async function autoSelectAndProceed() {
-  const statusDiv = document.getElementById('locationStatus');
-  if (statusDiv) statusDiv.innerHTML = '<span>📍 DETECTING LOCATION...</span>';
+  // ==================== EVENT LISTENERS ====================
+  document.getElementById('confirmStoreBtn').addEventListener('click', async () => {
+    initialStore = document.getElementById('initialStoreSelect').value;
+    currentStore = initialStore;
+    storeSelect.value = initialStore;
+    document.getElementById('storeSelectModal').style.display = 'none';
+    loadAndCacheEmployees().catch(console.warn);
+    const preloaded = preloadedDataMap[initialStore];
+    if (preloaded && preloaded.products && preloaded.products.length > 0) {
+      products = preloaded.products;
+      const categories = [...new Set(products.map(p => p.category))].sort();
+      categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
+      categories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat;
+        categorySelect.appendChild(option);
+      });
+      renderProductGrid();
 
-  let storeId = null;
-  try {
-    storeId = await autoSelectStoreByLocation();
-  } catch (err) {
-    console.warn(err);
-  }
+      if (preloaded.employees && preloaded.employees.length > 0) {
+        employeeNameMap = {};
+        soldBySelectCart.innerHTML = '';
+        preloaded.employees.forEach(emp => {
+          employeeNameMap[emp.id] = emp.name;
+          const option = document.createElement('option');
+          option.value = emp.id;
+          option.textContent = `${emp.name} (ID: ${emp.id})`;
+          if (currentEmployee && emp.id == currentEmployee.id) option.selected = true;
+          soldBySelectCart.appendChild(option);
+        });
+      } else {
+        fetchEmployees().then(employees => {
+          employeeNameMap = {};
+          soldBySelectCart.innerHTML = '';
+          employees.forEach(emp => {
+            employeeNameMap[emp.id] = emp.name;
+            const option = document.createElement('option');
+            option.value = emp.id;
+            option.textContent = `${emp.name} (ID: ${emp.id})`;
+            if (currentEmployee && emp.id == currentEmployee.id) option.selected = true;
+            soldBySelectCart.appendChild(option);
+          });
+        });
+      }
 
-  if (storeId) {
-    const storeName = storeId === 'queens' ? 'Queens' : 
-                      storeId === 'sunshine' ? 'Sunshine' : 'Gurney Paragon';
-    storeSelect.value = storeId;
-    currentStore = storeId;
-    if (statusDiv) statusDiv.innerHTML = `<span>✅ WITHIN PERIMETER – ${storeName} selected</span>`;
-    setTimeout(() => {
-      document.getElementById('storeSelectModal').style.display = 'none';
+      initialDataPromise = Promise.resolve(true);
       document.getElementById('loginModal').style.display = 'flex';
       document.getElementById('pinInput').focus();
-    }, 1500);
-  } else {
-    storeSelect.value = 'queens';
-    currentStore = 'queens';
-    if (statusDiv) statusDiv.innerHTML = '<span>⚠️ LOCATION UNAVAILABLE – using Queens (default)</span>';
-    setTimeout(() => {
-      document.getElementById('storeSelectModal').style.display = 'none';
+    } else {
+      initialDataPromise = loadInitialData();
       document.getElementById('loginModal').style.display = 'flex';
-    }, 2000);
-  }
-}
+      document.getElementById('pinInput').focus();
+    }
+  });
 
   async function verifyEmployeeByPin(pin) {
     showLoading('Verifying...');
@@ -6217,7 +6145,6 @@ async function fetchReceiptById(txId) {
   }
   return null;
 }
-
 // Full updateReceipts function with local date fix
 function updateReceipts() {
   let store;
@@ -6419,11 +6346,6 @@ function updateReceipts() {
         .catch(err => console.error('SW registration failed:', err));
     });
   }
-  // Start automatic store detection as soon as the page is ready
-window.addEventListener('DOMContentLoaded', () => {
-  autoSelectAndProceed();  // this function already exists in your POS code
-});
-    
 </script>
 </body>
 </html>
