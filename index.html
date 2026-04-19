@@ -1442,10 +1442,10 @@
 <div id="storeSelectModal" class="modal-overlay" style="display: flex;">
   <div class="modal-container" style="max-width: 400px;">
     <img src="https://i.imgur.com/HTHfWnm.jpeg" alt="Select Store" style="width: 100%; border-radius: 20px; margin-bottom: 20px;">
-   <div class="store-display-text" style="font-size: 1.4rem; font-weight: 600; margin: 16px 0; padding: 12px; background: #f1f5f9; border-radius: 60px; text-align: center;">
-  Store: <span id="selectedStoreName">Queens</span>
+ <div class="store-display-text" style="font-size: 1.4rem; font-weight: 600; margin: 16px 0; padding: 12px; background: #f1f5f9; border-radius: 60px; text-align: center;">
+  <span id="selectedStoreDisplay">📍 Loading location...</span>
 </div>
-<input type="hidden" id="initialStoreValue" value="LOADING LOCATION...">
+<input type="hidden" id="initialStoreValue" value="">
     <div class="modal-buttons" style="margin-top: 24px;">
       <button id="confirmStoreBtn" class="modal-btn modal-btn-primary">Next ?</button>
     </div>
@@ -1967,25 +1967,34 @@ function openIndexedDB() {
 }
 // Automatically select closest store when the modal appears
 (async function autoSelectOnLoad() {
-  const storeNameSpan = document.getElementById('selectedStoreName');
+  const storeDisplaySpan = document.getElementById('selectedStoreDisplay');
   const storeValueHidden = document.getElementById('initialStoreValue');
-  if (!storeNameSpan || !storeValueHidden) return;
+  const confirmBtn = document.getElementById('confirmStoreBtn');
+  
+  if (!storeDisplaySpan || !storeValueHidden || !confirmBtn) return;
 
+  const storeNames = {
+    queens: 'Queens',
+    sunshine: 'Sunshine',
+    gurney_paragon: 'Gurney Paragon'
+  };
+
+  // Try to get location
   const closest = await autoSelectStoreByLocation();
-  if (closest) {
-    // Map store ID to display name
-    const storeNames = {
-      queens: 'Queens',
-      sunshine: 'Sunshine',
-      gurney_paragon: 'Gurney Paragon'
-    };
-    storeNameSpan.innerText = storeNames[closest];
+  
+  if (closest && storeNames[closest]) {
+    // Success – show store name and enable button
+    storeDisplaySpan.innerText = storeNames[closest];
     storeValueHidden.value = closest;
+    confirmBtn.disabled = false;
     console.log(`📍 Auto-selected store: ${closest}`);
   } else {
-    // Fallback: keep default (Queens)
-    storeNameSpan.innerText = 'Queens';
-    storeValueHidden.value = 'queens';
+    // Location failed or denied – show fallback message and keep button disabled? 
+    // You can either keep button disabled (user cannot proceed) or allow manual override.
+    // We'll show a message and keep button disabled, but you could add a manual retry.
+    storeDisplaySpan.innerText = '❌ Could not detect location. Please allow GPS and refresh.';
+    confirmBtn.disabled = true;
+    console.warn('Location detection failed, confirm button disabled.');
   }
 })();
 async function getCachedReport(cacheKey, maxAgeMs = 5 * 60 * 1000) {
