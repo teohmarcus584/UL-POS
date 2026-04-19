@@ -1442,11 +1442,10 @@
 <div id="storeSelectModal" class="modal-overlay" style="display: flex;">
   <div class="modal-container" style="max-width: 400px;">
     <img src="https://i.imgur.com/HTHfWnm.jpeg" alt="Select Store" style="width: 100%; border-radius: 20px; margin-bottom: 20px;">
-    <select id="initialStoreSelect" class="store-select-modal">
-      <option value="queens">Queens</option>
-      <option value="sunshine">Sunshine</option>
-      <option value="gurney_paragon">Gurney Paragon</option>
-    </select>
+   <div class="store-display-text" style="font-size: 1.4rem; font-weight: 600; margin: 16px 0; padding: 12px; background: #f1f5f9; border-radius: 60px; text-align: center;">
+  Store: <span id="selectedStoreName">Queens</span>
+</div>
+<input type="hidden" id="initialStoreValue" value="LOADING LOCATION...">
     <div class="modal-buttons" style="margin-top: 24px;">
       <button id="confirmStoreBtn" class="modal-btn modal-btn-primary">Next ?</button>
     </div>
@@ -1968,13 +1967,25 @@ function openIndexedDB() {
 }
 // Automatically select closest store when the modal appears
 (async function autoSelectOnLoad() {
-  const storeSelect = document.getElementById('initialStoreSelect');
-  if (!storeSelect) return;
+  const storeNameSpan = document.getElementById('selectedStoreName');
+  const storeValueHidden = document.getElementById('initialStoreValue');
+  if (!storeNameSpan || !storeValueHidden) return;
+
   const closest = await autoSelectStoreByLocation();
-  if (closest && storeSelect.querySelector(`option[value="${closest}"]`)) {
-    storeSelect.value = closest;
-    // Optional: show a subtle console log (no alert to avoid interruption)
+  if (closest) {
+    // Map store ID to display name
+    const storeNames = {
+      queens: 'Queens',
+      sunshine: 'Sunshine',
+      gurney_paragon: 'Gurney Paragon'
+    };
+    storeNameSpan.innerText = storeNames[closest];
+    storeValueHidden.value = closest;
     console.log(`📍 Auto-selected store: ${closest}`);
+  } else {
+    // Fallback: keep default (Queens)
+    storeNameSpan.innerText = 'Queens';
+    storeValueHidden.value = 'queens';
   }
 })();
 async function getCachedReport(cacheKey, maxAgeMs = 5 * 60 * 1000) {
@@ -5289,7 +5300,7 @@ if (inventoryMode) {
 
   // ==================== EVENT LISTENERS ====================
   document.getElementById('confirmStoreBtn').addEventListener('click', async () => {
-    initialStore = document.getElementById('initialStoreSelect').value;
+    initialStore = document.getElementById('initialStoreValue').value;
     currentStore = initialStore;
     storeSelect.value = initialStore;
     document.getElementById('storeSelectModal').style.display = 'none';
