@@ -5333,29 +5333,58 @@ async function autoSelectAndProceed() {
   statusDiv.innerHTML = '📍 DETECTING LOCATION...';
   statusDiv.style.color = '#00f3ff';
 
-  const storeId = await autoSelectStoreByLocation();
-  if (storeId) {
-    // Get the store name from the display div (already set by autoSelectStoreByLocation)
-    const storeName = displayDiv ? displayDiv.textContent : "Unknown";
+  // Force fallback after 5 seconds if location is stuck
+  let fallbackTimer = setTimeout(() => {
+    if (!window._locationResolved) {
+      console.warn("Location detection timed out – using fallback store");
+      window._locationResolved = true;
+      // Use Queens as fallback
+      const fallbackStore = "queens";
+      initialStore = fallbackStore;
+      currentStore = fallbackStore;
+      storeSelect.value = fallbackStore;
+      if (displayDiv) displayDiv.textContent = "Queens (fallback)";
+      statusDiv.innerHTML = '⚠️ LOCATION UNAVAILABLE – USING DEFAULT STORE<br>CLOSING IN 2 SECONDS';
+      statusDiv.style.color = '#f59e0b';
+      setTimeout(() => {
+        document.getElementById('storeSelectModal').style.display = 'none';
+        document.getElementById('loginModal').style.display = 'flex';
+        document.getElementById('pinInput').focus();
+      }, 2000);
+    }
+  }, 5000);
 
-    // ✅ Set the store variables (important for later login)
+  const storeId = await autoSelectStoreByLocation();
+  clearTimeout(fallbackTimer);
+  
+  if (storeId) {
+    window._locationResolved = true;
+    const storeName = displayDiv ? displayDiv.textContent : "Unknown";
     initialStore = storeId;
     currentStore = storeId;
-    storeSelect.value = storeId;   // update the main header dropdown (hidden from user but needed)
-
+    storeSelect.value = storeId;
     statusDiv.innerHTML = `✅ LOCATION FOUND – WITHIN PERIMETER – CLOSING IN 2 SECONDS<br>Nearest store: ${storeName}`;
     statusDiv.style.color = '#4ade80';
-    
     setTimeout(() => {
       document.getElementById('storeSelectModal').style.display = 'none';
       document.getElementById('loginModal').style.display = 'flex';
       document.getElementById('pinInput').focus();
     }, 2000);
-  } else {
-    statusDiv.innerHTML = '❌ LOCATION DENIED OR UNAVAILABLE<br>ENABLE LOCATION TO LOG IN';
-    statusDiv.style.color = '#f87171';
-    // Optionally show a fallback in the display div
-    if (displayDiv) displayDiv.textContent = "Not available";
+  } else if (!window._locationResolved) {
+    // If autoSelectStoreByLocation returns null but fallback didn't run (should not happen)
+    window._locationResolved = true;
+    const fallbackStore = "queens";
+    initialStore = fallbackStore;
+    currentStore = fallbackStore;
+    storeSelect.value = fallbackStore;
+    if (displayDiv) displayDiv.textContent = "Queens (fallback)";
+    statusDiv.innerHTML = '⚠️ LOCATION UNAVAILABLE – USING DEFAULT STORE<br>CLOSING IN 2 SECONDS';
+    statusDiv.style.color = '#f59e0b';
+    setTimeout(() => {
+      document.getElementById('storeSelectModal').style.display = 'none';
+      document.getElementById('loginModal').style.display = 'flex';
+      document.getElementById('pinInput').focus();
+    }, 2000);
   }
 }
 
@@ -6419,6 +6448,7 @@ function updateReceipts() {
         .catch(err => console.error('SW registration failed:', err));
     });
   }
+    autoSelectAndProceed();
 </script>
 </body>
 </html>
