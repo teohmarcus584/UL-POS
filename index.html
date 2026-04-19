@@ -4948,16 +4948,8 @@ async function printReceipt(transaction) {
     if (storedLogo && storedLogo.command) {
       commands.push(...storedLogo.command);
       commands.push(0x0A);               // line feed after logo
-    } else {
-      // Fallback to the old hardcoded logo (optional)
-      const defaultLogo = [
-        0x1D, 0x76, 0x30, 0x00, 0x00, 0x30, 0x00, 0x00,
-        // ... your existing logo bytes (keep them if you want a fallback)
-      ];
-      commands.push(...defaultLogo);
-      commands.push(0x0A);
     }
-    // -------------------------------------
+    // No hardcoded fallback – only uploaded logo is used
 
     commands.push(0x1B, 0x61, 0x00);    // Left align
     commands.push(...encoder.encode(text));
