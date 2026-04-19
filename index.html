@@ -2157,41 +2157,57 @@ async function autoSelectStoreByLocation() {
       resolve(null);
       return;
     }
-    // Show a temporary status in the modal (optional)
+
     const modalTitle = document.querySelector('#storeSelectModal .modal-title');
     const originalText = modalTitle.innerText;
     modalTitle.innerText = "📍 DETECTING LOCATION...";
     
+    let resolved = false;
+    let timeoutId = null;
+
+    // Timeout fallback – if location takes too long, treat as failure
+    timeoutId = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        modalTitle.innerText = originalText;
+        console.warn("Location detection timed out");
+        resolve(null);
+      }
+    }, 10000); // 10 seconds
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(timeoutId);
+        
         const { latitude, longitude } = position.coords;
         const { storeId, distance } = findNearestStore(latitude, longitude);
-       if (storeId && distance <= 500) {
-  // Instead of selectEl.value = storeId, update the text display
-  const displayDiv = document.getElementById('detectedStoreDisplay');
-  if (displayDiv) {
-    let storeName = "";
-    if (storeId === 'queens') storeName = "Queens";
-    else if (storeId === 'sunshine') storeName = "Sunshine";
-    else if (storeId === 'gurney_paragon') storeName = "Gurney Paragon";
-    displayDiv.textContent = storeName;
-  }
-  modalTitle.innerText = originalText;
-  resolve(storeId);
-} else {
-  // If not within range, show a fallback message
-  const displayDiv = document.getElementById('detectedStoreDisplay');
-  if (displayDiv) displayDiv.textContent = "No store in range";
-  modalTitle.innerText = originalText;
-  resolve(null);
-}
+        const displayDiv = document.getElementById('detectedStoreDisplay');
+        
+        if (storeId && distance <= 20000) {
+          let storeName = "";
+          if (storeId === 'queens') storeName = "Queens";
+          else if (storeId === 'sunshine') storeName = "Sunshine";
+          else if (storeId === 'gurney_paragon') storeName = "Gurney Paragon";
+          if (displayDiv) displayDiv.textContent = storeName;
+          modalTitle.innerText = originalText;
+          resolve(storeId);
+        } else {
+          if (displayDiv) displayDiv.textContent = "No store in range";
+          modalTitle.innerText = originalText;
+          resolve(null);
+        }
       },
       (error) => {
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(timeoutId);
         console.warn("Location error:", error.message);
         modalTitle.innerText = originalText;
         resolve(null);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 8000 } // inner timeout for position fix
     );
   });
 }
