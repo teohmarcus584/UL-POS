@@ -4753,11 +4753,8 @@ async function printReceipt(transaction) {
     if (transaction.buy3_free1_discount > 0) lines.push(`15ml Perfume EDP Promo : -RM ${transaction.buy3_free1_discount.toFixed(2)}`);
     if (transaction.custom_discount > 0) lines.push(`Custom Discount     : -RM ${transaction.custom_discount.toFixed(2)}`);
 
-    // TOTAL line – we will print it separately (not in lines array) to allow larger font for amount
-    // So we stop building `lines` here, and will build the rest after.
-
-    // Payment and change (will be printed after TOTAL)
-    let paymentLines = [];
+    // Payment method and change (will be printed after TOTAL)
+    const paymentLines = [];
     paymentLines.push(`PAYMENT METHOD : ${transaction.payment_method}`);
     if (transaction.cash_received && transaction.payment_method === 'Cash') {
       const change = transaction.cash_received - transaction.total;
@@ -4799,12 +4796,12 @@ async function printReceipt(transaction) {
     commands.push(...encoder.encode(bodyText));
     commands.push(0x0A);
 
-    // 3. Print TOTAL line: "TOTAL" (bold, normal) + space + amount (bold, double width)
+    // 3. TOTAL line: "TOTAL" + spaces + amount (both double width, bold)
     const totalAmount = transaction.total;
     const totalLabel = "TOTAL";
     const totalValueStr = `RM ${totalAmount.toFixed(2)}`;
 
-    // Calculate space between label and value (to push value to the far right)
+    // Build the full line with label left, amount right
     let totalLine = totalLabel;
     const availableSpace = maxChars - totalValueStr.length;
     if (totalLabel.length < availableSpace) {
@@ -4814,20 +4811,17 @@ async function printReceipt(transaction) {
     }
     totalLine += totalValueStr;
 
-    // Print the line with "TOTAL" in normal bold, amount in double width bold
-    // We'll split: first part "TOTAL" + spaces (normal bold), then amount (double width bold)
-    const labelPart = totalLine.substring(0, totalLine.length - totalValueStr.length);
-    const amountPart = totalValueStr;
-
-    commands.push(0x1B, 0x45, 0x01);           // Bold on
-    for (let i = 0; i < labelPart.length; i++) commands.push(labelPart.charCodeAt(i));
-    commands.push(0x1D, 0x21, 0x01);           // Double width (only for amount)
-    for (let i = 0; i < amountPart.length; i++) commands.push(amountPart.charCodeAt(i));
-    commands.push(0x1D, 0x21, 0x00);           // Normal width
-    commands.push(0x1B, 0x45, 0x00);           // Bold off
+    // Print total line with double width and bold for the whole line
+    commands.push(0x1B, 0x45, 0x01);        // Bold on
+    commands.push(0x1D, 0x21, 0x01);        // Double width only (same size for both label and value)
+    for (let i = 0; i < totalLine.length; i++) {
+      commands.push(totalLine.charCodeAt(i));
+    }
+    commands.push(0x1D, 0x21, 0x00);        // Normal size
+    commands.push(0x1B, 0x45, 0x00);        // Bold off
     commands.push(0x0A);
 
-    // 4. Print payment method and change (normal)
+    // 4. Print payment method and change (normal font)
     const paymentText = paymentLines.join('\n');
     commands.push(...encoder.encode(paymentText));
     commands.push(0x0A);
