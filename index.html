@@ -2185,7 +2185,7 @@ async function autoSelectStoreByLocation() {
         const { storeId, distance } = findNearestStore(latitude, longitude);
         const displayDiv = document.getElementById('detectedStoreDisplay');
         
-        if (storeId && distance <= 20000) {
+        if (storeId && distance <= 50000) {
           let storeName = "";
           if (storeId === 'queens') storeName = "Queens";
           else if (storeId === 'sunshine') storeName = "Sunshine";
