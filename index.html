@@ -3705,8 +3705,6 @@ async function completeCheckout(paymentMethod, cashReceived) {
     fetchAndCacheReceipts();
 
    if (window.printerAPI?.isConnected() && window.printerAPI.printReceipt) {
-// ✅ Correct – uses the employee selected from the cart
-if (window.printerAPI?.isConnected() && window.printerAPI.printReceipt) {
   await window.printerAPI.printReceipt(transaction);
 } else {
   await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
