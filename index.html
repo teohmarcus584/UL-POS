@@ -4726,44 +4726,48 @@ async function printReceipt(transaction) {
     const lines = [];
     const separator = '-'.repeat(maxChars);
 
-    lines.push('', '    UL PERFUMERY', separator);
+    // ----- Store info -----
     lines.push(`STORE LOCATION : ${storeLocation}`);
     lines.push(`EMPLOYEE : ${employeeName}`);
     lines.push(separator);
 
-    const grouped = {};
+    // ----- Items (no category grouping) -----
     for (const item of transaction.items) {
-      const cat = item.category || 'Uncategorized';
-      if (!grouped[cat]) grouped[cat] = [];
-      grouped[cat].push(item);
-    }
-
-    for (const [category, items] of Object.entries(grouped)) {
-      let categoryTotal = 0;
-      for (const item of items) {
-        const paidQty = item.quantity - (item.free_quantity || 0);
-        categoryTotal += paidQty * item.price;
+      const paidQty = item.quantity - (item.free_quantity || 0);
+      if (paidQty > 0) {
+        const itemTotal = paidQty * item.price;
+        const [nameLine, qtyLine] = formatProductLine(item.name, item.price, paidQty, itemTotal);
+        lines.push(nameLine);
+        lines.push(qtyLine);
       }
-      lines.push(category, `${'-'.repeat(category.length)}`);
-      for (const item of items) {
-        const paidQty = item.quantity - (item.free_quantity || 0);
-        if (paidQty > 0) {
-          const itemTotal = paidQty * item.price;
-          const [nameLine, qtyLine] = formatProductLine(item.name, item.price, paidQty, itemTotal);
-          lines.push(nameLine);
-          lines.push(qtyLine);
-        }
+      // Free gift line (if any)
+      if (item.free_quantity > 0) {
+        lines.push(`🎁 FREE GIFT: ${item.free_quantity} x ${item.name}`);
       }
     }
 
     lines.push(separator);
+
+    // ----- Discounts -----
     if (transaction.discount > 0) lines.push(`Lucky Draw Discount : -RM ${transaction.discount.toFixed(2)}`);
     if (transaction.buy2_free1_discount > 0) lines.push(`Car Aromatic Promo : -RM ${transaction.buy2_free1_discount.toFixed(2)}`);
     if (transaction.buy3_free1_discount > 0) lines.push(`15ml Perfume EDP Promo : -RM ${transaction.buy3_free1_discount.toFixed(2)}`);
     if (transaction.custom_discount > 0) lines.push(`Custom Discount     : -RM ${transaction.custom_discount.toFixed(2)}`);
 
+    // ----- TOTAL line (left TOTAL, right amount) -----
     const totalAmount = transaction.total;
-    lines.push(`\x1B\x45\x01TOTAL : RM ${totalAmount.toFixed(2)}\x1B\x45\x00`);
+    const totalLabel = "TOTAL";
+    const totalValueStr = `RM ${totalAmount.toFixed(2)}`;
+    const availableSpace = maxChars - totalValueStr.length;
+    let totalLine = totalLabel;
+    if (totalLabel.length < availableSpace) {
+      totalLine = totalLabel.padEnd(availableSpace);
+    } else {
+      totalLine = totalLabel.substring(0, availableSpace - 3) + '...';
+    }
+    totalLine += totalValueStr;
+
+    lines.push(separator);
     lines.push(`PAYMENT METHOD : ${transaction.payment_method}`);
     if (transaction.cash_received && transaction.payment_method === 'Cash') {
       const change = transaction.cash_received - totalAmount;
@@ -4782,19 +4786,45 @@ async function printReceipt(transaction) {
     lines.push(`DATE  : ${formattedDate}`);
     lines.push('');
 
-    const text = lines.join('\n');
-
+    // Build the command stream
     let commands = [];
-    commands.push(0x1B, 0x40); // Initialize
-    commands.push(0x1B, 0x61, 0x00); // Left align
-    commands.push(...encoder.encode(text));
-    commands.push(0x1B, 0x64, 0x03); // Feed 3 lines
-    commands.push(0x1D, 0x56, 0x41, 0x00); // Cut
+    commands.push(0x1B, 0x40); // Initialize printer
 
+    // ----- Print "UL PERFUMERY" centered, bold, double size -----
+    commands.push(0x1B, 0x61, 0x01);           // Center align
+    commands.push(0x1B, 0x45, 0x01);           // Bold on
+    commands.push(0x1D, 0x21, 0x11);           // Double width + double height
+    const titleText = "UL PERFUMERY";
+    for (let i = 0; i < titleText.length; i++) {
+      commands.push(titleText.charCodeAt(i));
+    }
+    commands.push(0x0A);                       // Newline
+    commands.push(0x1B, 0x45, 0x00);           // Bold off
+    commands.push(0x1D, 0x21, 0x00);           // Normal size
+    commands.push(0x1B, 0x61, 0x00);           // Left align
+    commands.push(0x0A);                       // Extra line after title
+
+    // ----- Print the rest of the receipt (left aligned, normal font) -----
+    const text = lines.join('\n');
+    commands.push(...encoder.encode(text));
+
+    // ----- Print TOTAL line with left label + right amount (bold) -----
+    commands.push(0x0A);
+    commands.push(0x1B, 0x45, 0x01);           // Bold on
+    for (let i = 0; i < totalLine.length; i++) {
+      commands.push(totalLine.charCodeAt(i));
+    }
+    commands.push(0x1B, 0x45, 0x00);           // Bold off
+    commands.push(0x0A);
+    commands.push(0x0A);
+
+    // ----- Cut paper & open drawer if cash -----
+    commands.push(0x1D, 0x56, 0x41, 0x00);     // Cut paper
     if (openDrawer) {
       const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
       commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
     }
+
     await sendChunkedData(new Uint8Array(commands), 500);
     return true;
   } catch (err) {
