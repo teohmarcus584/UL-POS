@@ -3883,14 +3883,17 @@ async function fetchAndCacheReceipts() {
 
     html += `
       <div class="receipt-item ${refundClass}" data-txid="${rec.transaction_id}">
-        <div class="receipt-header">
-          ${receiptIdHtml}
-          <span class="receipt-date">${date}</span>
-          <span class="receipt-total">RM ${total.toFixed(2)}</span>
-        </div>
-        <div class="receipt-details">
-          <div>Store: ${rec.store} | Payment: ${rec.payment_method} | Employee: ${employeeName}</div>
-        </div>
+     <div class="receipt-header">
+  <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline;">
+    ${receiptIdHtml}
+    <strong style="font-weight: 700;">Payment: ${rec.payment_method}</strong>
+    <span class="receipt-date">${date}</span>
+    <span class="receipt-total">RM ${total.toFixed(2)}</span>
+  </div>
+</div>
+<div class="receipt-details">
+  <div>Store: ${rec.store} | Employee: ${employeeName}</div>
+</div>
         ${itemsHtml}
         ${discountsHtml ? `<div class="receipt-items-list" style="margin-top:4px;">${discountsHtml}</div>` : ''}
         <div class="receipt-item-row total-row" style="margin-top:8px; padding-top:6px; border-top:1px dashed #cbd5e1;">
