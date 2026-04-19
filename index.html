@@ -3543,19 +3543,21 @@ async function completeCheckout(paymentMethod, cashReceived) {
   }));
 
   const transaction = {
-    transaction_id: transactionId,
-    items: saleItems,
-    total: totalAmount,
-    payment_method: paymentMethod,
-    cash_received: cashReceived,
-    timestamp: new Date().toISOString(),
-    discount: discountAmount,
-    buy2_free1_discount: buy2Free1Discount,
-    buy3_free1_discount: buy3Free1Discount,
-    custom_discount: customDiscount,
-    prize_claimed: claimedReceiptInfo,
-    customer_id: selectedCustomer ? selectedCustomer.id : null
-  };
+  transaction_id: transactionId,
+  items: saleItems,
+  total: totalAmount,
+  payment_method: paymentMethod,
+  cash_received: cashReceived,
+  timestamp: new Date().toISOString(),
+  discount: discountAmount,
+  buy2_free1_discount: buy2Free1Discount,
+  buy3_free1_discount: buy3Free1Discount,
+  custom_discount: customDiscount,
+  prize_claimed: claimedReceiptInfo,
+  customer_id: selectedCustomer ? selectedCustomer.id : null,
+  store: currentStore,                    // ✅ ADD THIS LINE
+  employee_name: currentEmployee.name     // already present
+};
 
   queueSale(transaction);
   const success = true; // assume success, will sync later
