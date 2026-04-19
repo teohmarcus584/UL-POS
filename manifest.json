@@ -3,6 +3,7 @@
   "short_name": "POS System",
   "description": "Smart POS with local cache, inventory management, sales reports, and receipt printing",
   "start_url": "./",
+   "orientation": "any"
   "display": "standalone",
   "theme_color": "#2c7a4b",
   "background_color": "#f4f5f7",
