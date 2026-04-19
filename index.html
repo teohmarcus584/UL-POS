@@ -3556,7 +3556,7 @@ async function completeCheckout(paymentMethod, cashReceived) {
   prize_claimed: claimedReceiptInfo,
   customer_id: selectedCustomer ? selectedCustomer.id : null,
   store: currentStore,                    // ✅ ADD THIS LINE
-  employee_name: currentEmployee.name     // already present
+   employee_name: selectedEmployeeName   // ✅ now uses selected employee
 };
 
   queueSale(transaction);
@@ -4726,12 +4726,12 @@ async function printReceipt(transaction) {
     const lines = [];
     const separator = '-'.repeat(maxChars);
 
-    // ----- Store info -----
+    // Store info
     lines.push(`STORE LOCATION : ${storeLocation}`);
     lines.push(`EMPLOYEE : ${employeeName}`);
     lines.push(separator);
 
-    // ----- Items (no category grouping) -----
+    // Items (no category grouping)
     for (const item of transaction.items) {
       const paidQty = item.quantity - (item.free_quantity || 0);
       if (paidQty > 0) {
@@ -4740,7 +4740,6 @@ async function printReceipt(transaction) {
         lines.push(nameLine);
         lines.push(qtyLine);
       }
-      // Free gift line (if any)
       if (item.free_quantity > 0) {
         lines.push(`🎁 FREE GIFT: ${item.free_quantity} x ${item.name}`);
       }
@@ -4748,18 +4747,66 @@ async function printReceipt(transaction) {
 
     lines.push(separator);
 
-    // ----- Discounts -----
+    // Discounts
     if (transaction.discount > 0) lines.push(`Lucky Draw Discount : -RM ${transaction.discount.toFixed(2)}`);
     if (transaction.buy2_free1_discount > 0) lines.push(`Car Aromatic Promo : -RM ${transaction.buy2_free1_discount.toFixed(2)}`);
     if (transaction.buy3_free1_discount > 0) lines.push(`15ml Perfume EDP Promo : -RM ${transaction.buy3_free1_discount.toFixed(2)}`);
     if (transaction.custom_discount > 0) lines.push(`Custom Discount     : -RM ${transaction.custom_discount.toFixed(2)}`);
 
-    // ----- TOTAL line (left TOTAL, right amount) -----
+    // TOTAL line – we will print it separately (not in lines array) to allow larger font for amount
+    // So we stop building `lines` here, and will build the rest after.
+
+    // Payment and change (will be printed after TOTAL)
+    let paymentLines = [];
+    paymentLines.push(`PAYMENT METHOD : ${transaction.payment_method}`);
+    if (transaction.cash_received && transaction.payment_method === 'Cash') {
+      const change = transaction.cash_received - transaction.total;
+      paymentLines.push(`CHANGE : RM ${change.toFixed(2)}`);
+    }
+
+    // Footer (centered)
+    const footerLines = [
+      'THANK YOU FOR YOUR PURCHASE',
+      'ANY ENQUIRY PLEASE CONTACT',
+      '+60134665831 ( MARCUS )',
+      'GOODS SOLD ARE NOT REFUNDABLE'
+    ];
+
+    // Date & transaction ID (left aligned)
+    const date = new Date(transaction.timestamp);
+    const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+    const txnLine = `TXN   : ${transaction.transaction_id}`;
+    const dateLine = `DATE  : ${formattedDate}`;
+
+    // ----- Build command array -----
+    let commands = [];
+    commands.push(0x1B, 0x40); // Initialize
+
+    // 1. Print "UL PERFUMERY" centered, bold, double size
+    commands.push(0x1B, 0x61, 0x01);           // Center align
+    commands.push(0x1B, 0x45, 0x01);           // Bold on
+    commands.push(0x1D, 0x21, 0x11);           // Double width + double height
+    const titleText = "UL PERFUMERY";
+    for (let i = 0; i < titleText.length; i++) commands.push(titleText.charCodeAt(i));
+    commands.push(0x0A);
+    commands.push(0x1B, 0x45, 0x00);           // Bold off
+    commands.push(0x1D, 0x21, 0x00);           // Normal size
+    commands.push(0x1B, 0x61, 0x00);           // Left align
+    commands.push(0x0A);
+
+    // 2. Print store info and items (left aligned)
+    const bodyText = lines.join('\n');
+    commands.push(...encoder.encode(bodyText));
+    commands.push(0x0A);
+
+    // 3. Print TOTAL line: "TOTAL" (bold, normal) + space + amount (bold, double width)
     const totalAmount = transaction.total;
     const totalLabel = "TOTAL";
     const totalValueStr = `RM ${totalAmount.toFixed(2)}`;
-    const availableSpace = maxChars - totalValueStr.length;
+
+    // Calculate space between label and value (to push value to the far right)
     let totalLine = totalLabel;
+    const availableSpace = maxChars - totalValueStr.length;
     if (totalLabel.length < availableSpace) {
       totalLine = totalLabel.padEnd(availableSpace);
     } else {
@@ -4767,59 +4814,46 @@ async function printReceipt(transaction) {
     }
     totalLine += totalValueStr;
 
-    lines.push(separator);
-    lines.push(`PAYMENT METHOD : ${transaction.payment_method}`);
-    if (transaction.cash_received && transaction.payment_method === 'Cash') {
-      const change = transaction.cash_received - totalAmount;
-      lines.push(`CHANGE : RM ${change.toFixed(2)}`);
-    }
-    lines.push(separator);
-    lines.push('THANK YOU FOR YOUR PURCHASE');
-    lines.push('ANY ENQUIRY PLEASE CONTACT');
-    lines.push('+60134665831 ( MARCUS )');
-    lines.push('GOODS SOLD ARE NOT REFUNDABLE');
-    lines.push(separator);
+    // Print the line with "TOTAL" in normal bold, amount in double width bold
+    // We'll split: first part "TOTAL" + spaces (normal bold), then amount (double width bold)
+    const labelPart = totalLine.substring(0, totalLine.length - totalValueStr.length);
+    const amountPart = totalValueStr;
 
-    const date = new Date(transaction.timestamp);
-    const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-    lines.push(`TXN   : ${transaction.transaction_id}`);
-    lines.push(`DATE  : ${formattedDate}`);
-    lines.push('');
+    commands.push(0x1B, 0x45, 0x01);           // Bold on
+    for (let i = 0; i < labelPart.length; i++) commands.push(labelPart.charCodeAt(i));
+    commands.push(0x1D, 0x21, 0x01);           // Double width (only for amount)
+    for (let i = 0; i < amountPart.length; i++) commands.push(amountPart.charCodeAt(i));
+    commands.push(0x1D, 0x21, 0x00);           // Normal width
+    commands.push(0x1B, 0x45, 0x00);           // Bold off
+    commands.push(0x0A);
 
-    // Build the command stream
-    let commands = [];
-    commands.push(0x1B, 0x40); // Initialize printer
+    // 4. Print payment method and change (normal)
+    const paymentText = paymentLines.join('\n');
+    commands.push(...encoder.encode(paymentText));
+    commands.push(0x0A);
 
-    // ----- Print "UL PERFUMERY" centered, bold, double size -----
+    // 5. Separator line
+    commands.push(...encoder.encode(separator));
+    commands.push(0x0A);
+
+    // 6. Footer (centered)
     commands.push(0x1B, 0x61, 0x01);           // Center align
-    commands.push(0x1B, 0x45, 0x01);           // Bold on
-    commands.push(0x1D, 0x21, 0x11);           // Double width + double height
-    const titleText = "UL PERFUMERY";
-    for (let i = 0; i < titleText.length; i++) {
-      commands.push(titleText.charCodeAt(i));
+    for (const line of footerLines) {
+      commands.push(...encoder.encode(line));
+      commands.push(0x0A);
     }
-    commands.push(0x0A);                       // Newline
-    commands.push(0x1B, 0x45, 0x00);           // Bold off
-    commands.push(0x1D, 0x21, 0x00);           // Normal size
-    commands.push(0x1B, 0x61, 0x00);           // Left align
-    commands.push(0x0A);                       // Extra line after title
-
-    // ----- Print the rest of the receipt (left aligned, normal font) -----
-    const text = lines.join('\n');
-    commands.push(...encoder.encode(text));
-
-    // ----- Print TOTAL line with left label + right amount (bold) -----
+    commands.push(0x1B, 0x61, 0x00);           // Left align (reset)
     commands.push(0x0A);
-    commands.push(0x1B, 0x45, 0x01);           // Bold on
-    for (let i = 0; i < totalLine.length; i++) {
-      commands.push(totalLine.charCodeAt(i));
-    }
-    commands.push(0x1B, 0x45, 0x00);           // Bold off
+
+    // 7. Transaction ID and date (left aligned)
+    commands.push(...encoder.encode(txnLine));
+    commands.push(0x0A);
+    commands.push(...encoder.encode(dateLine));
     commands.push(0x0A);
     commands.push(0x0A);
 
-    // ----- Cut paper & open drawer if cash -----
-    commands.push(0x1D, 0x56, 0x41, 0x00);     // Cut paper
+    // 8. Cut paper and open drawer if cash
+    commands.push(0x1D, 0x56, 0x41, 0x00);     // Cut
     if (openDrawer) {
       const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
       commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
