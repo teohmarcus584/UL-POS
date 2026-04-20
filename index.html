@@ -1813,7 +1813,7 @@
 <script>
 
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby9_CfBpmwmrJMIOU1TqdxtH3s0mC8D1EDOznheVFlNKDaB_Y_-TWkos3KZtoviVDmXjw/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxY2tRy8dv1K2EcO1Mm-nTHhn21A3TNSYmYRe7UB3drxVh_xJQMZSNV4wkXkSTBuQ8JAA/exec"; // REPLACE WITH YOUR URL
 
 // Haversine distance in km
 function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
@@ -3689,23 +3689,26 @@ async function loadCollectionHistory() {
     const result = await response.json();
 
     if (result.success && result.records && result.records.length > 0) {
-      // Group by collector_name
-      const collectorTotals = {};
-      result.records.forEach(rec => {
-        const name = rec.collector_name || 'Unknown';
-        const amount = parseFloat(rec.cash_actual) || 0;
-        collectorTotals[name] = (collectorTotals[name] || 0) + amount;
-      });
+      let html = '<div style="max-height: 300px; overflow-y: auto;">';
+      // Sort by date descending (newest first)
+      const records = result.records.sort((a, b) => new Date(b.collected_at || b.timestamp) - new Date(a.collected_at || a.timestamp));
 
-      let html = '';
-      for (const [name, total] of Object.entries(collectorTotals)) {
+      for (const rec of records) {
+        const collectionDate = rec.collected_at || rec.timestamp;
+        const formattedDate = new Date(collectionDate).toLocaleString();
+        const collector = rec.collector_name || 'Unknown';
+        const amount = parseFloat(rec.cash_actual) || 0;
         html += `
           <div class="collection-history-item">
-            <span class="collector-name">👤 ${escapeHtml(name)}</span>
-            <span class="collector-total">RM ${total.toFixed(2)}</span>
+            <div style="flex: 2;">
+              <span class="collector-name">👤 ${escapeHtml(collector)}</span>
+              <div style="font-size: 0.75rem; color: #64748b;">${formattedDate}</div>
+            </div>
+            <div class="collector-total">RM ${amount.toFixed(2)}</div>
           </div>
         `;
       }
+      html += '</div>';
       historyContainer.innerHTML = html;
     } else {
       historyContainer.innerHTML = '<div style="text-align: center; color: #94a3b8;">No collection history yet.</div>';
