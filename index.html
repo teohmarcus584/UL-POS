@@ -5978,18 +5978,23 @@ document.getElementById('recordSettlementBtn')?.addEventListener('click', async 
 function renderProductDetails(productsData) {
   const tbody = document.getElementById('productDetailsBody');
   if (!tbody) return;
-  if (!productsData || productsData.length === 0) {
+  
+  // Sort products by quantity sold (most sellable first)
+  const sortedData = [...(productsData || [])].sort((a, b) => b.quantity - a.quantity);
+  
+  if (sortedData.length === 0) {
     tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No products sold in this period.</td></tr>';
     return;
   }
+  
   let html = '';
-  productsData.forEach(p => {
+  sortedData.forEach(p => {
     html += `<tr>
-        <td>${escapeHtml(p.name)}</td>
-        <td>${escapeHtml(p.category)}</td>
-        <td style="text-align: right;">${p.quantity}</td>
-        <td style="text-align: right;">RM ${p.total.toFixed(2)}</td>
-       </tr>`;
+      <td>${escapeHtml(p.name)}</td>
+      <td>${escapeHtml(p.category)}</td>
+      <td style="text-align: right;">${p.quantity}</td>
+      <td style="text-align: right;">RM ${p.total.toFixed(2)}</td>
+    </tr>`;
   });
   tbody.innerHTML = html;
 }
