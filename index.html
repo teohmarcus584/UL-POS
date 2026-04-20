@@ -4328,21 +4328,17 @@ async function updateAdminReport(forceRefresh = false) {
   const range = document.getElementById('adminReportDateRangeSelect').value;
   let from = null, to = null;
 
-  // Use UTC date for all calculations
   const now = new Date();
   const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
   if (range === 'today') {
     from = to = getUTCDateString(todayUTC);
   } else if (range === 'week') {
-    // Monday to Sunday (UTC)
+    // Rolling 7 days including today
+    const end = new Date(todayUTC);
     const start = new Date(todayUTC);
-    const dayOfWeek = start.getUTCDay(); // 0 = Sunday, 1 = Monday ...
-    const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
-    start.setUTCDate(start.getUTCDate() - diffToMonday);
+    start.setUTCDate(start.getUTCDate() - 6);
     from = getUTCDateString(start);
-    const end = new Date(start);
-    end.setUTCDate(start.getUTCDate() + 6);
     to = getUTCDateString(end);
   } else if (range === 'month') {
     const start = new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth(), 1));
@@ -4358,8 +4354,6 @@ async function updateAdminReport(forceRefresh = false) {
     from = document.getElementById('adminReportFromDate').value;
     to = document.getElementById('adminReportToDate').value;
     if (!from || !to) return;
-    // Custom dates are assumed to be entered as YYYY-MM-DD in local time.
-    // Convert them to UTC date strings by appending 'T00:00:00Z'
     from = new Date(from + 'T00:00:00Z').toISOString().split('T')[0];
     to = new Date(to + 'T00:00:00Z').toISOString().split('T')[0];
   }
