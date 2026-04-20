@@ -1788,7 +1788,7 @@
 <script>
 
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyINDrmiMP7Pdlie_H6Am9WqCrOpwhDTypJ9EB_y2J3nuoYqKKcL_LNupgN-ib3-Q2U2A/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxiVoapnunn-M-f8SIjhLc3QxbPfd9J6_47UkgjwXTJVzqn28XW8lY5onhd2e5DNdnoXw/exec"; // REPLACE WITH YOUR URL
 
 // Haversine distance in km
 function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
@@ -6147,10 +6147,11 @@ function updateReceipts() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  if (range === 'all') {
-    // No date filters – show everything
-    from = null;
-    to = null;
+ if (range === 'all') {
+  // Use a wide date range instead of null to avoid backend errors
+  from = '2000-01-01';
+  to = '2100-01-01';
+}
   } else if (range === 'today') {
     from = getLocalDateString(today);
     to = from;
