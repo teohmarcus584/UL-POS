@@ -4393,28 +4393,25 @@ async function fetchSalesReport(store, employeeId, from, to, unsettledOnly, sile
 
  async function fetchProductSalesReport(store, employeeId, from, to) {
   try {
-    // Build URL for fetching receipts (same as fetchReceipts uses)
     let url = `${APPS_SCRIPT_URL}?action=getReceipts&store=${store}&employeeId=${employeeId}`;
     if (from) url += `&from=${encodeURIComponent(from)}`;
     if (to) url += `&to=${encodeURIComponent(to)}`;
     const response = await fetch(url);
     const result = await response.json();
-    
+
     if (!result.success || !result.receipts) return [];
 
-    const productMap = new Map(); // key: product id, value: { name, category, quantity, total }
+    const productMap = new Map(); // key: product id
 
     for (const receipt of result.receipts) {
-      // Skip refund receipts (negative total) if you don't want to count refunded items
-      if (receipt.total < 0) continue;
-      
       for (const item of receipt.items) {
         const id = item.id;
+        // paid quantity = (quantity - free_quantity) – this works even for negative refund quantities
         const paidQty = item.quantity - (item.free_quantity || 0);
-        if (paidQty <= 0) continue;
-        
+        if (paidQty === 0) continue;
+
         const itemTotal = paidQty * item.price;
-        
+
         if (productMap.has(id)) {
           const existing = productMap.get(id);
           existing.quantity += paidQty;
@@ -4430,10 +4427,13 @@ async function fetchSalesReport(store, employeeId, from, to, unsettledOnly, sile
       }
     }
 
-    // Convert map to array and sort by quantity (most sold first)
-    const productsArray = Array.from(productMap.values());
+    // Convert map to array and filter out products with zero or negative net quantity (optional)
+    const productsArray = Array.from(productMap.values())
+      .filter(p => p.quantity > 0);   // show only products with net positive sales
+
+    // Sort by net quantity sold (most sellable first)
     productsArray.sort((a, b) => b.quantity - a.quantity);
-    
+
     return productsArray;
   } catch (err) {
     console.error("fetchProductSalesReport error:", err);
