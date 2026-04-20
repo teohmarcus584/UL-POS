@@ -1787,6 +1787,7 @@
 
   // ==================== CONFIGURATION ====================
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxiVoapnunn-M-f8SIjhLc3QxbPfd9J6_47UkgjwXTJVzqn28XW8lY5onhd2e5DNdnoXw/exec"; // REPLACE WITH YOUR URL
+
 // Haversine distance in km
 function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
   const R = 6371;
@@ -1800,10 +1801,11 @@ function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
 }
 
 async function autoSelectStoreByLocation() {
+  // CORRECTED COORDINATES
   const storeCoords = {
-    sunshine:        { lat: 5.334932,  lng: 100.306625 },  // Queensbay Mall
-    gurney_paragon:{ lat: 5.434950,  lng: 100.310854 },  // GURNEY PARAGON
-    queens:      { lat: 5.398593,  lng: 100.286827 }   // SUNSHINE CENTRAL
+    queens:          { lat: 5.334932,  lng: 100.306625 },  // Queensbay Mall
+    gurney_paragon:  { lat: 5.434950,  lng: 100.310854 },  // Gurney Paragon
+    sunshine:        { lat: 5.398593,  lng: 100.286827 }   // Sunshine Central
   };
 
   if (!navigator.geolocation) {
@@ -1829,7 +1831,7 @@ async function autoSelectStoreByLocation() {
       },
       (error) => {
         console.warn("Location error:", error.message);
-        resolve(null); // fallback – do nothing, keep default selection
+        resolve(null);
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -2306,7 +2308,7 @@ async function loadAndCacheEmployees(force = false) {
     const result = await response.json();
     if (result.success) {
       cachedEmployees = result.employees.map(emp => {
-        // ? Override admin flag for known admin PINs/names
+        // Override admin flag for known admin PINs/names
         if (emp.pin === "1234" || (emp.name && emp.name.toLowerCase().includes("admin"))) {
           emp.isAdmin = true;
         }
@@ -2372,21 +2374,21 @@ async function sendTelegramMessage(message) {
 async function saveTelegramSettings() {
   const accountsRaw = document.getElementById('telegramAccounts').value.trim();
   if (!accountsRaw) {
-    document.getElementById('telegramStatus').innerHTML = '? Please enter at least one Telegram account (token,chatId).';
+    document.getElementById('telegramStatus').innerHTML = '❌ Please enter at least one Telegram account (token,chatId).';
     return;
   }
 
   const lines = accountsRaw.split('\n').filter(line => line.trim());
   const results = [];
 
-  document.getElementById('telegramStatus').innerHTML = '? Testing all accounts...';
+  document.getElementById('telegramStatus').innerHTML = '⏳ Testing all accounts...';
   document.getElementById('telegramStatus').style.color = '#2c7a4b';
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     const [token, chatId] = line.split(',').map(s => s.trim());
     if (!token || !chatId) {
-      results.push(`? Line ${i+1}: Invalid format (must be token,chatId)`);
+      results.push(`❌ Line ${i+1}: Invalid format (must be token,chatId)`);
       continue;
     }
 
@@ -2399,17 +2401,17 @@ async function saveTelegramSettings() {
       });
       const result = await response.json();
       if (result.ok) {
-        results.push(`? Account ${i+1}: Sent to ${chatId}`);
+        results.push(`✅ Account ${i+1}: Sent to ${chatId}`);
       } else {
-        results.push(`? Account ${i+1}: ${result.description}`);
+        results.push(`❌ Account ${i+1}: ${result.description}`);
       }
     } catch (err) {
-      results.push(`? Account ${i+1}: Connection failed – ${err.message}`);
+      results.push(`❌ Account ${i+1}: Connection failed – ${err.message}`);
     }
     await new Promise(resolve => setTimeout(resolve, 500));
   }
 
-  const allFailed = results.every(r => r.startsWith('?'));
+  const allFailed = results.every(r => r.startsWith('❌'));
   if (allFailed) {
     document.getElementById('telegramStatus').innerHTML = results.join('<br>');
     document.getElementById('telegramStatus').style.color = '#ef4444';
@@ -2418,7 +2420,7 @@ async function saveTelegramSettings() {
 
   telegramAccounts = accountsRaw;
   localStorage.setItem('telegramAccounts', accountsRaw);
-  document.getElementById('telegramStatus').innerHTML = results.join('<br>') + '<br>? Settings saved.';
+  document.getElementById('telegramStatus').innerHTML = results.join('<br>') + '<br>✅ Settings saved.';
   document.getElementById('telegramStatus').style.color = '#2c7a4b';
   setTimeout(() => document.getElementById('telegramModal').style.display = 'none', 3000);
 }
@@ -2451,7 +2453,7 @@ async function saveTelegramSettings() {
         updateStockAlertButtonUI();
         await showAlertModal("Enabled", "Stock alerts are now enabled (desktop notifications).");
       } else {
-        notificationsEnabled = true; // fallback to in?app alerts
+        notificationsEnabled = true; // fallback to in‑app alerts
         updateStockAlertButtonUI();
         await showAlertModal("Permission denied", "Desktop notifications blocked. We will use in-app alerts instead.");
       }
@@ -2480,24 +2482,24 @@ async function saveTelegramSettings() {
   const storeName = currentStore.charAt(0).toUpperCase() + currentStore.slice(1);
   const timestamp = new Date().toLocaleString();
 
-  // NEGATIVE or ZERO stock ? OUT OF STOCK alert
+  // NEGATIVE or ZERO stock → OUT OF STOCK alert
   if (newStock <= 0 && !alertedOutOfStockProducts.has(productId)) {
     alertedOutOfStockProducts.add(productId);
     const message = `❌ OUT OF STOCK ❌\nStore: ${storeName}\nProduct: ${productName}\nQuantity: ${newStock}\nTime: ${timestamp}`;
     if (telegramAccounts) sendTelegramMessage(message);
     if (notificationsEnabled && notificationsSupported && Notification.permission === "granted") {
-      new Notification(`? Out of Stock`, { body: `${productName} is out of stock (${newStock} left).` });
+      new Notification(`❌ Out of Stock`, { body: `${productName} is out of stock (${newStock} left).` });
     } else if (notificationsEnabled) {
       showOutOfStockAlert(`${productName} is out of stock (${newStock} left).`);
     }
   }
-  // LOW STOCK (positive but ? threshold) alert
+  // LOW STOCK (positive but ≤ threshold) alert
   else if (newStock > 0 && newStock <= LOW_STOCK_THRESHOLD && !alertedLowStockProducts.has(productId)) {
     alertedLowStockProducts.add(productId);
-    const message = `⚠️ LOW STOCK ??\nStore: ${storeName}\nProduct: ${productName}\nQuantity left: ${newStock}\nTime: ${timestamp}`;
+    const message = `⚠️ LOW STOCK ⚠️\nStore: ${storeName}\nProduct: ${productName}\nQuantity left: ${newStock}\nTime: ${timestamp}`;
     if (telegramAccounts) sendTelegramMessage(message);
     if (notificationsEnabled && notificationsSupported && Notification.permission === "granted") {
-      new Notification(`?? Low Stock`, { body: `${productName} only ${newStock} left.` });
+      new Notification(`⚠️ Low Stock`, { body: `${productName} only ${newStock} left.` });
     } else if (notificationsEnabled) {
       showOutOfStockAlert(`${productName} only ${newStock} left.`);
     }
@@ -2825,7 +2827,7 @@ async function saveTelegramSettings() {
     if (updateStockTimeout) clearTimeout(updateStockTimeout);
     loadStockHistoryFromSheet();
     // Show low stock button
-    if (lowStockBtn) lowStockBtn.style.display = 'inline-flex'; // or '' to use default display
+    if (lowStockBtn) lowStockBtn.style.display = 'inline-flex';
   } else {
     cartNormalContent.style.display = 'block';
     stockHistoryContainerDiv.style.display = 'none';
@@ -2842,7 +2844,6 @@ async function saveTelegramSettings() {
   // Refresh category highlighting based on new inventory mode
   refreshCategoryHighlighting();
   renderProductGrid();
- // ? Force refresh the handle icon (in case collapsed state is active)
   if (typeof updateHandleIcon === 'function') updateHandleIcon();
 }
   // ==================== CATEGORY HIGHLIGHTING FOR LOW STOCK (Inventory mode only) ====================
@@ -3283,12 +3284,12 @@ window.addEventListener('online', syncPendingSales);
             <button class="free-toggle-btn ${freeClass}" data-index="${idx}">${buttonText}</button>
           </div>
           <div class="cart-item-qty">
-            <button class="qty-btn" data-index="${idx}" data-delta="-1">?</button>
+            <button class="qty-btn" data-index="${idx}" data-delta="-1">−</button>
             <span>${item.quantity}</span>
             <button class="qty-btn" data-index="${idx}" data-delta="1">+</button>
           </div>
           <div class="cart-item-total">RM ${itemTotal.toFixed(2)}</div>
-          <button class="remove-item" data-index="${idx}">?</button>
+          <button class="remove-item" data-index="${idx}">✕</button>
         </div>
       `;
     });
@@ -3576,12 +3577,6 @@ function applyCustomDiscount() {
     await showAlertModal('Empty Cart', 'No items to checkout.');
     return;
   }
-  // ? REMOVED: showLoading('Refreshing stock data...');
-  // ? REMOVED: const refreshed = await fetchProductsFromSheet(true);
-  // ? REMOVED: hideLoading();
-  // ? REMOVED: if (!refreshed) { ... }
-  
-  // ? Direct stock validation using current products (may be stale)
  
   let subtotal = 0;
   for (let item of cart) {
@@ -3685,8 +3680,8 @@ async function completeCheckout(paymentMethod, cashReceived) {
   custom_discount: customDiscount,
   prize_claimed: claimedReceiptInfo,
   customer_id: selectedCustomer ? selectedCustomer.id : null,
-  store: currentStore,                    // ? ADD THIS LINE
-   employee_name: selectedEmployeeName   // ? now uses selected employee
+  store: currentStore,
+  employee_name: currentEmployee.name   // ✅ fixed
 };
 
   queueSale(transaction);
@@ -3725,10 +3720,8 @@ async function completeCheckout(paymentMethod, cashReceived) {
       pendingPrize = null;
     }
 
-    // ? Invalidate all report caches because new sale data exists
     invalidateAllReportCaches();
 
-    // ? IMMEDIATELY add the new receipt to the local cache so it appears in the modal
     const fakeReceipt = {
       transaction_id: transaction.transaction_id,
       timestamp: transaction.timestamp,
@@ -3744,15 +3737,13 @@ async function completeCheckout(paymentMethod, cashReceived) {
       custom_discount: customDiscount
     };
     if (!cachedReceipts) cachedReceipts = [];
-    cachedReceipts.unshift(fakeReceipt);   // newest first
+    cachedReceipts.unshift(fakeReceipt);
 
-    // If receipts modal is open, re-render immediately
     const receiptsModal = document.getElementById('receiptsModal');
     if (receiptsModal && receiptsModal.style.display === 'flex') {
       renderReceiptsList(cachedReceipts);
     }
 
-    // ? Force a background refresh of the receipt cache (will replace fake with real data after sync)
     fetchAndCacheReceipts();
 
    if (window.printerAPI?.isConnected() && window.printerAPI.printReceipt) {
@@ -3762,7 +3753,7 @@ async function completeCheckout(paymentMethod, cashReceived) {
   await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
 }
 
-    await showAlertModal('? Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
+    await showAlertModal('✅ Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
 
     document.getElementById('luckyTxId').innerText = transactionId;
     const luckyModal = document.getElementById('luckyDrawModal');
@@ -3927,7 +3918,6 @@ async function fetchAndCacheReceipts() {
     const response = await fetch(url);
     const result = await response.json();
     if (result.success) {
-      // ? Update the global cache with fresh data
       cachedReceipts = result.receipts;
       renderReceiptsList(cachedReceipts);
     } else {
@@ -3958,7 +3948,7 @@ function renderReceiptsList(receipts) {
       ? `<span class="receipt-id">[REFUND] ${rec.transaction_id}</span>`
       : `<span class="receipt-id">${rec.transaction_id}</span>`;
 
-    // Build detailed items list (cart?like)
+    // Build detailed items list
     let itemsHtml = '<div class="receipt-items-list">';
     let subtotal = 0;
     for (const item of rec.items) {
@@ -4000,14 +3990,15 @@ if (rec.custom_discount && rec.custom_discount > 0) {
   discountsHtml += `<div class="receipt-discount-row"><span>💰 Custom Discount</span><span>-RM ${rec.custom_discount.toFixed(2)}</span></div>`;
 }
 
+    const total = rec.total;
+
     const actionsHtml = `
       <div class="receipt-actions">
-        <button class="reprint-btn" data-txid="${rec.transaction_id}">??? Reprint</button>
-        ${!isRefund && !rec.refunded ? `<button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">?? Refund</button>` : ''}
+        <button class="reprint-btn" data-txid="${rec.transaction_id}">🖨️ Reprint</button>
+        ${!isRefund && !rec.refunded ? `<button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">💰 Refund</button>` : ''}
       </div>
     `;
 
-    // NEW HEADER: Left side (TXN ID + Payment Method + Total), Right side (Date)
     html += `
       <div class="receipt-item ${refundClass}" data-txid="${rec.transaction_id}">
         <div class="receipt-header" style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap;">
@@ -4035,7 +4026,6 @@ if (rec.custom_discount && rec.custom_discount > 0) {
   });
   container.innerHTML = html;
 
-  // Attach event listeners for reprint and refund
   document.querySelectorAll('.reprint-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const txId = btn.dataset.txid;
@@ -4107,33 +4097,25 @@ if (rec.custom_discount && rec.custom_discount > 0) {
       localStorage.removeItem(`products_${currentStore}`);
       await fetchProductsFromSheet();
       
-      // ? Invalidate all report caches because refund changed sales data
       invalidateAllReportCaches();
 
-      // ========== NEW: Update cached receipts and re-render if modal is open ==========
       if (cachedReceipts) {
-        // Mark the original transaction as refunded
         const originalReceipt = cachedReceipts.find(r => r.transaction_id === transactionId);
         if (originalReceipt) {
           originalReceipt.refunded = true;
         }
-        // Also add the new refund receipt to the cache (optional, but keeps list complete)
-        // The backend will include it in future fetches, but we can add it now
         if (result.refundTransaction) {
           cachedReceipts.unshift(result.refundTransaction);
         }
-        // If the receipts modal is open, re-render immediately
         const receiptsModal = document.getElementById('receiptsModal');
         if (receiptsModal && receiptsModal.style.display === 'flex') {
           renderReceiptsList(cachedReceipts);
         }
       }
-      // ========================================================================
       
-      // Refresh report modal if open
       const reportModal = document.getElementById('adminReportModal');
       if (reportModal && reportModal.style.display === 'flex') {
-        await updateAdminReport(true); // force refresh
+        await updateAdminReport(true);
       }
     } else {
       await showAlertModal('Refund Failed', result.error || 'Unknown error');
@@ -4152,16 +4134,13 @@ async function fetchSalesReportWithCache(store, employeeId, from, to, unsettledO
   if (!forceRefresh) {
     const cached = await getCachedReport(cacheKey);
     if (cached) {
-      // Optionally refresh in background (fire-and-forget)
       if (!silent) {
-        // Show cached data immediately, then refresh in background
         refreshReportInBackground(store, employeeId, from, to, unsettledOnly, cacheKey, silent);
       }
       return cached;
     }
   }
   
-  // No cache or force refresh: fetch fresh
   const fresh = await fetchSalesReport(store, employeeId, from, to, unsettledOnly, silent);
   if (fresh) {
     await setCachedReport(cacheKey, fresh);
@@ -4171,16 +4150,14 @@ async function fetchSalesReportWithCache(store, employeeId, from, to, unsettledO
 
 async function refreshReportInBackground(store, employeeId, from, to, unsettledOnly, cacheKey, silent) {
   try {
-    const fresh = await fetchSalesReport(store, employeeId, from, to, unsettledOnly, true); // silent fetch
+    const fresh = await fetchSalesReport(store, employeeId, from, to, unsettledOnly, true);
     if (fresh) {
       const cached = await getCachedReport(cacheKey);
       if (JSON.stringify(cached) !== JSON.stringify(fresh)) {
         await setCachedReport(cacheKey, fresh);
-        // If the report modal is currently open, update the UI
         const modal = document.getElementById('adminReportModal');
         if (modal && modal.style.display === 'flex') {
-          await updateAdminReport(true); // true = force refresh from cache (will fetch fresh again? careful)
-          // Better: re-run updateAdminReport with forceRefresh true
+          await updateAdminReport(true);
         }
       }
     }
@@ -4198,7 +4175,6 @@ async function refreshReportInBackground(store, employeeId, from, to, unsettledO
     const result = await response.json();
     if (result.success) {
       await new Promise(resolve => setTimeout(resolve, 200));
-      // ? Guard: only try to render store chart if currentEmployee exists and is admin
       if (currentEmployee && currentEmployee.isAdmin && result.salesByStore) {
         const storeCanvas = document.getElementById('storeChart');
         if (storeCanvas) {
@@ -4260,7 +4236,6 @@ async function fetchSalesReport(store, employeeId, from, to, unsettledOnly, sile
     const response = await fetch(url);
     const result = await response.json();
     if (result.success) {
-      // Only update DOM if not silent (i.e., report modal is open)
       if (!silent) {
         const totalSalesEl = document.getElementById('adminReportTotalSales');
         if (totalSalesEl) totalSalesEl.innerText = `RM ${(result.totalSales || 0).toFixed(2)}`;
@@ -4321,10 +4296,10 @@ async function updateAdminReport(forceRefresh = false) {
   const range = document.getElementById('adminReportDateRangeSelect').value;
   let from = null, to = null;
   const today = new Date();
-  today.setHours(0, 0, 0, 0);   // local midnight
+  today.setHours(0, 0, 0, 0);
 
   if (range === 'today') {
-    from = to = getLocalDateString(today);           // ? local date
+    from = to = getLocalDateString(today);
   } else if (range === 'week') {
     const start = new Date(today);
     const dayOfWeek = today.getDay();
@@ -4348,14 +4323,11 @@ async function updateAdminReport(forceRefresh = false) {
     from = document.getElementById('adminReportFromDate').value;
     to = document.getElementById('adminReportToDate').value;
     if (!from || !to) return;
-    // Keep custom dates as entered (local YYYY-MM-DD)
   }
 
-  // Fetch main totals (silent, no loading overlay)
   const totals = await fetchSalesReportWithCache(store, employeeId, from, to, false, true, forceRefresh);
   if (!totals) return;
 
-  // Update summary stats at the top
   document.getElementById('adminReportTotalSales').innerText = `RM ${totals.totalSales.toFixed(2)}`;
   document.getElementById('adminReportCashTotal').innerText = `RM ${totals.cashTotal.toFixed(2)}`;
   document.getElementById('adminReportCardTotal').innerText = `RM ${totals.cardTotal.toFixed(2)}`;
@@ -4366,35 +4338,32 @@ async function updateAdminReport(forceRefresh = false) {
   document.getElementById('adminReportTransactionCount').innerText = totals.transactionCount || 0;
   document.getElementById('adminReportTotalItems').innerText = totals.totalItems || 0;
 
-  // Product details (if visible)
   const productData = await fetchProductSalesReport(store, employeeId, from, to);
   lastProductData = productData;
   if (productDetailsVisible) renderProductDetails(lastProductData);
 
-  // --- Store breakdown (only for admin) ---
   const storeBreakdownDiv = document.getElementById('storeBreakdownContainer');
   if (currentEmployee.isAdmin) {
     storeBreakdownDiv.style.display = 'block';
     const stores = ['queens', 'sunshine', 'gurney_paragon'];
 
-    // Show loading placeholders
     stores.forEach(storeName => {
       const card = document.querySelector(`.store-summary-card[data-store="${storeName}"]`);
       if (card) {
         const totalEl = card.querySelector('.store-total');
         if (totalEl) totalEl.innerText = 'Loading...';
         const cashEl = card.querySelector('.store-cash');
-        if (cashEl) cashEl.innerHTML = '?? Loading...';
+        if (cashEl) cashEl.innerHTML = '💵 Loading...';
         const cardEl = card.querySelector('.store-card');
-        if (cardEl) cardEl.innerHTML = '?? Loading...';
+        if (cardEl) cardEl.innerHTML = '💳 Loading...';
         const qrEl = card.querySelector('.store-qr');
-        if (qrEl) qrEl.innerHTML = '?? Loading...';
+        if (qrEl) qrEl.innerHTML = '📱 Loading...';
         const alipayEl = card.querySelector('.store-alipay');
-        if (alipayEl) alipayEl.innerHTML = '?? Loading...';
+        if (alipayEl) alipayEl.innerHTML = '💸 Loading...';
         const refundEl = card.querySelector('.store-refund');
-        if (refundEl) refundEl.innerHTML = '? Loading...';
+        if (refundEl) refundEl.innerHTML = '❌ Loading...';
         const refundedBillsEl = card.querySelector('.store-refunded-bills');
-        if (refundedBillsEl) refundedBillsEl.innerHTML = '?? Loading...';
+        if (refundedBillsEl) refundedBillsEl.innerHTML = '📄 Loading...';
         const transactionsEl = card.querySelector('.store-transactions');
         if (transactionsEl) transactionsEl.innerHTML = 'Loading...';
         const itemsSoldEl = card.querySelector('.store-items-sold');
@@ -4404,11 +4373,9 @@ async function updateAdminReport(forceRefresh = false) {
       }
     });
 
-    // Fetch real data in parallel
     const storeResults = await Promise.all(stores.map(s => fetchSalesReport(s, 'all', from, to, false, true)));
     const employeeResults = await Promise.all(stores.map(s => fetchEmployeeSalesData(s, from, to)));
 
-    // Update each card with real data
     stores.forEach((storeName, idx) => {
       const data = storeResults[idx];
       if (!data) return;
@@ -4416,12 +4383,12 @@ async function updateAdminReport(forceRefresh = false) {
       if (!card) return;
 
       card.querySelector('.store-total').innerText = `Total Sales: RM ${data.totalSales.toFixed(2)}`;
-      card.querySelector('.store-cash').innerHTML = `?? Cash: RM ${data.cashTotal.toFixed(2)}`;
-      card.querySelector('.store-card').innerHTML = `?? Card: RM ${data.cardTotal.toFixed(2)}`;
-      card.querySelector('.store-qr').innerHTML = `?? QR Pay: RM ${data.otherTotal.toFixed(2)}`;
-      card.querySelector('.store-alipay').innerHTML = `?? Alipay: RM ${data.alipayTotal.toFixed(2)}`;
-      card.querySelector('.store-refund').innerHTML = `? Refunds: RM ${Math.abs(data.refundTotal).toFixed(2)}`;
-      card.querySelector('.store-refunded-bills').innerHTML = `?? Refunded Bills: ${data.refundedTransactionCount || 0}`;
+      card.querySelector('.store-cash').innerHTML = `💵 Cash: RM ${data.cashTotal.toFixed(2)}`;
+      card.querySelector('.store-card').innerHTML = `💳 Card: RM ${data.cardTotal.toFixed(2)}`;
+      card.querySelector('.store-qr').innerHTML = `📱 QR Pay: RM ${data.otherTotal.toFixed(2)}`;
+      card.querySelector('.store-alipay').innerHTML = `💸 Alipay: RM ${data.alipayTotal.toFixed(2)}`;
+      card.querySelector('.store-refund').innerHTML = `❌ Refunds: RM ${Math.abs(data.refundTotal).toFixed(2)}`;
+      card.querySelector('.store-refunded-bills').innerHTML = `📄 Refunded Bills: ${data.refundedTransactionCount || 0}`;
       card.querySelector('.store-transactions').innerHTML = `Transactions: ${data.transactionCount || 0}`;
       card.querySelector('.store-items-sold').innerHTML = `Items Sold: ${data.totalItems || 0}`;
 
@@ -4444,13 +4411,12 @@ async function updateAdminReport(forceRefresh = false) {
     storeBreakdownDiv.style.display = 'none';
   }
 
-  // Refresh charts if they exist (optional)
   await fetchSalesChartData(store, employeeId, from, to);
 }
 // ==================== BARCODE SCANNER ====================
 let barcodeBuffer = '';
 let barcodeTimer = null;
-let scannerActive = false; // will be enabled after login
+let scannerActive = false;
 
 function resetBarcodeBuffer() {
   barcodeBuffer = '';
@@ -4471,32 +4437,26 @@ function processBarcode() {
   }
 
   if (inventoryMode) {
-    // ? INVENTORY MODE: Increase stock by 1
     const oldStock = product.stock;
     const newStock = oldStock + 1;
     product.stock = newStock;
     
-    // Update UI immediately
     const displaySpan = document.querySelector(`.stock-display[data-id="${product.id}"]`);
     if (displaySpan) displaySpan.innerText = newStock;
     
-    // Schedule server update and log history
     scheduleStockUpdate(product.id, newStock);
     logStockChange(product.id, product.name, product.category, oldStock, newStock, 1);
     checkAndNotifyOutOfStock(product.id, product.name, newStock);
-    refreshCategoryHighlighting(); // update dropdown highlighting after stock change
+    refreshCategoryHighlighting();
     
-    // Visual feedback
     const statusSpan = document.getElementById('barcodeStatus');
     if (statusSpan) {
       statusSpan.style.background = '#c8e6c9';
       statusSpan.style.transition = '0.2s';
       setTimeout(() => { statusSpan.style.background = '#e8f5e9'; }, 200);
     }
-    // Optional: show a quick success message (no modal)
-    console.log(`? Stock increased for ${product.name} to ${newStock}`);
+    console.log(`📦 Stock increased for ${product.name} to ${newStock}`);
   } else {
-    // Normal mode: add to cart
     addToCart(product);
     const statusSpan = document.getElementById('barcodeStatus');
     if (statusSpan) {
@@ -4507,35 +4467,26 @@ function processBarcode() {
   resetBarcodeBuffer();
 }
 
-// Global key listener for barcode scanner
 document.addEventListener('keydown', (e) => {
-  // Only activate after login and when main content is visible
   if (!scannerActive) return;
-  // Ignore if user is typing in an input/textarea/select
   const activeTag = document.activeElement.tagName;
   if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
   
-  // Detect Enter key (scanner sends Enter after barcode)
   if (e.key === 'Enter') {
-    e.preventDefault(); // prevent any default form submit
+    e.preventDefault();
     processBarcode();
     return;
   }
   
-  // For character keys, add to buffer (only if it's a digit, letter, or hyphen)
-  // Most barcodes are numeric, but we allow alphanumeric.
   if (e.key.length === 1 && /[a-zA-Z0-9-]/.test(e.key)) {
-    // Reset timer on each key
     if (barcodeTimer) clearTimeout(barcodeTimer);
     barcodeBuffer += e.key;
-    // Set timeout to auto?reset buffer after 100ms of no key (in case of manual typing)
     barcodeTimer = setTimeout(() => {
       resetBarcodeBuffer();
     }, 100);
   }
 });
 
-// Enable scanner when user logs in, disable on logout
 function enableBarcodeScanner() {
   scannerActive = true;
   const statusSpan = document.getElementById('barcodeStatus');
@@ -4555,8 +4506,6 @@ function disableBarcodeScanner() {
   }
 }
 
-// Call enableBarcodeScanner() inside finishLoginAfterVerification()
-// and disableBarcodeScanner() inside logout handler.
   // ==================== SETTLEMENT & COLLECTION ====================
 async function openSettlementModal() {
   const modal = document.getElementById('settlementModal');
@@ -4610,9 +4559,7 @@ async function openSettlementModal() {
       store = initialStore;
       document.getElementById('settlementStoreSelect').value = store;
       document.getElementById('settlementStoreSelect').disabled = true;
-      // For non?admin: show totals container but hide breakdown rows
       if (totalsContainer) totalsContainer.style.display = 'block';
-      // Hide breakdown rows
       const breakdownIds = ['sysCash', 'sysCard', 'sysQR', 'sysAlipay', 'sysRefund'];
       breakdownIds.forEach(id => {
         const row = document.getElementById(id)?.parentElement;
@@ -4622,7 +4569,6 @@ async function openSettlementModal() {
       store = document.getElementById('settlementStoreSelect').value;
       document.getElementById('settlementStoreSelect').disabled = false;
       if (totalsContainer) totalsContainer.style.display = 'block';
-      // Show all rows
       const allRows = ['sysCash', 'sysCard', 'sysQR', 'sysAlipay', 'sysRefund', 'sysNetTotal'];
       allRows.forEach(id => {
         const row = document.getElementById(id)?.parentElement;
@@ -4643,7 +4589,6 @@ async function openSettlementModal() {
 
     await refreshSettlementTotals(store);
     loadingMsg.style.display = 'none';
-    // Ensure net total is visible for non?admin
     if (!currentEmployee.isAdmin) {
       const netTotalRow = document.getElementById('sysNetTotal')?.parentElement;
       if (netTotalRow) netTotalRow.style.display = 'block';
@@ -4669,10 +4614,9 @@ async function openSettlementModal() {
   }
 
  async function refreshSettlementTotals(store, silent = false) {
-  const todayStr = getUTCDateString(new Date());  // ? Use UTC date
+  const todayStr = getUTCDateString(new Date());
   const report = await fetchSalesReport(store, 'all', todayStr, todayStr, true, silent);
   if (report) {
-    // Safely extract values with fallbacks
     const cash = report.cashTotal !== undefined ? report.cashTotal : 0;
     const card = report.cardTotal !== undefined ? report.cardTotal : 0;
     const qr = report.otherTotal !== undefined ? report.otherTotal : 0;
@@ -4681,7 +4625,6 @@ async function openSettlementModal() {
 
     currentSettlementTotals = { cash, card, qr, alipay, refund };
 
-    // Only update UI if not silent (i.e., modal is open)
     if (!silent) {
       const sysCash = document.getElementById('sysCash');
       if (sysCash) sysCash.innerText = `RM ${cash.toFixed(2)}`;
@@ -4702,7 +4645,7 @@ async function openSettlementModal() {
       if (alreadySettled) {
         const settlementError = document.getElementById('settlementError');
         if (settlementError) {
-          settlementError.innerHTML = '?? Settlement has already been recorded for today. No further settlement allowed.';
+          settlementError.innerHTML = '⚠️ Settlement has already been recorded for today. No further settlement allowed.';
           settlementError.style.display = 'block';
         }
         const checkBtn = document.getElementById('checkSettlementBtn');
@@ -4765,7 +4708,7 @@ async function openSettlementModal() {
     if (checkBtn) checkBtn.disabled = !enabled;
   }
 
-// ==================== PRINTER SETUP (text?only, no logo) ====================
+// ==================== PRINTER SETUP ====================
 let gattServer = null;
 let printerCharacteristic = null;
 let isPrinterConnected = false;
@@ -4780,10 +4723,10 @@ const closePrinterModalBtn = document.getElementById('closePrinterModalBtn');
 
 function updatePrinterStatusUI() {
   if (isPrinterConnected) {
-    printerStatusModal.innerText = '? Printer connected';
+    printerStatusModal.innerText = '✅ Printer connected';
     printerStatusModal.style.color = '#2c7a4b';
   } else {
-    printerStatusModal.innerText = '? Not connected';
+    printerStatusModal.innerText = '⚪ Not connected';
     printerStatusModal.style.color = '#64748b';
   }
 }
@@ -4854,12 +4797,10 @@ async function printReceipt(transaction) {
     const lines = [];
     const separator = '-'.repeat(maxChars);
 
-    // Store info
     lines.push(`STORE LOCATION : ${storeLocation}`);
     lines.push(`EMPLOYEE : ${employeeName}`);
     lines.push(separator);
 
-    // Items (no category grouping)
     for (const item of transaction.items) {
       const paidQty = item.quantity - (item.free_quantity || 0);
       if (paidQty > 0) {
@@ -4875,13 +4816,11 @@ async function printReceipt(transaction) {
 
     lines.push(separator);
 
-    // Discounts
     if (transaction.discount > 0) lines.push(`Lucky Draw Discount : -RM ${transaction.discount.toFixed(2)}`);
     if (transaction.buy2_free1_discount > 0) lines.push(`Car Aromatic Promo : -RM ${transaction.buy2_free1_discount.toFixed(2)}`);
     if (transaction.buy3_free1_discount > 0) lines.push(`15ml Perfume EDP Promo : -RM ${transaction.buy3_free1_discount.toFixed(2)}`);
     if (transaction.custom_discount > 0) lines.push(`Custom Discount     : -RM ${transaction.custom_discount.toFixed(2)}`);
 
-    // Payment method and change (will be printed after TOTAL)
     const paymentLines = [];
     paymentLines.push(`PAYMENT METHOD : ${transaction.payment_method}`);
     if (transaction.cash_received && transaction.payment_method === 'Cash') {
@@ -4889,7 +4828,6 @@ async function printReceipt(transaction) {
       paymentLines.push(`CHANGE : RM ${change.toFixed(2)}`);
     }
 
-    // Footer (centered)
     const footerLines = [
       'THANK YOU FOR YOUR PURCHASE',
       'ANY ENQUIRY PLEASE CONTACT',
@@ -4897,39 +4835,33 @@ async function printReceipt(transaction) {
       'GOODS SOLD ARE NOT REFUNDABLE'
     ];
 
-    // Date & transaction ID (left aligned)
     const date = new Date(transaction.timestamp);
     const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
     const txnLine = `TXN   : ${transaction.transaction_id}`;
     const dateLine = `DATE  : ${formattedDate}`;
 
-    // ----- Build command array -----
     let commands = [];
-    commands.push(0x1B, 0x40); // Initialize
+    commands.push(0x1B, 0x40);
 
-    // 1. Print "UL PERFUMERY" centered, bold, double size
-    commands.push(0x1B, 0x61, 0x01);           // Center align
-    commands.push(0x1B, 0x45, 0x01);           // Bold on
-    commands.push(0x1D, 0x21, 0x11);           // Double width + double height
+    commands.push(0x1B, 0x61, 0x01);
+    commands.push(0x1B, 0x45, 0x01);
+    commands.push(0x1D, 0x21, 0x11);
     const titleText = "UL PERFUMERY";
     for (let i = 0; i < titleText.length; i++) commands.push(titleText.charCodeAt(i));
     commands.push(0x0A);
-    commands.push(0x1B, 0x45, 0x00);           // Bold off
-    commands.push(0x1D, 0x21, 0x00);           // Normal size
-    commands.push(0x1B, 0x61, 0x00);           // Left align
+    commands.push(0x1B, 0x45, 0x00);
+    commands.push(0x1D, 0x21, 0x00);
+    commands.push(0x1B, 0x61, 0x00);
     commands.push(0x0A);
 
-    // 2. Print store info and items (left aligned)
     const bodyText = lines.join('\n');
     commands.push(...encoder.encode(bodyText));
     commands.push(0x0A);
 
-    // 3. TOTAL line: "TOTAL" + spaces + amount (both double width, bold)
     const totalAmount = transaction.total;
     const totalLabel = "TOTAL";
     const totalValueStr = `RM ${totalAmount.toFixed(2)}`;
 
-    // Build the full line with label left, amount right
     let totalLine = totalLabel;
     const availableSpace = maxChars - totalValueStr.length;
     if (totalLabel.length < availableSpace) {
@@ -4939,43 +4871,37 @@ async function printReceipt(transaction) {
     }
     totalLine += totalValueStr;
 
-    // Print total line with double width and bold for the whole line
-    commands.push(0x1B, 0x45, 0x01);        // Bold on
-    commands.push(0x1D, 0x21, 0x01);        // Double width only (same size for both label and value)
+    commands.push(0x1B, 0x45, 0x01);
+    commands.push(0x1D, 0x21, 0x01);
     for (let i = 0; i < totalLine.length; i++) {
       commands.push(totalLine.charCodeAt(i));
     }
-    commands.push(0x1D, 0x21, 0x00);        // Normal size
-    commands.push(0x1B, 0x45, 0x00);        // Bold off
+    commands.push(0x1D, 0x21, 0x00);
+    commands.push(0x1B, 0x45, 0x00);
     commands.push(0x0A);
 
-    // 4. Print payment method and change (normal font)
     const paymentText = paymentLines.join('\n');
     commands.push(...encoder.encode(paymentText));
     commands.push(0x0A);
 
-    // 5. Separator line
     commands.push(...encoder.encode(separator));
     commands.push(0x0A);
 
-    // 6. Footer (centered)
-    commands.push(0x1B, 0x61, 0x01);           // Center align
+    commands.push(0x1B, 0x61, 0x01);
     for (const line of footerLines) {
       commands.push(...encoder.encode(line));
       commands.push(0x0A);
     }
-    commands.push(0x1B, 0x61, 0x00);           // Left align (reset)
+    commands.push(0x1B, 0x61, 0x00);
     commands.push(0x0A);
 
-    // 7. Transaction ID and date (left aligned)
     commands.push(...encoder.encode(txnLine));
     commands.push(0x0A);
     commands.push(...encoder.encode(dateLine));
     commands.push(0x0A);
     commands.push(0x0A);
 
-    // 8. Cut paper and open drawer if cash
-    commands.push(0x1D, 0x56, 0x41, 0x00);     // Cut
+    commands.push(0x1D, 0x56, 0x41, 0x00);
     if (openDrawer) {
       const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
       commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
@@ -5022,16 +4948,16 @@ async function printPrizeVoucher(prizeLabel, receiptNumber, spinDate = new Date(
     ];
     const text = lines.join('\n');
     const commands = [];
-    commands.push(0x1B, 0x40); // init
-    commands.push(0x1B, 0x52, 0x00); // international character set
-    commands.push(0x1B, 0x21, 0x00); // font normal
-    commands.push(0x1B, 0x61, 0x01); // center alignment
+    commands.push(0x1B, 0x40);
+    commands.push(0x1B, 0x52, 0x00);
+    commands.push(0x1B, 0x21, 0x00);
+    commands.push(0x1B, 0x61, 0x01);
     for (let i = 0; i < text.length; i++) commands.push(text.charCodeAt(i));
-    commands.push(0x0A); // newline
+    commands.push(0x0A);
 
-    commands.push(0x1D, 0x68, 0x32); // barcode height = 50 dots
-    commands.push(0x1D, 0x77, 0x01); // barcode width = 1
-    commands.push(0x1B, 0x61, 0x01); // center barcode
+    commands.push(0x1D, 0x68, 0x32);
+    commands.push(0x1D, 0x77, 0x01);
+    commands.push(0x1B, 0x61, 0x01);
     const barcodeData = encoder.encode(receiptNumber);
     const len = barcodeData.length;
     commands.push(0x1D, 0x6B, 0x49, len);
@@ -5051,7 +4977,7 @@ async function printPrizeVoucher(prizeLabel, receiptNumber, spinDate = new Date(
 async function connectPrinter() {
   try {
     connectBtnModal.disabled = true;
-    printerStatusModal.innerText = '?? Scanning...';
+    printerStatusModal.innerText = '🔍 Scanning...';
     const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] });
     gattServer = await device.gatt.connect();
     const services = await gattServer.getPrimaryServices();
@@ -5073,7 +4999,7 @@ async function connectPrinter() {
     updatePrinterStatusUI();
     await showAlertModal('Printer Connected', 'Bluetooth printer is ready.');
   } catch (err) {
-    printerStatusModal.innerText = `? ${err.message}`;
+    printerStatusModal.innerText = `❌ ${err.message}`;
     console.error(err);
   } finally {
     connectBtnModal.disabled = false;
@@ -5105,18 +5031,13 @@ paperSizeSelectModal.value = savedSize;
 window.printerAPI = { isConnected: false, printReceipt: printReceipt, openDrawer: openCashDrawer, printPrizeVoucher: printPrizeVoucher };
   // ==================== RENDER PRODUCT GRID ====================
 function renderProductGrid() {
-  // 1. Get current filter values
   const searchTerm = searchInput.value.toLowerCase();
   const selectedCategory = categorySelect.value;
 
-  // ==================== CATEGORY CARDS MODE ====================
-  // Show category cards only when "all" is selected AND not in inventory mode
   if (selectedCategory === 'all' && !inventoryMode) {
-    // Build unique categories from products
     const categories = [...new Set(products.map(p => p.category))];
     let filteredCategories = categories;
 
-    // Apply search filter on category names
     if (searchTerm) {
       filteredCategories = filteredCategories.filter(cat =>
         cat.toLowerCase().includes(searchTerm)
@@ -5125,19 +5046,18 @@ function renderProductGrid() {
 
     if (filteredCategories.length === 0) {
       productGridEl.innerHTML = '<div style="text-align:center; padding:20px;">No categories match your search.</div>';
-      productGridEl.className = 'product-grid';   // force grid even when empty
+      productGridEl.className = 'product-grid';
       return;
     }
 
     let html = '';
     filteredCategories.forEach(cat => {
       const productCount = products.filter(p => p.category === cat).length;
-      // Use category image mapping (categoryImages defined globally)
-      const imgUrl = (categoryImages && categoryImages[cat]) || (categoryImages && categoryImages["default"]) || "https://via.placeholder.com/150?text=??";
+      const imgUrl = (categoryImages && categoryImages[cat]) || (categoryImages && categoryImages["default"]) || "https://via.placeholder.com/150?text=📦";
       html += `
         <div class="category-card" data-category="${escapeHtml(cat)}">
           <div class="category-card-image">
-            <img src="${imgUrl}" alt="${escapeHtml(cat)}" onerror="this.src='https://via.placeholder.com/150?text=??'">
+            <img src="${imgUrl}" alt="${escapeHtml(cat)}" onerror="this.src='https://via.placeholder.com/150?text=📦'">
           </div>
           <div class="category-card-name">${escapeHtml(cat)}</div>
           <div class="category-card-count">${productCount} products</div>
@@ -5146,32 +5066,26 @@ function renderProductGrid() {
     });
 
     productGridEl.innerHTML = html;
-    // ? FORCE GRID MODE for category cards (ignore viewMode)
     productGridEl.className = 'product-grid';
 
-    // Attach click event to each category card
     document.querySelectorAll('.category-card').forEach(card => {
       card.addEventListener('click', () => {
         const category = card.dataset.category;
         categorySelect.value = category;
-        renderProductGrid();   // re-render to show products of that category
+        renderProductGrid();
       });
     });
 
-    // Hide back button when in category cards mode
     const backBtn = document.getElementById('backToCategoriesBtn');
     if (backBtn) backBtn.style.display = 'none';
-    return;   // exit – do not show product list
+    return;
   }
 
-  // ==================== PRODUCT LIST MODE ====================
-  // Show/hide back button (only when a specific category is selected and not inventory mode)
   const backBtn = document.getElementById('backToCategoriesBtn');
   if (backBtn) {
     backBtn.style.display = (selectedCategory !== 'all' && !inventoryMode) ? 'inline-flex' : 'none';
   }
 
-  // Filter products by category, search, and low stock
   let filtered = products.slice();
   if (selectedCategory !== 'all') {
     filtered = filtered.filter(p => p.category === selectedCategory);
@@ -5183,11 +5097,10 @@ function renderProductGrid() {
     filtered = filtered.filter(p => p.stock < LOW_STOCK_THRESHOLD);
   }
 
-  // Handle empty products (loading state)
   if (products.length === 0) {
     productGridEl.innerHTML = `
       <div style="text-align:center; padding:20px;">
-        ? Loading products...<br>
+        ⏳ Loading products...<br>
         <button id="retryLoadProductsBtn" style="margin-top:10px; padding:8px 16px; border-radius:40px; background:#3b82f6; color:white; border:none; cursor:pointer;">Retry</button>
       </div>
     `;
@@ -5197,39 +5110,35 @@ function renderProductGrid() {
     return;
   }
 
-  // No products match filters
   if (filtered.length === 0) {
     productGridEl.innerHTML = '<div style="text-align:center; padding:20px;">No products match your filters.</div>';
     productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
     return;
   }
-// ==================== RENDER PRODUCTS (grid/list) ====================
+
 let html = '';
 filtered.forEach(prod => {
   const isLowStock = prod.stock < LOW_STOCK_THRESHOLD;
   const lowStockClass = (inventoryMode && isLowStock) ? 'low-stock-card' : '';
 
   if (inventoryMode) {
-    // Inventory mode: stock adjustment controls
     html += `<div class="product-card ${lowStockClass}">
       <div class="product-name">${escapeHtml(prod.name)}</div>
       <div class="product-category">${escapeHtml(prod.category)}</div>
       <div class="product-price">RM ${prod.price.toFixed(2)}</div>
       <div class="inventory-controls">
-        <button class="inventory-btn dec-stock" data-id="${prod.id}" data-current="${prod.stock}">?</button>
+        <button class="inventory-btn dec-stock" data-id="${prod.id}" data-current="${prod.stock}">−</button>
         <span class="stock-display" data-id="${prod.id}">${prod.stock}</span>
         <button class="inventory-btn inc-stock" data-id="${prod.id}" data-current="${prod.stock}">+</button>
       </div>
     </div>`;
   } else {
-    // Normal mode: add to cart – whole card clickable
-    const stockStatus = `?? Stock: ${prod.stock}`;
+    const stockStatus = `📦 Stock: ${prod.stock}`;
     html += `<div class="product-card ${lowStockClass}" data-id="${prod.id}">
       <div class="product-name">${escapeHtml(prod.name)}</div>
       <div class="product-category">${escapeHtml(prod.category)}</div>
       <div class="product-price">RM ${prod.price.toFixed(2)}</div>
       <div class="product-stock">${stockStatus}</div>
-    
     </div>`;
   }
 });
@@ -5237,7 +5146,6 @@ filtered.forEach(prod => {
 productGridEl.innerHTML = html;
 productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
 
-// Attach event listeners
 if (inventoryMode) {
   document.querySelectorAll('.dec-stock').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -5277,13 +5185,11 @@ if (inventoryMode) {
     });
   });
 } else {
-  // Normal mode: whole card clickable (add to cart)
   document.querySelectorAll('.product-card').forEach(card => {
     const productId = card.dataset.id;
     const product = products.find(p => p.id == productId);
     if (product) {
       card.addEventListener('click', (e) => {
-        // If the click is on the button itself, still add (no double because button has no separate listener)
         addToCart(product);
       });
     }
@@ -5298,14 +5204,13 @@ if (inventoryMode) {
   }
 
   // ==================== PRELOAD SETTLEMENT AND REPORT AFTER LOGIN ====================
-  // ==================== PRELOAD SETTLEMENT AND REPORT AFTER LOGIN ====================
   async function preloadSettlement() {
     try {
       const store = currentStore;
       const todayStr = getLocalDateString(new Date());
       const alreadySettled = await checkSettlementStatus(store, todayStr);
       if (!alreadySettled) {
-        await refreshSettlementTotals(store, true);   // silent preload
+        await refreshSettlementTotals(store, true);
       }
     } catch (err) {
       console.error('Preload settlement failed:', err);
@@ -5359,60 +5264,7 @@ if (inventoryMode) {
   }
 
   // ==================== EVENT LISTENERS ====================
-  document.getElementById('confirmStoreBtn').addEventListener('click', async () => {
-    initialStore = document.getElementById('initialStoreValue').value;
-    currentStore = initialStore;
-    storeSelect.value = initialStore;
-    document.getElementById('storeSelectModal').style.display = 'none';
-    loadAndCacheEmployees().catch(console.warn);
-    const preloaded = preloadedDataMap[initialStore];
-    if (preloaded && preloaded.products && preloaded.products.length > 0) {
-      products = preloaded.products;
-      const categories = [...new Set(products.map(p => p.category))].sort();
-     categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
-      categories.forEach(cat => {
-        const option = document.createElement('option');
-        option.value = cat;
-        option.textContent = cat;
-        categorySelect.appendChild(option);
-      });
-      renderProductGrid();
-
-      if (preloaded.employees && preloaded.employees.length > 0) {
-        employeeNameMap = {};
-        soldBySelectCart.innerHTML = '';
-        preloaded.employees.forEach(emp => {
-          employeeNameMap[emp.id] = emp.name;
-          const option = document.createElement('option');
-          option.value = emp.id;
-          option.textContent = `${emp.name} (ID: ${emp.id})`;
-          if (currentEmployee && emp.id == currentEmployee.id) option.selected = true;
-          soldBySelectCart.appendChild(option);
-        });
-      } else {
-        fetchEmployees().then(employees => {
-          employeeNameMap = {};
-          soldBySelectCart.innerHTML = '';
-          employees.forEach(emp => {
-            employeeNameMap[emp.id] = emp.name;
-            const option = document.createElement('option');
-            option.value = emp.id;
-            option.textContent = `${emp.name} (ID: ${emp.id})`;
-            if (currentEmployee && emp.id == currentEmployee.id) option.selected = true;
-            soldBySelectCart.appendChild(option);
-          });
-        });
-      }
-
-      initialDataPromise = Promise.resolve(true);
-      document.getElementById('loginModal').style.display = 'flex';
-      document.getElementById('pinInput').focus();
-    } else {
-      initialDataPromise = loadInitialData();
-      document.getElementById('loginModal').style.display = 'flex';
-      document.getElementById('pinInput').focus();
-    }
-  });
+  // confirmStoreBtn event listener REMOVED because the button no longer exists
 
   async function verifyEmployeeByPin(pin) {
     showLoading('Verifying...');
@@ -5635,10 +5487,8 @@ if (inventoryMode) {
   }
 
 async function openReportsModal() {
-  // 1. Close side menu IMMEDIATELY
   closeSideMenu();
 
-  // 2. Open modal IMMEDIATELY (before any async work)
   const modal = document.getElementById('adminReportModal');
   if (modal) {
     modal.style.display = 'flex';
@@ -5667,12 +5517,8 @@ async function openReportsModal() {
     }
     loadingMsg.style.display = 'flex';
 
-    // ========== NEW: Show cached report IMMEDIATELY (if any) ==========
-    await updateAdminReport(false); // false = use cache, no force refresh
-    // ========== Background refresh will happen inside fetchSalesReportWithCache ==========
+    await updateAdminReport(false);
 
-    // 3. Now do async preparation (fetch employees, populate selects) in the background
-    //    This does NOT block the modal appearance because cached data already showed.
     if (currentEmployee?.isAdmin) {
       const employees = await fetchEmployees();
       const adminReportEmpSelect = document.getElementById('adminReportEmployeeSelect');
@@ -5706,8 +5552,6 @@ async function openReportsModal() {
 
     populateStoreSelects();
 
-    // 4. Finally, after background tasks, hide the loading message
-    //    (The cached data already showed, so user sees content immediately)
     const loadingMsgElem = document.getElementById('adminReportLoadingMsg');
     if (loadingMsgElem) loadingMsgElem.style.display = 'none';
   }
@@ -5812,9 +5656,8 @@ async function openReportsModal() {
     }
   });
 
- // Settlement Check button - validate actual amounts against system totals
+ // Settlement Check button
 document.getElementById('checkSettlementBtn')?.addEventListener('click', async () => {
-  // Clear previous error highlighting
   const errorFields = ['actualCash', 'actualCard', 'actualQR', 'actualAlipay'];
   errorFields.forEach(id => {
     const el = document.getElementById(id);
@@ -5827,7 +5670,7 @@ document.getElementById('checkSettlementBtn')?.addEventListener('click', async (
   const actualAlipay = parseFloat(document.getElementById('actualAlipay').value);
 
   if (isNaN(actualCash) || isNaN(actualCard) || isNaN(actualQR) || isNaN(actualAlipay)) {
-    document.getElementById('settlementError').innerHTML = '? Please fill in all actual settlement amounts.';
+    document.getElementById('settlementError').innerHTML = '❌ Please fill in all actual settlement amounts.';
     document.getElementById('settlementError').style.display = 'block';
     return;
   }
@@ -5889,12 +5732,11 @@ document.getElementById('checkSettlementBtn')?.addEventListener('click', async (
     return;
   }
 
-  // All match – show record button for everyone (no permission check)
   document.getElementById('settlementError').style.display = 'none';
   document.getElementById('checkSettlementBtn').style.display = 'none';
   document.getElementById('recordSettlementBtn').style.display = 'block';
 });
-// Record Settlement button - save to Google Sheet
+// Record Settlement button
 document.getElementById('recordSettlementBtn')?.addEventListener('click', async () => {
   const store = document.getElementById('settlementStoreSelect').value;
   const pettyCash = parseFloat(document.getElementById('pettyCashFloat').value) || 0;
@@ -5949,7 +5791,7 @@ document.getElementById('recordSettlementBtn')?.addEventListener('click', async 
   document.getElementById('closeCollectionModal')?.addEventListener('click', () => document.getElementById('collectionModal').style.display = 'none');
   document.getElementById('closeCollectionModalBtn')?.addEventListener('click', () => document.getElementById('collectionModal').style.display = 'none');
 
-  // ==================== CASH COLLECTION (CORRECTED) ====================
+  // ==================== CASH COLLECTION ====================
   let allUnsettledCash = [];
 
   async function openCollectionModal() {
@@ -5987,7 +5829,7 @@ function renderProductDetails(productsData) {
         <td>${escapeHtml(p.category)}</td>
         <td style="text-align: right;">${p.quantity}</td>
         <td style="text-align: right;">RM ${p.total.toFixed(2)}</td>
-      </tr>`;
+       </tr>`;
   });
   tbody.innerHTML = html;
 }
@@ -6024,7 +5866,6 @@ function updateStoreCashSummary() {
       if (amountSpan) amountSpan.innerText = `RM ${total.toFixed(2)}`;
     }
   }
-  // Add this line to make cards clickable
   attachStoreCardClickListeners();
 }
 
@@ -6053,7 +5894,7 @@ function updateStoreCashSummary() {
           <td>${date}</td>
           <td>${getEmployeeName(rec.employee_id)}</td>
           <td style="text-align: right;">RM ${rec.cash_actual.toFixed(2)}</td>
-        </tr>`;
+         </tr>`;
       });
       tbody.innerHTML = html;
       document.querySelectorAll('.collection-checkbox').forEach(cb => cb.addEventListener('change', updateCollectionButtonState));
@@ -6069,10 +5910,8 @@ function updateStoreCashSummary() {
     if (collectBtn) collectBtn.disabled = !anyChecked;
   }
 
-  // Override existing collection store filter listener
   const collectionStoreSelect = document.getElementById('collectionStoreSelect');
   if (collectionStoreSelect) {
-    // Remove any previous listener (if any) and add the correct one
     const newListener = () => filterCollectionTable();
     collectionStoreSelect.removeEventListener('change', filterCollectionTable);
     collectionStoreSelect.addEventListener('change', filterCollectionTable);
@@ -6171,7 +6010,7 @@ function updateStoreCashSummary() {
   function updateCategoryDropdown() {
     const previousSelected = categorySelect.value;
     const categories = [...new Set(products.map(p => p.category))].sort();
-    categorySelect.innerHTML = '<option value="all">?? All Categories</option>';
+    categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
     categories.forEach(cat => {
       const option = document.createElement('option');
       option.value = cat;
@@ -6221,7 +6060,6 @@ function attachStoreCardClickListeners() {
         const storeSelect = document.getElementById('collectionStoreSelect');
         if (storeSelect) {
           storeSelect.value = store;
-          // Trigger the change event to apply filter
           const event = new Event('change', { bubbles: true });
           storeSelect.dispatchEvent(event);
         }
@@ -6238,7 +6076,6 @@ async function getNextTransactionNumber(store) {
       return result.transaction_id;
     } else {
       console.error('Backend error:', result.error);
-      // Fallback (should never happen)
       const prefix = store.substring(0, 3).toUpperCase();
       const timestamp = Date.now();
       const random = Math.floor(Math.random() * 1000);
@@ -6246,7 +6083,6 @@ async function getNextTransactionNumber(store) {
     }
   } catch (err) {
     console.error('Failed to fetch transaction number:', err);
-    // Fallback
     const prefix = store.substring(0, 3).toUpperCase();
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 1000);
@@ -6295,7 +6131,7 @@ function updateReceipts() {
 
   let from = null, to = null;
   const today = new Date();
-  today.setHours(0, 0, 0, 0);   // local midnight
+  today.setHours(0, 0, 0, 0);
 
   if (range === 'today') {
     from = getLocalDateString(today);
@@ -6323,7 +6159,6 @@ function updateReceipts() {
     from = document.getElementById('receiptsFromDate')?.value;
     to = document.getElementById('receiptsToDate')?.value;
     if (!from || !to) return;
-    // No conversion – user already selected local dates in YYYY-MM-DD
   }
 
   fetchReceipts(store, employeeId, from, to, search);
@@ -6335,7 +6170,7 @@ function updateReceipts() {
       productDetailsVisible = !productDetailsVisible;
       if (productDetailsVisible) {
         productDetailsContainer.style.display = 'block';
-        toggleBtn.innerText = '?? Hide Product Details';
+        toggleBtn.innerText = '📦 Hide Product Details';
         if (!lastProductData || lastProductData.length === 0) {
           await updateAdminReport();
         } else {
@@ -6343,7 +6178,7 @@ function updateReceipts() {
         }
       } else {
         productDetailsContainer.style.display = 'none';
-        toggleBtn.innerText = '?? Show Product Details';
+        toggleBtn.innerText = '📦 Show Product Details';
       }
     });
   }
@@ -6462,14 +6297,12 @@ function updateReceipts() {
   document.getElementById('backToCategoriesBtn')?.addEventListener('click', () => {
     categorySelect.value = 'all';
     renderProductGrid();
-  
-});
-
+  });
 </script>
-  <script>
+<script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-     navigator.serviceWorker.register('./service-worker.js')
+      navigator.serviceWorker.register('./service-worker.js')
         .then(reg => console.log('SW registered:', reg))
         .catch(err => console.error('SW registration failed:', err));
     });
