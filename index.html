@@ -2016,7 +2016,7 @@ function openIndexedDB() {
     document.getElementById('storeSelectModal').style.display = 'none';
     
     // Load employees and show login modal
-    await loadAndCacheEmployees().catch(console.warn);
+    
     const preloaded = preloadedDataMap[storeId];
     if (preloaded && preloaded.products && preloaded.products.length > 0) {
       products = preloaded.products;
@@ -2054,7 +2054,7 @@ function openIndexedDB() {
       }
       initialDataPromise = Promise.resolve(true);
     } else {
-      
+      await loadInitialData();
     }
     document.getElementById('loginModal').style.display = 'flex';
     document.getElementById('pinInput').focus();
@@ -5555,7 +5555,7 @@ if (applyHistoryBtn) {
 
   async function finishLoginAfterVerification() {
     if (window.autoSyncInterval) clearInterval(window.autoSyncInterval);
-    
+    await loadInitialData();
     soldBySelectCart.value = currentEmployee.id;
 
     const sideInventory = document.getElementById('sideInventoryBtn');
