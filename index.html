@@ -3832,7 +3832,7 @@ async function fetchAndCacheReceipts() {
       range = document.getElementById('receiptsDateRangeSelect')?.value || 'today';
       search = document.getElementById('receiptsSearch')?.value || '';
       
-      // Compute dates using local time (same as updateReceipts)
+      // Compute local dates (same as updateReceipts)
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       if (range === 'today') {
@@ -3886,7 +3886,20 @@ async function fetchAndCacheReceipts() {
     const response = await fetch(url);
     const result = await response.json();
     if (result.success) {
-      cachedReceipts = result.receipts;
+      let receipts = result.receipts;
+      
+      // ✅ Apply local‑date filtering (ensures correct local day boundaries)
+      if (from || to) {
+        receipts = receipts.filter(rec => {
+          const receiptDate = new Date(rec.timestamp);
+          const localDateStr = getLocalDateString(receiptDate);
+          if (from && localDateStr < from) return false;
+          if (to && localDateStr > to) return false;
+          return true;
+        });
+      }
+      
+      cachedReceipts = receipts;
       if (isModalOpen) {
         renderReceiptsList(cachedReceipts);
       }
@@ -3914,13 +3927,30 @@ async function fetchAndCacheReceipts() {
   showLoading('Loading receipts...');
   try {
     let url = `${APPS_SCRIPT_URL}?action=getReceipts&store=${store}&employeeId=${employeeId}`;
+    // Always fetch without date filters to get all receipts, then filter locally.
+    // (But we keep from/to for backend compatibility – they may reduce data transfer.)
     if (from) url += `&from=${encodeURIComponent(from)}`;
     if (to) url += `&to=${encodeURIComponent(to)}`;
     if (search) url += `&search=${encodeURIComponent(search)}`;
+    
     const response = await fetch(url);
     const result = await response.json();
     if (result.success) {
-      cachedReceipts = result.receipts;
+      let receipts = result.receipts;
+      
+      // Apply local‑date filtering if a date range is specified
+      if (from || to) {
+        receipts = receipts.filter(rec => {
+          const receiptDate = new Date(rec.timestamp);
+          const localDateStr = getLocalDateString(receiptDate);
+          
+          if (from && localDateStr < from) return false;
+          if (to && localDateStr > to) return false;
+          return true;
+        });
+      }
+      
+      cachedReceipts = receipts;
       renderReceiptsList(cachedReceipts);
     } else {
       throw new Error('Receipts data error');
