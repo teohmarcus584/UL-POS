@@ -5381,29 +5381,32 @@ const applyHistoryBtn = document.getElementById('applyHistoryFilterBtn');
 
 function getHistoryDateRange() {
   const range = historyRangeSelect.value;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
+  const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   let from = null, to = null;
 
   if (range === 'today') {
-    from = to = getLocalDateString(today);
+    from = to = getUTCDateString(todayUTC);
   } else if (range === 'week') {
-    const start = new Date(today);
-    const dayOfWeek = today.getDay();
-    const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
-    start.setDate(today.getDate() - diffToMonday);
-    from = getLocalDateString(start);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    to = getLocalDateString(end);
+    // Rolling 7 days including today (UTC)
+    const end = new Date(todayUTC);
+    const start = new Date(todayUTC);
+    start.setUTCDate(start.getUTCDate() - 6);
+    from = getUTCDateString(start);
+    to = getUTCDateString(end);
   } else if (range === 'month') {
-    const start = new Date(today.getFullYear(), today.getMonth(), 1);
-    from = getLocalDateString(start);
-    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    to = getLocalDateString(end);
+    const start = new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth(), 1));
+    from = getUTCDateString(start);
+    const end = new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth() + 1, 0));
+    to = getUTCDateString(end);
   } else if (range === 'custom') {
-    from = document.getElementById('historyFromDate').value;
-    to = document.getElementById('historyToDate').value;
+    const fromLocal = document.getElementById('historyFromDate').value;
+    const toLocal = document.getElementById('historyToDate').value;
+    if (fromLocal && toLocal) {
+      // Convert local YYYY-MM-DD to UTC date string
+      from = new Date(fromLocal + 'T00:00:00Z').toISOString().split('T')[0];
+      to = new Date(toLocal + 'T00:00:00Z').toISOString().split('T')[0];
+    }
   }
   return { from, to };
 }
