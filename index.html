@@ -3748,7 +3748,7 @@ async function completeCheckout(paymentMethod, cashReceived) {
 
     fetchAndCacheReceipts();
 
-   if (window.printerAPI?.isConnected() && window.printerAPI.printReceipt) {
+   if (window.printerAPI?.isConnected && window.printerAPI.printReceipt) {
   const transactionWithName = { ...transaction, employee_name: currentEmployee.name };
   await window.printerAPI.printReceipt(transactionWithName);
 } else {
