@@ -5555,7 +5555,7 @@ if (applyHistoryBtn) {
 
   async function finishLoginAfterVerification() {
     if (window.autoSyncInterval) clearInterval(window.autoSyncInterval);
-    await loadInitialData();
+    
     soldBySelectCart.value = currentEmployee.id;
 
     const sideInventory = document.getElementById('sideInventoryBtn');
