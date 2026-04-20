@@ -1424,6 +1424,25 @@
 #loginModal .pin-keypad {
   gap: 16px;
 }
+.collection-history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 1rem;
+}
+.collection-history-item:last-child {
+  border-bottom: none;
+}
+.collector-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+.collector-total {
+  font-weight: 700;
+  color: #2c7a4b;
+}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -1740,7 +1759,13 @@
         <tbody id="collectionTableBody"></tbody>
       </table>
     </div>
-
+<!-- ✅ INSERT HERE -->
+<div style="margin-top: 24px; border-top: 2px solid #e2e8f0; padding-top: 16px;">
+  <h4 style="margin-bottom: 12px;">📜 Collection History (by collector)</h4>
+  <div id="collectionHistoryList" style="background: #f8fafc; border-radius: 20px; padding: 12px;">
+    <div style="text-align: center; color: #94a3b8;">Loading history...</div>
+  </div>
+</div>
     <div class="modal-buttons" style="margin-top: 16px;">
       <button id="collectSelectedBtn" class="modal-btn modal-btn-primary" disabled>Collect Selected</button>
       <button id="closeCollectionModalBtn" class="modal-btn modal-btn-secondary">Close</button>
@@ -1788,7 +1813,7 @@
 <script>
 
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxiVoapnunn-M-f8SIjhLc3QxbPfd9J6_47UkgjwXTJVzqn28XW8lY5onhd2e5DNdnoXw/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby9_CfBpmwmrJMIOU1TqdxtH3s0mC8D1EDOznheVFlNKDaB_Y_-TWkos3KZtoviVDmXjw/exec"; // REPLACE WITH YOUR URL
 
 // Haversine distance in km
 function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
@@ -3652,7 +3677,44 @@ function applyCustomDiscount() {
     document.getElementById('cancelOtherBtn').onclick = () => modal.style.display = 'none';
     document.getElementById('closePaymentModal').onclick = () => modal.style.display = 'none';
   }
+async function loadCollectionHistory() {
+  const historyContainer = document.getElementById('collectionHistoryList');
+  if (!historyContainer) return;
 
+  historyContainer.innerHTML = '<div style="text-align: center; color: #94a3b8;">Loading history...</div>';
+
+  try {
+    const url = `${APPS_SCRIPT_URL}?action=getCollectedCashHistory`;
+    const response = await fetch(url);
+    const result = await response.json();
+
+    if (result.success && result.records && result.records.length > 0) {
+      // Group by collector_name
+      const collectorTotals = {};
+      result.records.forEach(rec => {
+        const name = rec.collector_name || 'Unknown';
+        const amount = parseFloat(rec.cash_actual) || 0;
+        collectorTotals[name] = (collectorTotals[name] || 0) + amount;
+      });
+
+      let html = '';
+      for (const [name, total] of Object.entries(collectorTotals)) {
+        html += `
+          <div class="collection-history-item">
+            <span class="collector-name">👤 ${escapeHtml(name)}</span>
+            <span class="collector-total">RM ${total.toFixed(2)}</span>
+          </div>
+        `;
+      }
+      historyContainer.innerHTML = html;
+    } else {
+      historyContainer.innerHTML = '<div style="text-align: center; color: #94a3b8;">No collection history yet.</div>';
+    }
+  } catch (err) {
+    console.error('Failed to load collection history:', err);
+    historyContainer.innerHTML = '<div style="text-align: center; color: #ef4444;">Failed to load history.</div>';
+  }
+}
 async function completeCheckout(paymentMethod, cashReceived) {
   document.getElementById('paymentModal').style.display = 'none';
   const totalAmount = pendingTransaction.totalAmount;
@@ -5808,27 +5870,30 @@ document.getElementById('recordSettlementBtn')?.addEventListener('click', async 
   // ==================== CASH COLLECTION ====================
   let allUnsettledCash = [];
 
-  async function openCollectionModal() {
-    const modal = document.getElementById('collectionModal');
-    modal.style.display = 'flex';
-    let loadingMsg = document.getElementById('collectionLoadingMsg');
-    if (!loadingMsg) {
-      loadingMsg = document.createElement('div');
-      loadingMsg.id = 'collectionLoadingMsg';
-      loadingMsg.style.textAlign = 'center';
-      loadingMsg.style.padding = '20px';
-      loadingMsg.style.background = '#f8fafc';
-      loadingMsg.style.borderRadius = '12px';
-      loadingMsg.style.margin = '10px 0';
-      loadingMsg.innerText = 'Loading unsettled cash...';
-      const container = document.querySelector('#collectionModal .modal-container');
-      const storeSummary = document.getElementById('storeCashSummary');
-      if (container && storeSummary) container.insertBefore(loadingMsg, storeSummary);
-    }
-    loadingMsg.style.display = 'block';
-    await loadAllUnsettledCash();
-    loadingMsg.style.display = 'none';
+ async function openCollectionModal() {
+  const modal = document.getElementById('collectionModal');
+  modal.style.display = 'flex';
+  let loadingMsg = document.getElementById('collectionLoadingMsg');
+  if (!loadingMsg) {
+    loadingMsg = document.createElement('div');
+    loadingMsg.id = 'collectionLoadingMsg';
+    loadingMsg.style.textAlign = 'center';
+    loadingMsg.style.padding = '20px';
+    loadingMsg.style.background = '#f8fafc';
+    loadingMsg.style.borderRadius = '12px';
+    loadingMsg.style.margin = '10px 0';
+    loadingMsg.innerText = 'Loading unsettled cash...';
+    const container = document.querySelector('#collectionModal .modal-container');
+    const storeSummary = document.getElementById('storeCashSummary');
+    if (container && storeSummary) container.insertBefore(loadingMsg, storeSummary);
   }
+  loadingMsg.style.display = 'block';
+  await loadAllUnsettledCash();
+  loadingMsg.style.display = 'none';
+
+  // ✅ Load collection history
+  await loadCollectionHistory();
+}
 function renderProductDetails(productsData) {
   const tbody = document.getElementById('productDetailsBody');
   if (!tbody) return;
