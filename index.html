@@ -1751,7 +1751,7 @@
   <div class="modal-container">
     <span class="close-modal" id="closeReceiptsModal">×</span>
     <div class="modal-title">📜 Receipt History</div>
-    <div class="receipts-filters"><div class="filter-group" id="receiptsStoreFilterGroup"><label>Store</label><select id="receiptsStoreSelect"><option value="all">All Stores</option></select></div><div id="receiptsEmployeeFilter" class="filter-group" style="display: none;"><label>Employee</label><select id="receiptsEmployeeSelect"><option value="all">All Employees</option></select></div><div class="filter-group"><label>Date Range</label><select id="receiptsDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div><div id="receiptsCustomDateRange" style="display: none;" class="date-range"><input type="date" id="receiptsFromDate"><input type="date" id="receiptsToDate"></div><div class="filter-group" style="flex: 2;"><label>Search (Receipt # or Product)</label><input type="text" id="receiptsSearch" placeholder="Type to filter..."></div></div>
+    <div class="receipts-filters"><div class="filter-group" id="receiptsStoreFilterGroup"><label>Store</label><select id="receiptsStoreSelect"><option value="all">All Stores</option></select></div><div id="receiptsEmployeeFilter" class="filter-group" style="display: none;"><label>Employee</label><select id="receiptsEmployeeSelect"><option value="all">All Employees</option></select></div><div class="filter-group"><label>Date Range</label><select id="receiptsDateRangeSelect"> <option value="all" selected>All Receipts</option><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="custom">Custom</option></select></div><div id="receiptsCustomDateRange" style="display: none;" class="date-range"><input type="date" id="receiptsFromDate"><input type="date" id="receiptsToDate"></div><div class="filter-group" style="flex: 2;"><label>Search (Receipt # or Product)</label><input type="text" id="receiptsSearch" placeholder="Type to filter..."></div></div>
     <div id="receiptsList" class="receipts-list">Loading receipts...</div>
     <div class="modal-buttons"><button id="closeReceiptsBtn" class="modal-btn modal-btn-secondary">Close</button></div>
   </div>
@@ -6140,14 +6140,18 @@ function updateReceipts() {
   }
 
   const rangeSelect = document.getElementById('receiptsDateRangeSelect');
-  const range = rangeSelect ? rangeSelect.value : 'today';
+  const range = rangeSelect ? rangeSelect.value : 'all';
   const search = document.getElementById('receiptsSearch').value;
 
   let from = null, to = null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  if (range === 'today') {
+  if (range === 'all') {
+    // No date filters – show everything
+    from = null;
+    to = null;
+  } else if (range === 'today') {
     from = getLocalDateString(today);
     to = from;
   } else if (range === 'week') {
