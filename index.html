@@ -5154,14 +5154,22 @@ async function printReceipt(transaction) {
 
     for (const item of transaction.items) {
       const paidQty = item.quantity - (item.free_quantity || 0);
+      const freeQty = item.free_quantity || 0;
+
+      // Paid items (normal price)
       if (paidQty > 0) {
         const itemTotal = paidQty * item.price;
         const [nameLine, qtyLine] = formatProductLine(item.name, item.price, paidQty, itemTotal);
         lines.push(nameLine);
         lines.push(qtyLine);
       }
-      if (item.free_quantity > 0) {
-       lines.push(`🎁 FREE GIFT: ${item.free_quantity} x ${item.name}`);
+
+      // Free items – show as normal product line with price 0
+      if (freeQty > 0) {
+        const itemTotal = 0;
+        const [nameLine, qtyLine] = formatProductLine(item.name, 0, freeQty, itemTotal);
+        lines.push(nameLine);
+        lines.push(qtyLine);
       }
     }
 
@@ -5245,6 +5253,17 @@ async function printReceipt(transaction) {
     }
     commands.push(0x1B, 0x61, 0x00);
     commands.push(0x0A);
+
+    // Barcode for receipt ID
+    const barcodeData = encoder.encode(transaction.transaction_id);
+    const barcodeLen = barcodeData.length;
+    commands.push(0x1D, 0x68, 0x32);
+    commands.push(0x1D, 0x77, 0x01);
+    commands.push(0x1B, 0x61, 0x01);
+    commands.push(0x1D, 0x6B, 0x49, barcodeLen);
+    for (let i = 0; i < barcodeLen; i++) commands.push(barcodeData[i]);
+    commands.push(0x0A, 0x0A);
+    commands.push(0x1B, 0x61, 0x00);
 
     commands.push(...encoder.encode(txnLine));
     commands.push(0x0A);
