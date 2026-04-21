@@ -3762,7 +3762,7 @@ async function loadCollectionHistory(fromDate = null, toDate = null) {
     const result = await response.json();
 
     if (result.success && result.records && result.records.length > 0) {
-      // Calculate totals per collector
+      // Calculate totals per collector (optional – keep for summary)
       const collectorTotals = {};
       result.records.forEach(rec => {
         const name = rec.collector_name || 'Unknown';
@@ -3770,7 +3770,7 @@ async function loadCollectionHistory(fromDate = null, toDate = null) {
         collectorTotals[name] = (collectorTotals[name] || 0) + amount;
       });
 
-      // Build summary HTML
+      // Build summary HTML (totals by collector)
       let summaryHtml = '<div style="margin-bottom: 16px; padding: 12px; background: #f1f5f9; border-radius: 16px;">';
       summaryHtml += '<strong>📊 Totals by collector:</strong><div style="margin-top: 8px;">';
       for (const [name, total] of Object.entries(collectorTotals)) {
@@ -3778,7 +3778,7 @@ async function loadCollectionHistory(fromDate = null, toDate = null) {
       }
       summaryHtml += '</div></div>';
 
-      // Build detailed list (newest first)
+      // Build detailed list (newest first) with STORE, DATE, COLLECTOR, AMOUNT
       const records = result.records.sort((a, b) => new Date(b.collected_at || b.timestamp) - new Date(a.collected_at || a.timestamp));
       let detailsHtml = '<div style="max-height: 300px; overflow-y: auto;">';
       for (const rec of records) {
@@ -3786,13 +3786,16 @@ async function loadCollectionHistory(fromDate = null, toDate = null) {
         const formattedDate = new Date(collectionDate).toLocaleString();
         const collector = rec.collector_name || 'Unknown';
         const amount = parseFloat(rec.cash_actual) || 0;
+        const storeName = rec.store ? rec.store.charAt(0).toUpperCase() + rec.store.slice(1).replace('_', ' ') : 'Unknown Store';
+        
         detailsHtml += `
-          <div class="collection-history-item">
-            <div style="flex: 2;">
-              <span class="collector-name">👤 ${escapeHtml(collector)}</span>
+          <div class="collection-history-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #e2e8f0;">
+            <div style="flex: 3;">
+              <div><strong>🏪 ${escapeHtml(storeName)}</strong></div>
+              <div><span class="collector-name">👤 ${escapeHtml(collector)}</span></div>
               <div style="font-size: 0.75rem; color: #64748b;">${formattedDate}</div>
             </div>
-            <div class="collector-total">RM ${amount.toFixed(2)}</div>
+            <div class="collector-total" style="font-weight: 700; color: #2c7a4b;">RM ${amount.toFixed(2)}</div>
           </div>
         `;
       }
