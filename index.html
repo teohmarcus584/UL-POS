@@ -1997,6 +1997,7 @@ function openIndexedDB() {
 // Automatically select closest store when the modal appears
 (async function autoSelectOnLoad() {
  loadAndCacheEmployees().catch(console.warn);
+  preloadAllStoresData(); // 👈 add this line
   const storeDisplaySpan = document.getElementById('selectedStoreDisplay');
   const storeValueHidden = document.getElementById('initialStoreValue');
   const retryBtn = document.getElementById('retryLocationBtn');
@@ -2015,7 +2016,9 @@ function openIndexedDB() {
     currentStore = storeId;
     storeSelect.value = storeId; // if dropdown exists (keep for compatibility)
     document.getElementById('storeSelectModal').style.display = 'none';
-    
+    // ✅ Show login modal IMMEDIATELY
+  document.getElementById('loginModal').style.display = 'flex';
+  document.getElementById('pinInput').focus();
     // Load employees and show login modal
     loadAndCacheEmployees().catch(console.warn);
     const preloaded = preloadedDataMap[storeId];
