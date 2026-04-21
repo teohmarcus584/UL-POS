@@ -1957,6 +1957,7 @@ async function autoSelectStoreByLocation() {
   let preloadedDataMap = {};
   let preloadedStores = [];
   let selectedCustomer = null;
+  let loginInProgress = false;
 let lowStockFilterActive = false;   // track filter state
   // New variables for preloaded report and settlement data
   let preloadedSettlementTotals = null;      // cache settlement totals for current store today
@@ -2066,58 +2067,68 @@ function openIndexedDB() {
   };
 
   // Helper to proceed to login
-  async function proceedToLogin(storeId) {
-    initialStore = storeId;
-    currentStore = storeId;
-    storeSelect.value = storeId; // if dropdown exists (keep for compatibility)
-    document.getElementById('storeSelectModal').style.display = 'none';
-    // ✅ Show login modal IMMEDIATELY
+ async function proceedToLogin(storeId) {
+  // Prevent multiple simultaneous calls
+  if (loginInProgress) return;
+  loginInProgress = true;
+
+  // Clear any pending auto‑login timeout (if called again)
+  if (window.autoLoginTimeout) clearTimeout(window.autoLoginTimeout);
+
+  initialStore = storeId;
+  currentStore = storeId;
+  storeSelect.value = storeId; // if dropdown exists (keep for compatibility)
+  document.getElementById('storeSelectModal').style.display = 'none';
+
+  // ✅ Show login modal IMMEDIATELY
   document.getElementById('loginModal').style.display = 'flex';
   document.getElementById('pinInput').focus();
-    // Load employees and show login modal
-    loadAndCacheEmployees().catch(console.warn);
-    const preloaded = preloadedDataMap[storeId];
-    if (preloaded && preloaded.products && preloaded.products.length > 0) {
-      products = preloaded.products;
-      const categories = [...new Set(products.map(p => p.category))].sort();
-      categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
-      categories.forEach(cat => {
+
+  // Load employees in the background (cached)
+  loadAndCacheEmployees().catch(console.warn);
+
+  const preloaded = preloadedDataMap[storeId];
+  if (preloaded && preloaded.products && preloaded.products.length > 0) {
+    products = preloaded.products;
+    const categories = [...new Set(products.map(p => p.category))].sort();
+    categorySelect.innerHTML = '<option value="all">📂 All Categories</option>';
+    categories.forEach(cat => {
+      const option = document.createElement('option');
+      option.value = cat;
+      option.textContent = cat;
+      categorySelect.appendChild(option);
+    });
+    renderProductGrid();
+    if (preloaded.employees && preloaded.employees.length > 0) {
+      employeeNameMap = {};
+      soldBySelectCart.innerHTML = '';
+      preloaded.employees.forEach(emp => {
+        employeeNameMap[emp.id] = emp.name;
         const option = document.createElement('option');
-        option.value = cat;
-        option.textContent = cat;
-        categorySelect.appendChild(option);
+        option.value = emp.id;
+        option.textContent = `${emp.name} (ID: ${emp.id})`;
+        soldBySelectCart.appendChild(option);
       });
-      renderProductGrid();
-      if (preloaded.employees && preloaded.employees.length > 0) {
+    } else {
+      fetchEmployees().then(employees => {
         employeeNameMap = {};
         soldBySelectCart.innerHTML = '';
-        preloaded.employees.forEach(emp => {
+        employees.forEach(emp => {
           employeeNameMap[emp.id] = emp.name;
           const option = document.createElement('option');
           option.value = emp.id;
           option.textContent = `${emp.name} (ID: ${emp.id})`;
           soldBySelectCart.appendChild(option);
         });
-      } else {
-        fetchEmployees().then(employees => {
-          employeeNameMap = {};
-          soldBySelectCart.innerHTML = '';
-          employees.forEach(emp => {
-            employeeNameMap[emp.id] = emp.name;
-            const option = document.createElement('option');
-            option.value = emp.id;
-            option.textContent = `${emp.name} (ID: ${emp.id})`;
-            soldBySelectCart.appendChild(option);
-          });
-        });
-      }
-      initialDataPromise = Promise.resolve(true);
-    } else {
-      await loadInitialData();
+      });
     }
-    document.getElementById('loginModal').style.display = 'flex';
-    document.getElementById('pinInput').focus();
+    initialDataPromise = Promise.resolve(true);
+  } else {
+    await loadInitialData();
   }
+
+ 
+}
 
   // Try location
   const closest = await autoSelectStoreByLocation();
@@ -5532,41 +5543,50 @@ if (applyHistoryBtn) {
     await loadCollectionHistory(from, to);
   });
 }
-  async function verifyEmployeeByPin(pin) {
-    showLoading('Verifying...');
-    const pinInputEl = document.getElementById('pinInput');
-    try {
-      const url = `${APPS_SCRIPT_URL}?action=verifyByPin&pin=${encodeURIComponent(pin)}`;
-      const response = await fetch(url);
-      const result = await response.json();
-      if (result.success) {
-        currentEmployee = result.employee;
-        if (!cachedEmployees.find(e => e.id == currentEmployee.id)) {
-          cachedEmployees.push(currentEmployee);
-          localStorage.setItem('cachedEmployees', JSON.stringify({
-            timestamp: Date.now(),
-            employees: cachedEmployees
-          }));
-        }
-        document.getElementById('employeeNameHeader').innerText = `👤 ${currentEmployee.name}`;
-        document.getElementById('loginModal').style.display = 'none';
-        document.getElementById('mainContent').style.display = 'block';
-        await finishLoginAfterVerification();
-        return true;
-      } else {
-        document.getElementById('loginError').innerText = result.error || 'Invalid PIN';
-        if (pinInputEl) pinInputEl.value = '';
-        return false;
+ async function verifyEmployeeByPin(pin) {
+  // Prevent multiple verification attempts
+  if (window.verifying) return;
+  window.verifying = true;
+
+  showLoading('Verifying...');
+  const pinInputEl = document.getElementById('pinInput');
+  try {
+    const url = `${APPS_SCRIPT_URL}?action=verifyByPin&pin=${encodeURIComponent(pin)}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    if (result.success) {
+      currentEmployee = result.employee;
+      if (!cachedEmployees.find(e => e.id == currentEmployee.id)) {
+        cachedEmployees.push(currentEmployee);
+        localStorage.setItem('cachedEmployees', JSON.stringify({
+          timestamp: Date.now(),
+          employees: cachedEmployees
+        }));
       }
-    } catch (err) {
-      console.error(err);
-      document.getElementById('loginError').innerText = 'Connection error';
+      document.getElementById('employeeNameHeader').innerText = `👤 ${currentEmployee.name}`;
+      document.getElementById('loginModal').style.display = 'none';
+      document.getElementById('mainContent').style.display = 'block';
+
+      // ✅ CLEAR the auto‑proceed timeout to prevent second call
+      if (window.autoLoginTimeout) clearTimeout(window.autoLoginTimeout);
+
+      await finishLoginAfterVerification();
+      return true;
+    } else {
+      document.getElementById('loginError').innerText = result.error || 'Invalid PIN';
       if (pinInputEl) pinInputEl.value = '';
       return false;
-    } finally {
-      hideLoading();
     }
+  } catch (err) {
+    console.error(err);
+    document.getElementById('loginError').innerText = 'Connection error';
+    if (pinInputEl) pinInputEl.value = '';
+    return false;
+  } finally {
+    hideLoading();
+    window.verifying = false;
   }
+}
 
   const gridBtn = document.getElementById('gridViewBtn');
   const listBtn = document.getElementById('listViewBtn');
