@@ -5266,7 +5266,7 @@ function closePrinterModalFunc() { printerModal.style.display = 'none'; }
 if (closePrinterModal) closePrinterModal.addEventListener('click', closePrinterModalFunc);
 if (closePrinterModalBtn) closePrinterModalBtn.addEventListener('click', closePrinterModalFunc);
 
-const savedSize = localStorage.getItem('printerPaperSize') || '80';
+const savedSize = localStorage.getItem('printerPaperSize') || '58';
 paperSizeSelectModal.value = savedSize;
 
 window.printerAPI = { isConnected: false, printReceipt: printReceipt, openDrawer: openCashDrawer, printPrizeVoucher: printPrizeVoucher };
