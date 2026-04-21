@@ -2017,7 +2017,7 @@ function openIndexedDB() {
     document.getElementById('storeSelectModal').style.display = 'none';
     
     // Load employees and show login modal
-    await loadAndCacheEmployees().catch(console.warn);
+    loadAndCacheEmployees().catch(console.warn);
     const preloaded = preloadedDataMap[storeId];
     if (preloaded && preloaded.products && preloaded.products.length > 0) {
       products = preloaded.products;
