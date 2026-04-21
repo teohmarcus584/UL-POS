@@ -4117,7 +4117,7 @@ async function fetchReceipts(store, employeeId, from, to, search) {
   // ========== UPDATED RECEIPT RENDERING WITH DETAILED ITEMS, DISCOUNTS, FREE GIFTS ==========
 function renderReceiptsList(receipts) {
   const container = document.getElementById('receiptsList');
-  if (!receipts.length) {
+  if (!receipts || !receipts.length) {
     container.innerHTML = '<div style="text-align:center; padding:30px;">No receipts found.</div>';
     return;
   }
@@ -4132,26 +4132,32 @@ function renderReceiptsList(receipts) {
       ? `<span class="receipt-id">[REFUND] ${rec.transaction_id}</span>`
       : `<span class="receipt-id">${rec.transaction_id}</span>`;
 
-    // Build detailed items list
+    // Build detailed items list with safety checks
     let itemsHtml = '<div class="receipt-items-list">';
     let subtotal = 0;
     for (const item of rec.items) {
-      const paidQty = item.quantity - (item.free_quantity || 0);
-      const itemTotal = paidQty * item.price;
+      // ✅ Safe number conversion
+      const price = parseFloat(item.price) || 0;
+      const quantity = parseInt(item.quantity) || 0;
+      const freeQuantity = parseInt(item.free_quantity) || 0;
+      const paidQty = quantity - freeQuantity;
+      if (paidQty <= 0) continue; // skip if no paid items
+      
+      const itemTotal = paidQty * price;
       subtotal += itemTotal;
 
       itemsHtml += `
         <div class="receipt-item-row">
           <span class="receipt-item-name">${escapeHtml(item.name)}</span>
-          <span class="receipt-item-detail">${paidQty} x RM ${item.price.toFixed(2)}</span>
+          <span class="receipt-item-detail">${paidQty} x RM ${price.toFixed(2)}</span>
           <span class="receipt-item-detail">RM ${itemTotal.toFixed(2)}</span>
         </div>
       `;
-      if (item.free_quantity > 0) {
+      if (freeQuantity > 0) {
         itemsHtml += `
           <div class="receipt-item-row" style="color:#10b981; font-style:italic;">
             <span class="receipt-item-name">🎁 FREE GIFT</span>
-            <span class="receipt-item-detail">${item.free_quantity} x ${escapeHtml(item.name)}</span>
+            <span class="receipt-item-detail">${freeQuantity} x ${escapeHtml(item.name)}</span>
             <span class="receipt-item-detail">RM 0.00</span>
           </div>
         `;
@@ -4159,22 +4165,27 @@ function renderReceiptsList(receipts) {
     }
     itemsHtml += '</div>';
 
-    // Discounts
+    // Discounts with safe conversion
     let discountsHtml = '';
-if (rec.discount && rec.discount > 0) {
-  discountsHtml += `<div class="receipt-discount-row"><span>🎲 Lucky Draw Discount</span><span>-RM ${rec.discount.toFixed(2)}</span></div>`;
-}
-if (rec.buy2_free1_discount && rec.buy2_free1_discount > 0) {
-  discountsHtml += `<div class="receipt-discount-row"><span>🚗 Car Aromatic Promo</span><span>-RM ${rec.buy2_free1_discount.toFixed(2)}</span></div>`;
-}
-if (rec.buy3_free1_discount && rec.buy3_free1_discount > 0) {
-  discountsHtml += `<div class="receipt-discount-row"><span>🌸 15ml Perfume EDP Promo</span><span>-RM ${rec.buy3_free1_discount.toFixed(2)}</span></div>`;
-}
-if (rec.custom_discount && rec.custom_discount > 0) {
-  discountsHtml += `<div class="receipt-discount-row"><span>💰 Custom Discount</span><span>-RM ${rec.custom_discount.toFixed(2)}</span></div>`;
-}
+    const discount = parseFloat(rec.discount) || 0;
+    const buy2Free1 = parseFloat(rec.buy2_free1_discount) || 0;
+    const buy3Free1 = parseFloat(rec.buy3_free1_discount) || 0;
+    const customDisc = parseFloat(rec.custom_discount) || 0;
 
-    const total = rec.total;
+    if (discount > 0) {
+      discountsHtml += `<div class="receipt-discount-row"><span>🎲 Lucky Draw Discount</span><span>-RM ${discount.toFixed(2)}</span></div>`;
+    }
+    if (buy2Free1 > 0) {
+      discountsHtml += `<div class="receipt-discount-row"><span>🚗 Car Aromatic Promo</span><span>-RM ${buy2Free1.toFixed(2)}</span></div>`;
+    }
+    if (buy3Free1 > 0) {
+      discountsHtml += `<div class="receipt-discount-row"><span>🌸 15ml Perfume EDP Promo</span><span>-RM ${buy3Free1.toFixed(2)}</span></div>`;
+    }
+    if (customDisc > 0) {
+      discountsHtml += `<div class="receipt-discount-row"><span>💰 Custom Discount</span><span>-RM ${customDisc.toFixed(2)}</span></div>`;
+    }
+
+    const total = parseFloat(rec.total) || 0;
 
     const actionsHtml = `
       <div class="receipt-actions">
@@ -4210,6 +4221,7 @@ if (rec.custom_discount && rec.custom_discount > 0) {
   });
   container.innerHTML = html;
 
+  // Re-attach event listeners (same as before)
   document.querySelectorAll('.reprint-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const txId = btn.dataset.txid;
