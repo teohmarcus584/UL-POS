@@ -4384,6 +4384,21 @@ function renderReceiptsList(receipts) {
     
     if (result.success) {
       await showAlertModal('Refund Successful', `Refund ID: ${result.refundId}\nStock restored.`);
+
+      // ✅ Auto‑print refund receipt if printer is connected
+      if (window.printerAPI?.isConnected && result.refundTransaction) {
+        // Ensure employee_name is set (fallback to current employee)
+        if (!result.refundTransaction.employee_name) {
+          result.refundTransaction.employee_name = currentEmployee.name;
+        }
+        const printed = await window.printerAPI.printReceipt(result.refundTransaction);
+        if (!printed) {
+          console.warn('Refund receipt print failed');
+        }
+      } else if (!window.printerAPI?.isConnected) {
+        console.warn('Printer not connected – refund receipt not printed');
+      }
+
       updateReceipts();
       localStorage.removeItem(`products_${currentStore}`);
       await fetchProductsFromSheet();
