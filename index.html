@@ -1610,19 +1610,39 @@
   <div class="modal-container" style="max-width: 800px;">
     <span class="close-modal" id="closePaymentModal">×</span>
     <div class="modal-title">💳 Select Payment Method</div>
+
+    <!-- Payment method buttons (grid) -->
     <div class="payment-buttons">
-  <button class="payment-btn" data-method="Cash">💵 Cash</button>
-  <button class="payment-btn" data-method="Card">💳 Card</button>
-  <button class="payment-btn" data-method="QR Pay">
-  <img src="https://i.imgur.com/xjr9fMo.png" alt="QR Pay" class="qrpay-icon">
-  <span>QR Pay</span>
-</button>
-<button class="payment-btn" data-method="Alipay">
-  <img src="https://i.imgur.com/AJOrjbx.png" alt="Alipay" class="alipay-icon">
-  <span>Alipay</span>
-</button>
-    <div id="cashOptions" style="display: none;"><div class="suggestions" id="suggestionsContainer"></div><input type="number" id="customCashInput" class="custom-cash-input" placeholder="Enter amount received (RM)" step="0.01"><div class="modal-buttons"><button id="confirmCashBtn" class="modal-btn modal-btn-primary">Confirm</button><button id="cancelPaymentBtn" class="modal-btn modal-btn-secondary">Cancel</button></div></div>
-    <div id="otherPaymentOptions" style="display: none;"><div class="modal-buttons"><button id="confirmOtherBtn" class="modal-btn modal-btn-primary">Confirm</button><button id="cancelOtherBtn" class="modal-btn modal-btn-secondary">Cancel</button></div></div>
+      <button class="payment-btn" data-method="Cash">💵 Cash</button>
+      <button class="payment-btn" data-method="Card">💳 Card</button>
+      <button class="payment-btn" data-method="QR Pay">
+        <img src="https://i.imgur.com/xjr9fMo.png" alt="QR Pay" class="qrpay-icon">
+        <span>QR Pay</span>
+      </button>
+      <button class="payment-btn" data-method="Alipay">
+        <img src="https://i.imgur.com/AJOrjbx.png" alt="Alipay" class="alipay-icon">
+        <span>Alipay</span>
+      </button>
+    </div>
+
+    <!-- Cash options (shown when Cash is selected) -->
+    <div id="cashOptions" style="display: none;">
+      <div class="suggestions" id="suggestionsContainer"></div>
+      <input type="number" id="customCashInput" class="custom-cash-input" placeholder="Enter amount received (RM)" step="0.01">
+      <div class="modal-buttons">
+        <button id="confirmCashBtn" class="modal-btn modal-btn-primary">Confirm</button>
+        <button id="cancelPaymentBtn" class="modal-btn modal-btn-secondary">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Other payment options (shown for Card, QR Pay, Alipay) -->
+    <div id="otherPaymentOptions" style="display: none;">
+      <div class="modal-buttons">
+        <button id="confirmOtherBtn" class="modal-btn modal-btn-primary">Confirm</button>
+        <button id="cancelOtherBtn" class="modal-btn modal-btn-secondary">Cancel</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
