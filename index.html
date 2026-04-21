@@ -2067,7 +2067,7 @@ function openIndexedDB() {
     storeValueHidden.value = closest;
     console.log(`📍 Auto-selected store: ${closest}`);
     // Auto-proceed after a short delay (so user sees the store name briefly)
-    setTimeout(() => proceedToLogin(closest), 500);
+    setTimeout(() => proceedToLogin(closest), 2000);
   } else {
     storeDisplaySpan.innerText = '❌ Could not detect location. Please allow GPS and retry.';
     if (retryBtn) retryBtn.style.display = 'inline-block';
@@ -2082,7 +2082,7 @@ function openIndexedDB() {
       if (newClosest && storeNames[newClosest]) {
         storeDisplaySpan.innerText = storeNames[newClosest];
         storeValueHidden.value = newClosest;
-        setTimeout(() => proceedToLogin(newClosest), 500);
+        setTimeout(() => proceedToLogin(newClosest), 2000);
       } else {
         storeDisplaySpan.innerText = '❌ Still failed. Please check GPS.';
         retryBtn.style.display = 'inline-block';
