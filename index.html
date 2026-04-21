@@ -3267,7 +3267,85 @@ async function fetchProductsFromSheet(force = false) {
     }
   }
 
+async function printSettlementReport(store, date, totals) {
+  if (!isPrinterConnected || !printerCharacteristic) {
+    await showAlertModal('Printer not connected', 'Settlement recorded but could not print report. Please connect printer.');
+    return false;
+  }
 
+  try {
+    const paperSize = paperSizeSelectModal.value;
+    const maxChars = paperSize === '58' ? 32 : 48;
+    const encoder = new TextEncoder();
+
+    const storeName = store.charAt(0).toUpperCase() + store.slice(1).replace('_', ' ');
+    const separator = '='.repeat(maxChars);
+    const dash = '-'.repeat(maxChars);
+
+    const lines = [];
+    lines.push('');
+    lines.push('DAILY SETTLEMENT REPORT');
+    lines.push(separator);
+    lines.push(`Store     : ${storeName}`);
+    lines.push(`Date      : ${date}`);
+    lines.push(`Time      : ${new Date().toLocaleString()}`);
+    lines.push(separator);
+    lines.push('SYSTEM TOTALS');
+    lines.push(dash);
+    lines.push(`Cash      : RM ${totals.cashSystem.toFixed(2)}`);
+    lines.push(`Card      : RM ${totals.cardSystem.toFixed(2)}`);
+    lines.push(`QR Pay    : RM ${totals.qrSystem.toFixed(2)}`);
+    lines.push(`Alipay    : RM ${totals.alipaySystem.toFixed(2)}`);
+    lines.push(`Refunds   : RM ${totals.refundSystem.toFixed(2)}`);
+    lines.push(separator);
+    lines.push('ACTUAL COUNTS');
+    lines.push(dash);
+    lines.push(`Cash      : RM ${totals.cashActual.toFixed(2)}`);
+    lines.push(`Card      : RM ${totals.cardActual.toFixed(2)}`);
+    lines.push(`QR Pay    : RM ${totals.qrActual.toFixed(2)}`);
+    lines.push(`Alipay    : RM ${totals.alipayActual.toFixed(2)}`);
+    lines.push(separator);
+    lines.push('DISCREPANCIES');
+    lines.push(dash);
+    const cashDiff = totals.cashActual - totals.cashSystem;
+    const cardDiff = totals.cardActual - totals.cardSystem;
+    const qrDiff = totals.qrActual - totals.qrSystem;
+    const alipayDiff = totals.alipayActual - totals.alipaySystem;
+    lines.push(`Cash   : ${cashDiff >= 0 ? '+' : ''}RM ${cashDiff.toFixed(2)}`);
+    lines.push(`Card   : ${cardDiff >= 0 ? '+' : ''}RM ${cardDiff.toFixed(2)}`);
+    lines.push(`QR Pay : ${qrDiff >= 0 ? '+' : ''}RM ${qrDiff.toFixed(2)}`);
+    lines.push(`Alipay : ${alipayDiff >= 0 ? '+' : ''}RM ${alipayDiff.toFixed(2)}`);
+    lines.push(separator);
+    lines.push(`Petty Cash Float : RM ${totals.pettyCash.toFixed(2)}`);
+    lines.push(separator);
+    lines.push('COLLECTED AMOUNT');
+    lines.push(dash);
+    const totalActual = totals.cashActual + totals.cardActual + totals.qrActual + totals.alipayActual;
+    lines.push(`Total Cash In Hand : RM ${totalActual.toFixed(2)}`);
+    lines.push(separator);
+    lines.push('SIGNATURE');
+    lines.push('_________________');
+    lines.push('Cashier / Manager');
+    lines.push('');
+    lines.push('');
+
+    const text = lines.join('\n');
+    const commands = [];
+    commands.push(0x1B, 0x40); // init
+    commands.push(0x1B, 0x61, 0x01); // center align
+    for (let i = 0; i < text.length; i++) {
+      commands.push(text.charCodeAt(i));
+    }
+    commands.push(0x0A);
+    commands.push(0x1D, 0x56, 0x41, 0x00); // full cut
+
+    await sendChunkedData(new Uint8Array(commands), 500);
+    return true;
+  } catch (err) {
+    console.error('Settlement print error:', err);
+    return false;
+  }
+}
 
   function mergeProductChanges(existingProducts, changes) {
     const map = new Map();
@@ -6064,7 +6142,7 @@ document.getElementById('recordSettlementBtn')?.addEventListener('click', async 
   const sysCard = parseFloat(document.getElementById('sysCard').innerText.replace('RM ', '')) || 0;
   const sysQR = parseFloat(document.getElementById('sysQR').innerText.replace('RM ', '')) || 0;
   const sysAlipay = parseFloat(document.getElementById('sysAlipay').innerText.replace('RM ', '')) || 0;
-
+const sysRefund = parseFloat(document.getElementById('sysRefund').innerText.replace('RM ', '')) || 0;
   const todayStr = getLocalDateString(new Date());
 
   showLoading('Recording settlement...');
@@ -6090,6 +6168,22 @@ document.getElementById('recordSettlementBtn')?.addEventListener('click', async 
 
     if (result.success) {
       await showAlertModal('Settlement Recorded', `Settlement for ${store} on ${todayStr} has been saved.`);
+
+      // ✅ Print settlement report automatically
+      const totals = {
+        cashSystem: sysCash,
+        cardSystem: sysCard,
+        qrSystem: sysQR,
+        alipaySystem: sysAlipay,
+        refundSystem: sysRefund,   // ❌ ERROR: sysRefund is not defined!
+        cashActual: actualCash,
+        cardActual: actualCard,
+        qrActual: actualQR,
+        alipayActual: actualAlipay,
+        pettyCash: pettyCash
+      };
+      await printSettlementReport(store, todayStr, totals);
+
       document.getElementById('settlementModal').style.display = 'none';
       await refreshSettlementTotals(store);
     } else {
