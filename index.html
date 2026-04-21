@@ -1996,6 +1996,7 @@ function openIndexedDB() {
 }
 // Automatically select closest store when the modal appears
 (async function autoSelectOnLoad() {
+ loadAndCacheEmployees().catch(console.warn);
   const storeDisplaySpan = document.getElementById('selectedStoreDisplay');
   const storeValueHidden = document.getElementById('initialStoreValue');
   const retryBtn = document.getElementById('retryLocationBtn');
