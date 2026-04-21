@@ -1585,7 +1585,14 @@
   <div class="modal-container" style="max-width: 800px;">
     <span class="close-modal" id="closePaymentModal">×</span>
     <div class="modal-title">💳 Select Payment Method</div>
-    <div class="payment-buttons"><button class="payment-btn" data-method="Cash">💵 Cash</button><button class="payment-btn" data-method="Card">💳 Card</button><button class="payment-btn" data-method="QR Pay">📱 QR Pay</button><button class="payment-btn" data-method="Alipay">💸 Alipay</button></div>
+    <div class="payment-buttons">
+  <button class="payment-btn" data-method="Cash">💵 Cash</button>
+  <button class="payment-btn" data-method="Card">💳 Card</button>
+  <button class="payment-btn" data-method="QR Pay">📱 QR Pay</button>
+  <button class="payment-btn" data-method="Alipay">
+    <img src="https://i.imgur.com/AJOrjbx.png" alt="Alipay" style="width: 32px; height: 32px; display: block; margin: 0 auto 4px;"> Alipay
+  </button>
+</div>
     <div id="cashOptions" style="display: none;"><div class="suggestions" id="suggestionsContainer"></div><input type="number" id="customCashInput" class="custom-cash-input" placeholder="Enter amount received (RM)" step="0.01"><div class="modal-buttons"><button id="confirmCashBtn" class="modal-btn modal-btn-primary">Confirm</button><button id="cancelPaymentBtn" class="modal-btn modal-btn-secondary">Cancel</button></div></div>
     <div id="otherPaymentOptions" style="display: none;"><div class="modal-buttons"><button id="confirmOtherBtn" class="modal-btn modal-btn-primary">Confirm</button><button id="cancelOtherBtn" class="modal-btn modal-btn-secondary">Cancel</button></div></div>
   </div>
