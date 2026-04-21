@@ -1443,20 +1443,30 @@
   font-weight: 700;
   color: #2c7a4b;
 }
-/* Remove the default emoji pseudo‑elements for both */
+/* Remove default emoji pseudo‑elements */
 .payment-btn[data-method="QR Pay"]::before,
 .payment-btn[data-method="Alipay"]::before {
   content: none !important;
 }
 
-/* Style both icons – bigger size */
+/* Ensure all payment buttons use flex centering */
+.payment-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+}
+
+/* Larger icons – 64px for better visibility */
 .qrpay-icon,
 .alipay-icon {
-  width: 48px;      /* increased from 36px */
-  height: 48px;
+  width: 64px;
+  height: 64px;
   object-fit: contain;
   display: block;
-  margin: 0 auto 8px;
+  margin: 0 auto;
 }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
