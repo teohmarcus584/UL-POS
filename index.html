@@ -6930,7 +6930,17 @@ function updateStoreCashSummary() {
     }
   }
 
-
+function attachStoreCardClickListeners() {
+  const cards = document.querySelectorAll('.store-summary-card');
+  cards.forEach(card => {
+    card.removeEventListener('click', card._cardClickHandler);
+    const store = card.getAttribute('data-store');
+    const handler = () => openStoreCardModal(store);
+    card.addEventListener('click', handler);
+    card._cardClickHandler = handler;
+    card.style.cursor = 'pointer';
+  });
+}
 async function getNextTransactionNumber(store) {
   try {
     const response = await fetch(`${APPS_SCRIPT_URL}?action=getNextTransactionNumber&store=${store}`);
