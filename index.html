@@ -1894,7 +1894,7 @@
 <script>
 
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQEZFCp-_hg2y5OQDO2tm9g_m8mmSYn1Qj5OeaczhxBjPPVnbEIJOsbBymrEBrgFP_cg/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz0KNpm0lnPWuv9-7Sf0CTuH12Xpvc5Nj4SyJcomNgEdbqoieotHzuShLcwvgNl4_5zdA/exec"; // REPLACE WITH YOUR URL
 
 // Haversine distance in km
 function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
@@ -4776,12 +4776,22 @@ async function fetchSalesReport(store, employeeId, from, to, unsettledOnly, sile
     return [];
   }
 }
-async function fetchMultiStoreReport(from, to) {
+async function fetchMultiStoreReport(from, to, forceRefresh = false) {
+  const cacheKey = `multiStore_${from}_${to}`;
+  
+  if (!forceRefresh) {
+    const cached = await getCachedReport(cacheKey);
+    if (cached) {
+      return cached;
+    }
+  }
+  
   try {
     const url = `${APPS_SCRIPT_URL}?action=getMultiStoreReport&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&_=${Date.now()}`;
     const response = await fetch(url);
     const result = await response.json();
     if (result.success) {
+      await setCachedReport(cacheKey, result.stores);
       return result.stores;
     }
     return null;
@@ -4875,17 +4885,12 @@ async function updateAdminReport(forceRefresh = false) {
     });
 
     // Try to fetch all stores in a single request
-    let multiData = null;
-    try {
-      const url = `${APPS_SCRIPT_URL}?action=getMultiStoreReport&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&_=${Date.now()}`;
-      const response = await fetch(url);
-      const result = await response.json();
-      if (result.success && result.stores) {
-        multiData = result.stores;
-      }
-    } catch (err) {
-      console.warn('Multi-store endpoint failed:', err);
-    }
+   let multiData = null;
+try {
+  multiData = await fetchMultiStoreReport(from, to, forceRefresh);
+} catch (err) {
+  console.warn('Multi-store endpoint failed:', err);
+}
 
     if (multiData) {
       // Fast path: update all cards from the single response
