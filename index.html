@@ -1309,6 +1309,7 @@
   font-size: 0.95rem;
   padding: 12px 10px;
 }
+
 /* Product List View - Even Larger Fonts */
 .product-list .product-card {
   padding: 20px 28px;
@@ -1467,6 +1468,38 @@
   object-fit: contain;
   display: block;
   margin: 0 auto;
+}
+/* Store Card Modal - Swipeable */
+#storeCardModal .modal-container {
+  touch-action: pan-y pinch-zoom; /* allow vertical scroll, prevent horizontal swipe conflict */
+}
+#cardModalContent {
+  transition: transform 0.2s ease;
+}
+.swipe-transition {
+  transition: transform 0.2s ease;
+}
+.card-detail-item {
+  background: white;
+  border-radius: 28px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.card-detail-label {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+}
+.card-detail-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #2c7a4b;
+}
+.employee-swipe-list {
+  max-height: 200px;
+  overflow-y: auto;
 }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -1702,7 +1735,22 @@
     <div class="modal-buttons"><button id="closeSpecialPromoModalBtn" class="modal-btn modal-btn-secondary">Close</button></div>
   </div>
 </div>
-
+<!-- Store Card Fullscreen Modal (Swipeable) -->
+<div id="storeCardModal" class="modal-overlay" style="display: none; z-index: 3000;">
+  <div class="modal-container" style="max-width: 95%; width: 95%; height: 90%; max-height: 90%; overflow: hidden; display: flex; flex-direction: column; padding: 0; background: #f8fafc;">
+    <span class="close-modal" id="closeStoreCardModal" style="position: absolute; top: 16px; right: 20px; z-index: 10;">×</span>
+    <div style="flex: 1; display: flex; align-items: center; justify-content: center; position: relative;">
+      <button id="prevCardBtn" class="modal-btn" style="position: absolute; left: 10px; background: rgba(0,0,0,0.5); color: white; border-radius: 50%; width: 44px; height: 44px; padding: 0; font-size: 2rem; z-index: 5;">‹</button>
+      <div id="cardModalContent" style="width: 100%; max-width: 500px; margin: 0 auto; padding: 20px; overflow-y: auto; max-height: 90vh;">
+        <!-- Dynamic content will be inserted here -->
+      </div>
+      <button id="nextCardBtn" class="modal-btn" style="position: absolute; right: 10px; background: rgba(0,0,0,0.5); color: white; border-radius: 50%; width: 44px; height: 44px; padding: 0; font-size: 2rem; z-index: 5;">›</button>
+    </div>
+    <div style="text-align: center; padding: 12px; background: white; border-top: 1px solid #e2e8f0;">
+      <span id="cardIndicator" style="font-weight: 500;"></span>
+    </div>
+  </div>
+</div>
 <!-- Admin Report Modal (store breakdown + employee sales inside cards) -->
 <div id="adminReportModal" class="modal-overlay">
   <div class="modal-container">
@@ -4938,6 +4986,7 @@ async function updateAdminReport(forceRefresh = false) {
       // Cache the result for next time
       setCachedStoreReport(storeName, from, to, { salesReport, employeeData: empData });
     }
+	 attachStoreCardClickListeners();
   } else {
     storeBreakdownDiv.style.display = 'none';
   }
@@ -4945,7 +4994,169 @@ async function updateAdminReport(forceRefresh = false) {
   // Refresh charts (unchanged)
   await fetchSalesChartData(store, employeeId, from, to);
 }
+// ==================== SWIPEABLE STORE CARD MODAL ====================
+let currentCardIndex = 0;
+const storeOrder = ['queens', 'sunshine', 'gurney_paragon'];
+let touchStartX = 0;
+let touchEndX = 0;
 
+function getStoreCardData(storeName) {
+  // Retrieve data from the store card in the report modal
+  const card = document.querySelector(`.store-summary-card[data-store="${storeName}"]`);
+  if (!card) return null;
+  
+  // Extract all values from the card
+  const totalSales = card.querySelector('.store-total')?.innerText || 'Total Sales: RM 0.00';
+  const cash = card.querySelector('.store-cash')?.innerHTML || '💵 Cash: RM 0.00';
+  const cardPayment = card.querySelector('.store-card')?.innerHTML || '💳 Card: RM 0.00';
+  const qr = card.querySelector('.store-qr')?.innerHTML || '📱 QR Pay: RM 0.00';
+  const alipay = card.querySelector('.store-alipay')?.innerHTML || '💸 Alipay: RM 0.00';
+  const refund = card.querySelector('.store-refund')?.innerHTML || '❌ Refunds: RM 0.00';
+  const refundedBills = card.querySelector('.store-refunded-bills')?.innerHTML || '📄 Refunded Bills: 0';
+  const transactions = card.querySelector('.store-transactions')?.innerHTML || 'Transactions: 0';
+  const itemsSold = card.querySelector('.store-items-sold')?.innerHTML || 'Items Sold: 0';
+  const employeeList = card.querySelector('.employee-list')?.innerHTML || '<div>No employee sales</div>';
+  const storeNameDisplay = card.querySelector('.store-name')?.innerHTML || storeName;
+  
+  return {
+    storeNameDisplay,
+    totalSales,
+    cash,
+    cardPayment,
+    qr,
+    alipay,
+    refund,
+    refundedBills,
+    transactions,
+    itemsSold,
+    employeeList
+  };
+}
+
+function renderCardModalContent(index) {
+  const storeName = storeOrder[index];
+  const data = getStoreCardData(storeName);
+  if (!data) return;
+  
+  const container = document.getElementById('cardModalContent');
+  if (!container) return;
+  
+  // Build larger, touch-friendly layout
+  container.innerHTML = `
+    <div class="card-detail-item" style="text-align: center;">
+      <div class="card-detail-label">🏪 ${data.storeNameDisplay}</div>
+      <div class="card-detail-value" style="font-size: 2rem; margin-top: 8px;">${data.totalSales}</div>
+    </div>
+    <div class="card-detail-item">
+      <div class="card-detail-label">💵 Payment Breakdown</div>
+      <div style="font-size: 1.2rem; margin: 8px 0;">${data.cash}</div>
+      <div style="font-size: 1.2rem; margin: 8px 0;">${data.cardPayment}</div>
+      <div style="font-size: 1.2rem; margin: 8px 0;">${data.qr}</div>
+      <div style="font-size: 1.2rem; margin: 8px 0;">${data.alipay}</div>
+      <div style="font-size: 1.2rem; margin: 8px 0; color: #dc2626;">${data.refund}</div>
+    </div>
+    <div class="card-detail-item">
+      <div class="card-detail-label">📊 Statistics</div>
+      <div style="font-size: 1.2rem;">${data.refundedBills}</div>
+      <div style="font-size: 1.2rem;">${data.transactions}</div>
+      <div style="font-size: 1.2rem;">${data.itemsSold}</div>
+    </div>
+    <div class="card-detail-item">
+      <div class="card-detail-label">👥 Employee Sales</div>
+      <div class="employee-swipe-list" style="font-size: 1.1rem;">${data.employeeList}</div>
+    </div>
+  `;
+  
+  // Update indicator
+  const indicator = document.getElementById('cardIndicator');
+  if (indicator) {
+    indicator.innerText = `${index + 1} / ${storeOrder.length}`;
+  }
+}
+
+function openStoreCardModal(storeName) {
+  currentCardIndex = storeOrder.indexOf(storeName);
+  if (currentCardIndex === -1) currentCardIndex = 0;
+  renderCardModalContent(currentCardIndex);
+  document.getElementById('storeCardModal').style.display = 'flex';
+}
+
+function closeStoreCardModal() {
+  document.getElementById('storeCardModal').style.display = 'none';
+}
+
+function nextCard() {
+  if (currentCardIndex + 1 < storeOrder.length) {
+    currentCardIndex++;
+    renderCardModalContent(currentCardIndex);
+  }
+}
+
+function prevCard() {
+  if (currentCardIndex - 1 >= 0) {
+    currentCardIndex--;
+    renderCardModalContent(currentCardIndex);
+  }
+}
+
+// Attach swipe detection
+function attachSwipeListeners() {
+  const modalContent = document.getElementById('cardModalContent');
+  if (!modalContent) return;
+  
+  modalContent.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+  }, { passive: true });
+  
+  modalContent.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    const swipeDistance = touchEndX - touchStartX;
+    if (Math.abs(swipeDistance) > 50) {
+      if (swipeDistance > 0) {
+        prevCard();
+      } else {
+        nextCard();
+      }
+    }
+  });
+}
+
+// Attach click listeners to store cards (call this after cards are rendered)
+function attachCashCardClickListeners() {
+  const cards = document.querySelectorAll('.store-cash-card');
+  cards.forEach(card => {
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', () => {
+      const store = card.getAttribute('data-store');
+      if (store) {
+        const storeSelect = document.getElementById('collectionStoreSelect');
+        if (storeSelect) {
+          storeSelect.value = store;
+          const event = new Event('change', { bubbles: true });
+          storeSelect.dispatchEvent(event);
+        }
+      }
+    });
+  });
+}
+
+// Override the existing updateStoreCard function to reattach listeners after card updates
+const originalUpdateStoreCard = window.updateStoreCard;
+window.updateStoreCard = function(storeName, salesReport, empData) {
+  if (originalUpdateStoreCard) originalUpdateStoreCard(storeName, salesReport, empData);
+  attachStoreCardClickListeners();
+};
+
+// Initialize modal event listeners
+document.getElementById('closeStoreCardModal')?.addEventListener('click', closeStoreCardModal);
+document.getElementById('prevCardBtn')?.addEventListener('click', prevCard);
+document.getElementById('nextCardBtn')?.addEventListener('click', nextCard);
+document.getElementById('storeCardModal')?.addEventListener('click', (e) => {
+  if (e.target === document.getElementById('storeCardModal')) closeStoreCardModal();
+});
+attachSwipeListeners();
+
+// Call attachStoreCardClickListeners after each report update (already done via override)
 // Helper function to update a single store card (must be defined globally)
 function updateStoreCard(storeName, salesReport, empData) {
   const card = document.querySelector(`.store-summary-card[data-store="${storeName}"]`);
@@ -6535,7 +6746,7 @@ function updateStoreCashSummary() {
       if (amountSpan) amountSpan.innerText = `RM ${total.toFixed(2)}`;
     }
   }
-  attachStoreCardClickListeners();
+   attachCashCardClickListeners();
 }
 
   function updateTotalOutstanding() {
