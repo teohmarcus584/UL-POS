@@ -1550,13 +1550,15 @@
       <div id="cartNormalContent">
         <div id="cartItemsContainer" class="cart-items">Cart is empty</div>
         <div class="cart-summary" id="cartSummary">
-          <div class="summary-row"><span>Subtotal</span><span id="subtotal">RM 0.00</span></div>
-          <div id="discountRow" class="summary-row discount-row" style="display: none;"><span><i>🎲</i> Lucky Draw</span><span id="discountAmount">RM 0.00</span></div>
-          <div id="promoBuy2Free1Row" class="summary-row discount-row" style="display: none;"><span><i>🚗</i> Car Aromatic Promo (RM 2)</span><span id="promoBuy2Free1Amount">RM 0.00</span></div>
-          <div id="promoBuy3Free1Row" class="summary-row discount-row" style="display: none;"><span><i>🌸</i> 15ml Perfume EDP Promo (RM 8)</span><span id="promoBuy3Free1Amount">RM 0.00</span></div>
-          <div id="customDiscountRow" class="summary-row discount-row" style="display: none;"><span><i>💰</i> Custom Discount</span><span id="customDiscountAmount">RM 0.00</span></div>
-          <div class="summary-row total-row"><span>TOTAL</span><span id="totalAmount">RM 0.00</span></div>
-        </div>
+  <div class="summary-row"><span>Subtotal</span><span id="subtotal">RM 0.00</span></div>
+  <div id="discountRow" class="summary-row discount-row" style="display: none;"><span><i>🎲</i> Lucky Draw</span><span id="discountAmount">RM 0.00</span></div>
+  <div id="promoBuy2Free1Row" class="summary-row discount-row" style="display: none;"><span><i>🚗</i> Car Aromatic Promo (RM 2)</span><span id="promoBuy2Free1Amount">RM 0.00</span></div>
+  <div id="promoBuy3Free1Row" class="summary-row discount-row" style="display: none;"><span><i>🌸</i> 15ml Perfume EDP Promo (RM 8)</span><span id="promoBuy3Free1Amount">RM 0.00</span></div>
+  <div id="customDiscountRow" class="summary-row discount-row" style="display: none;"><span><i>💰</i> Custom Discount</span><span id="customDiscountAmount">RM 0.00</span></div>
+  <!-- ✅ ADD THIS LINE -->
+  <div id="staffDiscountRow" class="summary-row discount-row" style="display: none;"><span><i>👥</i> Staff 10% Discount</span><span id="staffDiscountAmount">RM 0.00</span></div>
+  <div class="summary-row total-row"><span>TOTAL</span><span id="totalAmount">RM 0.00</span></div>
+</div>
         <div class="cart-actions" id="cartActions">
           <button id="checkoutBtn">💳 CHECKOUT</button>
           <button id="claimPrizeBtn">🎁 Claim Prize</button>
@@ -1682,7 +1684,20 @@
   <div class="modal-container" style="max-width: 400px;">
     <span class="close-modal" id="closeSpecialPromoModal">×</span>
     <div class="modal-title">🎁 Special Promo</div>
-    <div id="promoOptions"><button id="promoBuy2Free1Perfume" class="modal-btn modal-btn-primary promo-option-btn">🚗 CAR AROMATIC PROMO (RM 2)</button><button id="promoBuy3Free1ExcludePerfume" class="modal-btn modal-btn-primary promo-option-btn">🌸 15ML PERFUME EDP PROMO (RM 8)</button><div class="custom-discount-section"><label>Custom Discount (RM)</label><div class="currency-input"><span class="currency-symbol">RM</span><input type="number" id="customPromoValue" class="modal-input currency-field" placeholder="0.00" step="0.01" min="0"></div><button id="applyCustomPromoBtn" class="modal-btn modal-btn-primary apply-btn">💰 Apply Custom Discount</button></div></div>
+    <div id="promoOptions">
+      <button id="promoBuy2Free1Perfume" class="modal-btn modal-btn-primary promo-option-btn">🚗 CAR AROMATIC PROMO (RM 2)</button>
+      <button id="promoBuy3Free1ExcludePerfume" class="modal-btn modal-btn-primary promo-option-btn">🌸 15ML PERFUME EDP PROMO (RM 8)</button>
+      <!-- ✅ BUTTON MOVED HERE -->
+      <button id="promoStaffPurchase" class="modal-btn modal-btn-primary promo-option-btn">👥 STAFF PURCHASE 10%</button>
+      <div class="custom-discount-section">
+        <label>Custom Discount (RM)</label>
+        <div class="currency-input">
+          <span class="currency-symbol">RM</span>
+          <input type="number" id="customPromoValue" class="modal-input currency-field" placeholder="0.00" step="0.01" min="0">
+        </div>
+        <button id="applyCustomPromoBtn" class="modal-btn modal-btn-primary apply-btn">💰 Apply Custom Discount</button>
+      </div>
+    </div>
     <div id="promoMessage" style="color:#ef4444; margin-top:12px; display:none;"></div>
     <div class="modal-buttons"><button id="closeSpecialPromoModalBtn" class="modal-btn modal-btn-secondary">Close</button></div>
   </div>
@@ -1959,6 +1974,8 @@ async function autoSelectStoreByLocation() {
   let selectedCustomer = null;
   let loginInProgress = false;
 let lowStockFilterActive = false;   // track filter state
+let staffDiscountActive = false;   // whether 10% discount is active
+let staffDiscount = 0;             // computed amount (10% of subtotal)
   // New variables for preloaded report and settlement data
   let preloadedSettlementTotals = null;      // cache settlement totals for current store today
   let preloadedReportCache = null;            // { store, employeeId, from, to, totals, productDetails, chartData }
@@ -3444,119 +3461,153 @@ async function syncPendingSales() {
 // Listen for online events
 window.addEventListener('online', syncPendingSales);
   // ==================== CART FUNCTIONS ====================
-  function updateCartUI() {
-    if (!cartContainer) return;
-    if (cart.length === 0) {
-      cartContainer.innerHTML = '<div style="color:#94a3b8; text-align:center;">Cart is empty</div>';
-      subtotalSpan.innerText = `RM 0.00`;
-      discountAmount = 0;
-      buy2Free1Discount = 0;
-      buy3Free1Discount = 0;
-      customDiscount = 0;
-      claimedReceiptInfo = null;
-      pendingPrize = null;
-      discountRow.style.display = 'none';
-      promoBuy2Free1Row.style.display = 'none';
-      promoBuy3Free1Row.style.display = 'none';
-      customDiscountRow.style.display = 'none';
-      totalSpan.innerText = `RM 0.00`;
-      return;
-    }
-
-    let html = '';
-    let subtotal = 0;
-    cart.forEach((item, idx) => {
-      const paidUnits = item.quantity - item.freeQuantity;
-      const itemTotal = paidUnits * item.product.price;
-      subtotal += itemTotal;
-      const categoryDisplay = item.product.category
-        ? `<div class="cart-item-category">${escapeHtml(item.product.category)}</div>`
-        : '';
-      const freeClass = item.freeQuantity > 0 ? 'active' : '';
-     const buttonText = item.freeQuantity > 0 
-  ? `🎁 ${item.freeQuantity} Free` 
-  : '🎁 Activate Free Gift';
-      html += `
-        <div class="cart-item" data-index="${idx}">
-          <div class="cart-item-info">
-            <div class="cart-item-name">${escapeHtml(item.product.name)}</div>
-            ${categoryDisplay}
-            <div class="cart-item-price">RM ${item.product.price.toFixed(2)}</div>
-          </div>
-          <div class="cart-item-free">
-            <button class="free-toggle-btn ${freeClass}" data-index="${idx}">${buttonText}</button>
-          </div>
-          <div class="cart-item-qty">
-            <button class="qty-btn" data-index="${idx}" data-delta="-1">−</button>
-            <span>${item.quantity}</span>
-            <button class="qty-btn" data-index="${idx}" data-delta="1">+</button>
-          </div>
-          <div class="cart-item-total">RM ${itemTotal.toFixed(2)}</div>
-          <button class="remove-item" data-index="${idx}">✕</button>
-        </div>
-      `;
-    });
-    cartContainer.innerHTML = html;
-
-    subtotalSpan.innerText = `RM ${subtotal.toFixed(2)}`;
-
-    const totalPromoDiscount = buy2Free1Discount + buy3Free1Discount + customDiscount;
-    const total = subtotal - discountAmount - totalPromoDiscount;
-
-    if (discountAmount > 0) {
-      discountRow.style.display = 'flex';
-      discountAmountSpan.innerText = `RM ${discountAmount.toFixed(2)}`;
-    } else {
-      discountRow.style.display = 'none';
-    }
-
-    if (buy2Free1Discount > 0) {
-      promoBuy2Free1Row.style.display = 'flex';
-      promoBuy2Free1Amount.innerText = `RM ${buy2Free1Discount.toFixed(2)}`;
-    } else {
-      promoBuy2Free1Row.style.display = 'none';
-    }
-
-    if (buy3Free1Discount > 0) {
-      promoBuy3Free1Row.style.display = 'flex';
-      promoBuy3Free1Amount.innerText = `RM ${buy3Free1Discount.toFixed(2)}`;
-    } else {
-      promoBuy3Free1Row.style.display = 'none';
-    }
-
-    if (customDiscount > 0) {
-      customDiscountRow.style.display = 'flex';
-      customDiscountAmount.innerText = `RM ${customDiscount.toFixed(2)}`;
-    } else {
-      customDiscountRow.style.display = 'none';
-    }
-
-    totalSpan.innerText = `RM ${total.toFixed(2)}`;
-
-    document.querySelectorAll('.qty-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const idx = parseInt(btn.dataset.index);
-        const delta = parseInt(btn.dataset.delta);
-        if (!isNaN(idx) && !isNaN(delta)) updateQuantity(idx, delta);
-        e.stopPropagation();
-      });
-    });
-    document.querySelectorAll('.remove-item').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const idx = parseInt(btn.dataset.index);
-        if (!isNaN(idx)) removeCartItem(idx);
-        e.stopPropagation();
-      });
-    });
-    document.querySelectorAll('.free-toggle-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const idx = parseInt(btn.dataset.index);
-        if (!isNaN(idx)) toggleFreeCount(idx);
-        e.stopPropagation();
-      });
-    });
+ function updateCartUI() {
+  if (!cartContainer) return;
+  if (cart.length === 0) {
+    cartContainer.innerHTML = '<div style="color:#94a3b8; text-align:center;">Cart is empty</div>';
+    subtotalSpan.innerText = `RM 0.00`;
+    discountAmount = 0;
+    buy2Free1Discount = 0;
+    buy3Free1Discount = 0;
+    customDiscount = 0;
+    staffDiscountActive = false;
+    staffDiscount = 0;
+    discountRow.style.display = 'none';
+    promoBuy2Free1Row.style.display = 'none';
+    promoBuy3Free1Row.style.display = 'none';
+    customDiscountRow.style.display = 'none';
+    const staffRow = document.getElementById('staffDiscountRow');
+    if (staffRow) staffRow.style.display = 'none';
+    totalSpan.innerText = `RM 0.00`;
+    return;
   }
 
+  let html = '';
+  let subtotal = 0;
+  cart.forEach((item, idx) => {
+    const paidUnits = item.quantity - item.freeQuantity;
+    const itemTotal = paidUnits * item.product.price;
+    subtotal += itemTotal;
+    const categoryDisplay = item.product.category
+      ? `<div class="cart-item-category">${escapeHtml(item.product.category)}</div>`
+      : '';
+    const freeClass = item.freeQuantity > 0 ? 'active' : '';
+    const buttonText = item.freeQuantity > 0 
+      ? `🎁 ${item.freeQuantity} Free` 
+      : '🎁 Activate Free Gift';
+    html += `
+      <div class="cart-item" data-index="${idx}">
+        <div class="cart-item-info">
+          <div class="cart-item-name">${escapeHtml(item.product.name)}</div>
+          ${categoryDisplay}
+          <div class="cart-item-price">RM ${item.product.price.toFixed(2)}</div>
+        </div>
+        <div class="cart-item-free">
+          <button class="free-toggle-btn ${freeClass}" data-index="${idx}">${buttonText}</button>
+        </div>
+        <div class="cart-item-qty">
+          <button class="qty-btn" data-index="${idx}" data-delta="-1">−</button>
+          <span>${item.quantity}</span>
+          <button class="qty-btn" data-index="${idx}" data-delta="1">+</button>
+        </div>
+        <div class="cart-item-total">RM ${itemTotal.toFixed(2)}</div>
+        <button class="remove-item" data-index="${idx}">✕</button>
+      </div>
+    `;
+  });
+  cartContainer.innerHTML = html;
+
+  subtotalSpan.innerText = `RM ${subtotal.toFixed(2)}`;
+
+  // --- Staff discount (10% of subtotal if active) ---
+  if (staffDiscountActive) {
+    staffDiscount = subtotal * 0.10;
+  } else {
+    staffDiscount = 0;
+  }
+
+  const totalPromoDiscount = buy2Free1Discount + buy3Free1Discount + customDiscount + staffDiscount;
+  const total = subtotal - discountAmount - totalPromoDiscount;
+
+  // Show/hide lucky draw discount
+  if (discountAmount > 0) {
+    discountRow.style.display = 'flex';
+    discountAmountSpan.innerText = `RM ${discountAmount.toFixed(2)}`;
+  } else {
+    discountRow.style.display = 'none';
+  }
+
+  // Show/hide Car Aromatic promo discount
+  if (buy2Free1Discount > 0) {
+    promoBuy2Free1Row.style.display = 'flex';
+    promoBuy2Free1Amount.innerText = `RM ${buy2Free1Discount.toFixed(2)}`;
+  } else {
+    promoBuy2Free1Row.style.display = 'none';
+  }
+
+  // Show/hide 15ml Perfume EDP promo discount
+  if (buy3Free1Discount > 0) {
+    promoBuy3Free1Row.style.display = 'flex';
+    promoBuy3Free1Amount.innerText = `RM ${buy3Free1Discount.toFixed(2)}`;
+  } else {
+    promoBuy3Free1Row.style.display = 'none';
+  }
+
+  // Show/hide custom discount
+  if (customDiscount > 0) {
+    customDiscountRow.style.display = 'flex';
+    customDiscountAmount.innerText = `RM ${customDiscount.toFixed(2)}`;
+  } else {
+    customDiscountRow.style.display = 'none';
+  }
+
+  // Show/hide staff discount row (must exist in HTML)
+  const staffRow = document.getElementById('staffDiscountRow');
+  const staffAmountSpan = document.getElementById('staffDiscountAmount');
+  if (staffRow && staffAmountSpan) {
+    if (staffDiscount > 0) {
+      staffRow.style.display = 'flex';
+      staffAmountSpan.innerText = `RM ${staffDiscount.toFixed(2)}`;
+    } else {
+      staffRow.style.display = 'none';
+    }
+  }
+
+  totalSpan.innerText = `RM ${total.toFixed(2)}`;
+
+  // Re-attach event listeners for quantity buttons, remove buttons, free toggle
+  document.querySelectorAll('.qty-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = parseInt(btn.dataset.index);
+      const delta = parseInt(btn.dataset.delta);
+      if (!isNaN(idx) && !isNaN(delta)) updateQuantity(idx, delta);
+      e.stopPropagation();
+    });
+  });
+  document.querySelectorAll('.remove-item').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = parseInt(btn.dataset.index);
+      if (!isNaN(idx)) removeCartItem(idx);
+      e.stopPropagation();
+    });
+  });
+  document.querySelectorAll('.free-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = parseInt(btn.dataset.index);
+      if (!isNaN(idx)) toggleFreeCount(idx);
+      e.stopPropagation();
+    });
+  });
+}
+function applyStaffDiscount() {
+  if (cart.length === 0) {
+    showAlertModal('Empty Cart', 'No items to apply staff discount.');
+    return;
+  }
+  staffDiscountActive = true;
+  updateCartUI();
+  document.getElementById('specialPromoModal').style.display = 'none';
+}
  function updateQuantity(index, delta) {
   const item = cart[index];
   if (!item) return;
@@ -3589,24 +3640,28 @@ window.addEventListener('online', syncPendingSales);
   clearPromo();
 }
 
-  function clearCart() {
-    if (cart.length === 0) return;
-    cart = [];
-    discountAmount = 0;
-    buy2Free1Discount = 0;
-    buy3Free1Discount = 0;
-    customDiscount = 0;
-    claimedReceiptInfo = null;
-    pendingPrize = null;
-    selectedCustomer = null;
-    updateCustomerDisplay();
-    updateCartUI();
-  }
+ function clearCart() {
+  if (cart.length === 0) return;
+  cart = [];
+  discountAmount = 0;
+  buy2Free1Discount = 0;
+  buy3Free1Discount = 0;
+  customDiscount = 0;
+  staffDiscountActive = false;   // ✅ NEW
+  staffDiscount = 0;             // ✅ NEW
+  claimedReceiptInfo = null;
+  pendingPrize = null;
+  selectedCustomer = null;
+  updateCustomerDisplay();
+  updateCartUI();
+}
 
   function clearPromo() {
     buy2Free1Discount = 0;
     buy3Free1Discount = 0;
     customDiscount = 0;
+	staffDiscountActive = false;   // <-- add this
+  staffDiscount = 0;             // <-- add this
     updateCartUI();
   }
 
@@ -3933,21 +3988,23 @@ async function completeCheckout(paymentMethod, cashReceived) {
   }));
 
   const transaction = {
-  transaction_id: transactionId,
-  items: saleItems,
-  total: totalAmount,
-  payment_method: paymentMethod,
-  cash_received: cashReceived,
-  timestamp: new Date().toISOString(),
-  discount: discountAmount,
-  buy2_free1_discount: buy2Free1Discount,
-  buy3_free1_discount: buy3Free1Discount,
-  custom_discount: customDiscount,
-  prize_claimed: claimedReceiptInfo,
-  customer_id: selectedCustomer ? selectedCustomer.id : null,
-  store: currentStore,
-  employee_name: currentEmployee.name   // ✅ fixed
-};
+    transaction_id: transactionId,
+    items: saleItems,
+    total: totalAmount,
+    payment_method: paymentMethod,
+    cash_received: cashReceived,
+    timestamp: new Date().toISOString(),
+    discount: discountAmount,
+    buy2_free1_discount: buy2Free1Discount,
+    buy3_free1_discount: buy3Free1Discount,
+    custom_discount: customDiscount,
+    staff_discount: staffDiscount,                // ✅ NEW
+    prize_claimed: claimedReceiptInfo,
+    customer_id: selectedCustomer ? selectedCustomer.id : null,
+    store: currentStore,
+    employee_name: currentEmployee.name,
+    employee_id: currentEmployee.id
+  };
 
   queueSale(transaction);
   const success = true; // assume success, will sync later
@@ -3999,7 +4056,8 @@ async function completeCheckout(paymentMethod, cashReceived) {
       discount: discountAmount,
       buy2_free1_discount: buy2Free1Discount,
       buy3_free1_discount: buy3Free1Discount,
-      custom_discount: customDiscount
+      custom_discount: customDiscount,
+      staff_discount: staffDiscount               // ✅ NEW
     };
     if (!cachedReceipts) cachedReceipts = [];
     cachedReceipts.unshift(fakeReceipt);
@@ -4011,12 +4069,12 @@ async function completeCheckout(paymentMethod, cashReceived) {
 
     fetchAndCacheReceipts();
 
-   if (window.printerAPI?.isConnected && window.printerAPI.printReceipt) {
-  const transactionWithName = { ...transaction, employee_name: currentEmployee.name };
-  await window.printerAPI.printReceipt(transactionWithName);
-} else {
-  await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
-}
+    if (window.printerAPI?.isConnected && window.printerAPI.printReceipt) {
+      const transactionWithName = { ...transaction, employee_name: currentEmployee.name };
+      await window.printerAPI.printReceipt(transactionWithName);
+    } else {
+      await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
+    }
 
     await showAlertModal('✅ Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
 
@@ -4054,6 +4112,7 @@ async function completeCheckout(paymentMethod, cashReceived) {
       formData.append("buy2_free1_discount", transaction.buy2_free1_discount || 0);
       formData.append("buy3_free1_discount", transaction.buy3_free1_discount || 0);
       formData.append("custom_discount", transaction.custom_discount || 0);
+	  formData.append("staff_discount", transaction.staff_discount || 0);   // ✅ NEW
       formData.append("prize_claimed", transaction.prize_claimed ? JSON.stringify(transaction.prize_claimed) : '');
       if (transaction.customer_id) formData.append("customer_id", transaction.customer_id);
       const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
@@ -4227,16 +4286,15 @@ function renderReceiptsList(receipts) {
       ? `<span class="receipt-id">[REFUND] ${rec.transaction_id}</span>`
       : `<span class="receipt-id">${rec.transaction_id}</span>`;
 
-    // Build detailed items list with safety checks
+    // Build detailed items list
     let itemsHtml = '<div class="receipt-items-list">';
     let subtotal = 0;
     for (const item of rec.items) {
-      // ✅ Safe number conversion
       const price = parseFloat(item.price) || 0;
       const quantity = parseInt(item.quantity) || 0;
       const freeQuantity = parseInt(item.free_quantity) || 0;
       const paidQty = quantity - freeQuantity;
-      if (paidQty <= 0) continue; // skip if no paid items
+      if (paidQty <= 0) continue;
       
       const itemTotal = paidQty * price;
       subtotal += itemTotal;
@@ -4266,6 +4324,7 @@ function renderReceiptsList(receipts) {
     const buy2Free1 = parseFloat(rec.buy2_free1_discount) || 0;
     const buy3Free1 = parseFloat(rec.buy3_free1_discount) || 0;
     const customDisc = parseFloat(rec.custom_discount) || 0;
+    const staffDisc = parseFloat(rec.staff_discount) || 0;   // ✅ NEW
 
     if (discount > 0) {
       discountsHtml += `<div class="receipt-discount-row"><span>🎲 Lucky Draw Discount</span><span>-RM ${discount.toFixed(2)}</span></div>`;
@@ -4278,6 +4337,9 @@ function renderReceiptsList(receipts) {
     }
     if (customDisc > 0) {
       discountsHtml += `<div class="receipt-discount-row"><span>💰 Custom Discount</span><span>-RM ${customDisc.toFixed(2)}</span></div>`;
+    }
+    if (staffDisc > 0) {   // ✅ NEW
+      discountsHtml += `<div class="receipt-discount-row"><span>👥 Staff 10% Discount</span><span>-RM ${staffDisc.toFixed(2)}</span></div>`;
     }
 
     const total = parseFloat(rec.total) || 0;
@@ -4316,7 +4378,7 @@ function renderReceiptsList(receipts) {
   });
   container.innerHTML = html;
 
-  // Re-attach event listeners (same as before)
+  // Re-attach event listeners for reprint and refund buttons
   document.querySelectorAll('.reprint-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const txId = btn.dataset.txid;
@@ -5175,10 +5237,12 @@ async function printReceipt(transaction) {
 
     lines.push(separator);
 
+    // Discount lines
     if (transaction.discount > 0) lines.push(`Lucky Draw Discount : -RM ${transaction.discount.toFixed(2)}`);
     if (transaction.buy2_free1_discount > 0) lines.push(`Car Aromatic Promo : -RM ${transaction.buy2_free1_discount.toFixed(2)}`);
     if (transaction.buy3_free1_discount > 0) lines.push(`15ml Perfume EDP Promo : -RM ${transaction.buy3_free1_discount.toFixed(2)}`);
     if (transaction.custom_discount > 0) lines.push(`Custom Discount     : -RM ${transaction.custom_discount.toFixed(2)}`);
+    if (transaction.staff_discount > 0) lines.push(`Staff 10% Discount  : -RM ${transaction.staff_discount.toFixed(2)}`);   // ✅ NEW
 
     const paymentLines = [];
     paymentLines.push(`PAYMENT METHOD : ${transaction.payment_method}`);
@@ -6660,6 +6724,7 @@ function updateReceipts() {
   if (promoBuy3Free1ExcludePerfume) promoBuy3Free1ExcludePerfume.addEventListener('click', apply15mlPerfumeEdpPromo);
   const applyCustomPromoBtn = document.getElementById('applyCustomPromoBtn');
   if (applyCustomPromoBtn) applyCustomPromoBtn.addEventListener('click', applyCustomDiscount);
+  document.getElementById('promoStaffPurchase')?.addEventListener('click', applyStaffDiscount);
 
   const closeLuckyDrawPrintModal = document.getElementById('closeLuckyDrawPrintModal');
   const closeLuckyDrawPrintModalBtn = document.getElementById('closeLuckyDrawPrintModalBtn');
