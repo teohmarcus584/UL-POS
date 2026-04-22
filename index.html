@@ -4276,35 +4276,29 @@ function renderReceiptsList(receipts) {
     return;
   }
 
-  // Filter out receipts with invalid timestamps
-  const validReceipts = receipts.filter(rec => {
-    const ts = rec.timestamp;
-    if (!ts) return false;
-    const date = new Date(ts);
-    return !isNaN(date.getTime());
-  });
-
-  if (validReceipts.length === 0) {
-    container.innerHTML = '<div style="text-align:center; padding:30px;">No valid receipts found.</div>';
-    return;
-  }
-
-  // Group receipts by date (YYYY-MM-DD)
+  // ----- SAFE GROUPING: skip invalid timestamps -----
   const grouped = {};
-  validReceipts.forEach(rec => {
-    const dateObj = new Date(rec.timestamp);
-    const dateKey = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD
+  receipts.forEach(rec => {
+    const ts = rec.timestamp;
+    if (!ts) return; // skip if no timestamp
+    const dateObj = new Date(ts);
+    if (isNaN(dateObj.getTime())) return; // skip invalid date
+    const dateKey = dateObj.toISOString().split('T')[0];
     if (!grouped[dateKey]) grouped[dateKey] = [];
     grouped[dateKey].push(rec);
   });
 
-  // Sort date keys descending (newest first)
   const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+
+  if (sortedDates.length === 0) {
+    container.innerHTML = '<div style="text-align:center; padding:30px;">No valid receipts found.</div>';
+    return;
+  }
 
   let html = '';
   for (const dateKey of sortedDates) {
     const dayReceipts = grouped[dateKey];
-    // Format date for display
+    // Use the first receipt's timestamp for display (already validated)
     const sampleDate = new Date(dayReceipts[0].timestamp);
     const formattedDate = sampleDate.toLocaleDateString(undefined, {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
@@ -4320,7 +4314,7 @@ function renderReceiptsList(receipts) {
       </div>
     `;
 
-    // Render each receipt for this day
+    // Render each receipt in this day
     for (const rec of dayReceipts) {
       const date = new Date(rec.timestamp).toLocaleString();
       const employeeName = getEmployeeName(rec.employee_id);
@@ -4330,19 +4324,15 @@ function renderReceiptsList(receipts) {
         ? `<span class="receipt-id">[REFUND] ${rec.transaction_id}</span>`
         : `<span class="receipt-id">${rec.transaction_id}</span>`;
 
-      // Build detailed items list
+      // Items list
       let itemsHtml = '<div class="receipt-items-list">';
-      let subtotal = 0;
       for (const item of rec.items) {
         const price = parseFloat(item.price) || 0;
         const quantity = parseInt(item.quantity) || 0;
         const freeQuantity = parseInt(item.free_quantity) || 0;
         const paidQty = quantity - freeQuantity;
         if (paidQty <= 0) continue;
-
         const itemTotal = paidQty * price;
-        subtotal += itemTotal;
-
         itemsHtml += `
           <div class="receipt-item-row">
             <span class="receipt-item-name">${escapeHtml(item.name)}</span>
@@ -4414,7 +4404,7 @@ function renderReceiptsList(receipts) {
 
   container.innerHTML = html;
 
-  // Re-attach event listeners
+  // Re-attach event listeners (reprint & refund)
   document.querySelectorAll('.reprint-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const txId = btn.dataset.txid;
@@ -4448,26 +4438,6 @@ function renderReceiptsList(receipts) {
     });
   });
 }
-  async function reprintReceipt(receipt) {
-    if (!window.printerAPI || !window.printerAPI.isConnected) {
-      await showAlertModal('Printer required', 'Connect Bluetooth printer first.');
-      return;
-    }
-    const success = await window.printerAPI.printReceipt(receipt);
-    if (success) await showAlertModal('Reprint', `Receipt ${receipt.transaction_id} sent to printer.`);
-    else await showAlertModal('Error', 'Print failed.');
-  }
-
-  function openLuckyDraw(transactionId, customerId = null) {
-    let url = `https://teohmarcus584.github.io/salesanalysis/?receipt=${encodeURIComponent(transactionId)}`;
-    if (customerId) {
-      url += `&customer_id=${encodeURIComponent(customerId)}`;
-    }
-    window.open(url, '_blank');
-    document.getElementById('luckyDrawModal').style.display = 'none';
-    document.getElementById('luckyDrawReceiptNumber').innerText = transactionId;
-    document.getElementById('luckyDrawPrintModal').style.display = 'flex';
-  }
 
  async function processRefund(transactionId, store) {
   showLoading('Processing refund...');
