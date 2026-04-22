@@ -4276,9 +4276,22 @@ function renderReceiptsList(receipts) {
     return;
   }
 
+  // Filter out receipts with invalid timestamps
+  const validReceipts = receipts.filter(rec => {
+    const ts = rec.timestamp;
+    if (!ts) return false;
+    const date = new Date(ts);
+    return !isNaN(date.getTime());
+  });
+
+  if (validReceipts.length === 0) {
+    container.innerHTML = '<div style="text-align:center; padding:30px;">No valid receipts found.</div>';
+    return;
+  }
+
   // Group receipts by date (YYYY-MM-DD)
   const grouped = {};
-  receipts.forEach(rec => {
+  validReceipts.forEach(rec => {
     const dateObj = new Date(rec.timestamp);
     const dateKey = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD
     if (!grouped[dateKey]) grouped[dateKey] = [];
@@ -4291,7 +4304,7 @@ function renderReceiptsList(receipts) {
   let html = '';
   for (const dateKey of sortedDates) {
     const dayReceipts = grouped[dateKey];
-    // Format date for display: e.g., "Tuesday, 23 April 2026"
+    // Format date for display
     const sampleDate = new Date(dayReceipts[0].timestamp);
     const formattedDate = sampleDate.toLocaleDateString(undefined, {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
@@ -4307,7 +4320,7 @@ function renderReceiptsList(receipts) {
       </div>
     `;
 
-    // Render each receipt for this day (preserve original order, usually newest first)
+    // Render each receipt for this day
     for (const rec of dayReceipts) {
       const date = new Date(rec.timestamp).toLocaleString();
       const employeeName = getEmployeeName(rec.employee_id);
@@ -4401,7 +4414,7 @@ function renderReceiptsList(receipts) {
 
   container.innerHTML = html;
 
-  // Re-attach event listeners (same as before)
+  // Re-attach event listeners
   document.querySelectorAll('.reprint-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const txId = btn.dataset.txid;
