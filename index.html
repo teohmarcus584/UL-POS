@@ -1894,7 +1894,7 @@
 <script>
 
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz0KNpm0lnPWuv9-7Sf0CTuH12Xpvc5Nj4SyJcomNgEdbqoieotHzuShLcwvgNl4_5zdA/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxo7betXKhH8WbFBuSdbdfgpZZNtjniD1jOBazzLYkkFUvbi1t0aZNVlFAk53ZtOO3ShA/exec"; // REPLACE WITH YOUR URL
 
 // Haversine distance in km
 function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
@@ -4800,6 +4800,28 @@ async function fetchMultiStoreReport(from, to, forceRefresh = false) {
     return null;
   }
 }
+// ==================== MULTI-STORE CACHE HELPERS ====================
+// These should be placed near your other cache variables (e.g., after storeReportCache declaration)
+
+async function getCachedMultiStoreReport(from, to) {
+  const key = `multistore_${from}_${to}`;
+  const cached = storeReportCache[key];
+  if (cached && (Date.now() - cached.timestamp) < 30000) { // 30 seconds TTL
+    return cached.data;
+  }
+  return null;
+}
+
+function setCachedMultiStoreReport(from, to, data) {
+  const key = `multistore_${from}_${to}`;
+  storeReportCache[key] = {
+    timestamp: Date.now(),
+    data: data
+  };
+}
+
+// ==================== FULL updateAdminReport FUNCTION ====================
+
 async function updateAdminReport(forceRefresh = false) {
   let store, employeeId;
   if (currentEmployee.isAdmin) {
@@ -4867,53 +4889,84 @@ async function updateAdminReport(forceRefresh = false) {
     storeBreakdownDiv.style.display = 'block';
     const stores = ['queens', 'sunshine', 'gurney_paragon'];
 
-    // Show loading spinners in each store card
-    stores.forEach(storeName => {
-      const card = document.querySelector(`.store-summary-card[data-store="${storeName}"]`);
-      if (card) {
-        card.querySelector('.store-total').innerHTML = '<span class="report-loading-spinner" style="width:16px;height:16px;"></span> Loading...';
-        card.querySelector('.store-cash').innerHTML = '💵 Loading...';
-        card.querySelector('.store-card').innerHTML = '💳 Loading...';
-        card.querySelector('.store-qr').innerHTML = '📱 Loading...';
-        card.querySelector('.store-alipay').innerHTML = '💸 Loading...';
-        card.querySelector('.store-refund').innerHTML = '❌ Loading...';
-        card.querySelector('.store-refunded-bills').innerHTML = '📄 Loading...';
-        card.querySelector('.store-transactions').innerHTML = 'Loading...';
-        card.querySelector('.store-items-sold').innerHTML = 'Loading...';
-        card.querySelector('.employee-list').innerHTML = '<div class="report-loading-spinner" style="width:16px;height:16px;"></div>';
-      }
-    });
+    // Try to get from cache first
+    let multiData = forceRefresh ? null : await getCachedMultiStoreReport(from, to);
+    let needRefresh = false;
 
-    // Try to fetch all stores in a single request
-   let multiData = null;
-try {
-  multiData = await fetchMultiStoreReport(from, to, forceRefresh);
-} catch (err) {
-  console.warn('Multi-store endpoint failed:', err);
-}
-
-    if (multiData) {
-      // Fast path: update all cards from the single response
+    if (!multiData) {
+      // No cache – show loading spinners
+      stores.forEach(storeName => {
+        const card = document.querySelector(`.store-summary-card[data-store="${storeName}"]`);
+        if (card) {
+          card.querySelector('.store-total').innerHTML = '<span class="report-loading-spinner" style="width:16px;height:16px;"></span> Loading...';
+          card.querySelector('.store-cash').innerHTML = '💵 Loading...';
+          card.querySelector('.store-card').innerHTML = '💳 Loading...';
+          card.querySelector('.store-qr').innerHTML = '📱 Loading...';
+          card.querySelector('.store-alipay').innerHTML = '💸 Loading...';
+          card.querySelector('.store-refund').innerHTML = '❌ Loading...';
+          card.querySelector('.store-refunded-bills').innerHTML = '📄 Loading...';
+          card.querySelector('.store-transactions').innerHTML = 'Loading...';
+          card.querySelector('.store-items-sold').innerHTML = 'Loading...';
+          card.querySelector('.employee-list').innerHTML = '<div class="report-loading-spinner" style="width:16px;height:16px;"></div>';
+        }
+      });
+      needRefresh = true;
+    } else {
+      // Cache hit – render immediately
       for (const storeName of stores) {
         const data = multiData[storeName];
         if (data && data.salesReport) {
           updateStoreCard(storeName, data.salesReport, data.employeeData);
         }
       }
+    }
+
+    // Background fetch (or initial fetch if cache miss)
+    const fetchFreshData = async () => {
+      try {
+        // Try multi-store endpoint
+        const url = `${APPS_SCRIPT_URL}?action=getMultiStoreReport&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&_=${Date.now()}`;
+        const response = await fetch(url);
+        const result = await response.json();
+        if (result.success && result.stores) {
+          multiData = result.stores;
+          setCachedMultiStoreReport(from, to, multiData);
+          // Update UI if modal still open
+          if (document.getElementById('adminReportModal').style.display === 'flex') {
+            for (const storeName of stores) {
+              const data = multiData[storeName];
+              if (data && data.salesReport) {
+                updateStoreCard(storeName, data.salesReport, data.employeeData);
+              }
+            }
+          }
+        } else {
+          // Fallback to individual requests
+          console.warn('Multi-store endpoint failed, falling back to individual requests');
+          const fetchStoreData = async (storeName) => {
+            const [salesReport, empData] = await Promise.all([
+              fetchSalesReport(storeName, 'all', from, to, false, true),
+              fetchEmployeeSalesData(storeName, from, to)
+            ]);
+            return { salesReport, empData };
+          };
+          const results = await Promise.all(stores.map(fetchStoreData));
+          const fallbackCache = {};
+          results.forEach((result, idx) => {
+            updateStoreCard(stores[idx], result.salesReport, result.empData);
+            fallbackCache[stores[idx]] = { salesReport: result.salesReport, employeeData: result.empData };
+          });
+          setCachedMultiStoreReport(from, to, fallbackCache);
+        }
+      } catch (err) {
+        console.warn('Background refresh failed:', err);
+      }
+    };
+
+    if (needRefresh) {
+      await fetchFreshData();   // wait for first load
     } else {
-      // Fallback: individual requests (slower but works)
-      console.warn('Falling back to individual store requests');
-      const fetchStoreData = async (storeName) => {
-        const [salesReport, empData] = await Promise.all([
-          fetchSalesReport(storeName, 'all', from, to, false, true),
-          fetchEmployeeSalesData(storeName, from, to)
-        ]);
-        return { salesReport, empData };
-      };
-      const results = await Promise.all(stores.map(fetchStoreData));
-      results.forEach((result, idx) => {
-        updateStoreCard(stores[idx], result.salesReport, result.empData);
-      });
+      fetchFreshData().catch(console.warn); // refresh in background
     }
   } else {
     storeBreakdownDiv.style.display = 'none';
@@ -5026,7 +5079,22 @@ document.addEventListener('keydown', (e) => {
     }, 100);
   }
 });
+async function getCachedMultiStoreReport(from, to) {
+  const key = `multistore_${from}_${to}`;
+  const cached = storeReportCache[key];
+  if (cached && (Date.now() - cached.timestamp) < 30000) { // 30 sec TTL
+    return cached.data;
+  }
+  return null;
+}
 
+function setCachedMultiStoreReport(from, to, data) {
+  const key = `multistore_${from}_${to}`;
+  storeReportCache[key] = {
+    timestamp: Date.now(),
+    data: data
+  };
+}
 function enableBarcodeScanner() {
   scannerActive = true;
   const statusSpan = document.getElementById('barcodeStatus');
