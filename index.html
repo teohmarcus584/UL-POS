@@ -4864,7 +4864,7 @@ async function updateAdminReport(forceRefresh = false) {
     to = new Date(to + 'T00:00:00Z').toISOString().split('T')[0];
   }
 
-  // --- Totals (fast, using cache) ---
+  // --- Totals (fast, using IndexedDB cache) ---
   const totals = await fetchSalesReportWithCache(store, employeeId, from, to, false, true, forceRefresh);
   if (!totals) return;
 
@@ -4889,12 +4889,15 @@ async function updateAdminReport(forceRefresh = false) {
     storeBreakdownDiv.style.display = 'block';
     const stores = ['queens', 'sunshine', 'gurney_paragon'];
 
-    // Try to get from cache first
-    let multiData = forceRefresh ? null : await getCachedMultiStoreReport(from, to);
-    let needRefresh = false;
+    // Show loading spinners if we need to fetch fresh data
+    let needFetch = forceRefresh;
+    for (const storeName of stores) {
+      const cached = await getCachedStoreReport(storeName, from, to);
+      if (!cached) needFetch = true;
+    }
 
-    if (!multiData) {
-      // No cache – show loading spinners
+    if (needFetch) {
+      // Show spinners
       stores.forEach(storeName => {
         const card = document.querySelector(`.store-summary-card[data-store="${storeName}"]`);
         if (card) {
@@ -4910,63 +4913,30 @@ async function updateAdminReport(forceRefresh = false) {
           card.querySelector('.employee-list').innerHTML = '<div class="report-loading-spinner" style="width:16px;height:16px;"></div>';
         }
       });
-      needRefresh = true;
     } else {
-      // Cache hit – render immediately
+      // Cache hit – render immediately from cache
       for (const storeName of stores) {
-        const data = multiData[storeName];
-        if (data && data.salesReport) {
-          updateStoreCard(storeName, data.salesReport, data.employeeData);
+        const cached = await getCachedStoreReport(storeName, from, to);
+        if (cached) {
+          updateStoreCard(storeName, cached.salesReport, cached.employeeData);
         }
       }
     }
 
-    // Background fetch (or initial fetch if cache miss)
-    const fetchFreshData = async () => {
-      try {
-        // Try multi-store endpoint
-        const url = `${APPS_SCRIPT_URL}?action=getMultiStoreReport&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&_=${Date.now()}`;
-        const response = await fetch(url);
-        const result = await response.json();
-        if (result.success && result.stores) {
-          multiData = result.stores;
-          setCachedMultiStoreReport(from, to, multiData);
-          // Update UI if modal still open
-          if (document.getElementById('adminReportModal').style.display === 'flex') {
-            for (const storeName of stores) {
-              const data = multiData[storeName];
-              if (data && data.salesReport) {
-                updateStoreCard(storeName, data.salesReport, data.employeeData);
-              }
-            }
-          }
-        } else {
-          // Fallback to individual requests
-          console.warn('Multi-store endpoint failed, falling back to individual requests');
-          const fetchStoreData = async (storeName) => {
-            const [salesReport, empData] = await Promise.all([
-              fetchSalesReport(storeName, 'all', from, to, false, true),
-              fetchEmployeeSalesData(storeName, from, to)
-            ]);
-            return { salesReport, empData };
-          };
-          const results = await Promise.all(stores.map(fetchStoreData));
-          const fallbackCache = {};
-          results.forEach((result, idx) => {
-            updateStoreCard(stores[idx], result.salesReport, result.empData);
-            fallbackCache[stores[idx]] = { salesReport: result.salesReport, employeeData: result.empData };
-          });
-          setCachedMultiStoreReport(from, to, fallbackCache);
-        }
-      } catch (err) {
-        console.warn('Background refresh failed:', err);
-      }
+    // Fetch fresh data for all stores in parallel (using existing per‑store functions)
+    const fetchStoreData = async (storeName) => {
+      const [salesReport, empData] = await Promise.all([
+        fetchSalesReport(storeName, 'all', from, to, false, true),
+        fetchEmployeeSalesData(storeName, from, to)
+      ]);
+      return { storeName, salesReport, empData };
     };
 
-    if (needRefresh) {
-      await fetchFreshData();   // wait for first load
-    } else {
-      fetchFreshData().catch(console.warn); // refresh in background
+    const results = await Promise.all(stores.map(fetchStoreData));
+    for (const { storeName, salesReport, empData } of results) {
+      updateStoreCard(storeName, salesReport, empData);
+      // Cache the result for next time
+      setCachedStoreReport(storeName, from, to, { salesReport, employeeData: empData });
     }
   } else {
     storeBreakdownDiv.style.display = 'none';
