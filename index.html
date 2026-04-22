@@ -4667,35 +4667,85 @@ async function fetchSalesReport(store, employeeId, from, to, unsettledOnly, sile
     const productMap = new Map(); // key: product id
 
     for (const receipt of result.receipts) {
+      // Get discount amounts
+      const buy2Free1Discount = parseFloat(receipt.buy2_free1_discount) || 0;
+      const buy3Free1Discount = parseFloat(receipt.buy3_free1_discount) || 0;
+      const otherDiscounts = (parseFloat(receipt.discount) || 0) +
+                             (parseFloat(receipt.custom_discount) || 0) +
+                             (parseFloat(receipt.staff_discount) || 0);
+
+      // Build list of items with original totals
+      const itemsWithOrig = [];
+      let originalSubtotal = 0;
       for (const item of receipt.items) {
+        const price = parseFloat(item.price) || 0;
+        const quantity = parseInt(item.quantity) || 0;
+        const freeQuantity = parseInt(item.free_quantity) || 0;
+        const paidQty = quantity - freeQuantity;
+        if (paidQty <= 0) continue;
+        const origTotal = paidQty * price;
+        originalSubtotal += origTotal;
+        itemsWithOrig.push({
+          id: item.id,
+          name: item.name,
+          category: item.category || "Uncategorized",
+          paidQty: paidQty,
+          origTotal: origTotal,
+          price: price
+        });
+      }
+
+      if (itemsWithOrig.length === 0) continue;
+
+      // --- Apply Car Aromatic promo (RM 2 fixed price) ---
+      if (buy2Free1Discount > 0) {
+        const targetItem = itemsWithOrig.find(i => i.category === "CAR AROMATIC");
+        if (targetItem) {
+          // Reduce its total by the discount amount (original price - 2)
+          const newTotal = Math.max(0, targetItem.origTotal - buy2Free1Discount);
+          targetItem.origTotal = newTotal;
+        }
+      }
+
+      // --- Apply 15ml Perfume EDP promo (RM 8 fixed price) ---
+      if (buy3Free1Discount > 0) {
+        const targetItem = itemsWithOrig.find(i => i.category === "15ML PERFUME EDP");
+        if (targetItem) {
+          const newTotal = Math.max(0, targetItem.origTotal - buy3Free1Discount);
+          targetItem.origTotal = newTotal;
+        }
+      }
+
+      // --- Apply remaining discounts proportionally ---
+      if (otherDiscounts > 0 && originalSubtotal > 0) {
+        const ratio = 1 - (otherDiscounts / originalSubtotal);
+        for (const item of itemsWithOrig) {
+          item.origTotal = item.origTotal * ratio;
+        }
+      }
+
+      // Aggregate into productMap
+      for (const item of itemsWithOrig) {
         const id = item.id;
-        // paid quantity = (quantity - free_quantity) – this works even for negative refund quantities
-        const paidQty = item.quantity - (item.free_quantity || 0);
-        if (paidQty === 0) continue;
-
-        const itemTotal = paidQty * item.price;
-
         if (productMap.has(id)) {
           const existing = productMap.get(id);
-          existing.quantity += paidQty;
-          existing.total += itemTotal;
+          existing.quantity += item.paidQty;
+          existing.total += item.origTotal;
         } else {
           productMap.set(id, {
             name: item.name,
-            category: item.category || "Uncategorized",
-            quantity: paidQty,
-            total: itemTotal
+            category: item.category,
+            quantity: item.paidQty,
+            total: item.origTotal
           });
         }
       }
     }
 
-    // Convert map to array and filter out products with zero or negative net quantity (optional)
+    // Convert map to array and sort by quantity sold
     const productsArray = Array.from(productMap.values())
-      .filter(p => p.quantity > 0);   // show only products with net positive sales
-
-    // Sort by net quantity sold (most sellable first)
-    productsArray.sort((a, b) => b.quantity - a.quantity);
+      .filter(p => p.quantity > 0)
+      .sort((a, b) => b.quantity - a.quantity);
 
     return productsArray;
   } catch (err) {
