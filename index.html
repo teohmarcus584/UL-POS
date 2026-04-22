@@ -4071,7 +4071,7 @@ async function completeCheckout(paymentMethod, cashReceived) {
 
     if (window.printerAPI?.isConnected && window.printerAPI.printReceipt) {
       const transactionWithName = { ...transaction, employee_name: currentEmployee.name };
-      await window.printerAPI.printReceipt(transactionWithName);
+       await window.printerAPI.printReceipt(transactionWithName, 2);   // ✅ print 2 copies
     } else {
       await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
     }
@@ -5178,13 +5178,12 @@ async function openCashDrawer() {
   }
 }
 
-async function printReceipt(transaction) {
+async function printReceipt(transaction, copies = 1) {
   if (!isPrinterConnected || !printerCharacteristic) {
     await showAlertModal('Printer required', 'Connect Bluetooth printer first.');
     return false;
   }
   try {
-    const openDrawer = (transaction.payment_method === 'Cash');
     const paperSize = paperSizeSelectModal.value;
     localStorage.setItem('printerPaperSize', paperSize);
     const encoder = new TextEncoder();
@@ -5207,141 +5206,132 @@ async function printReceipt(transaction) {
       return [nameLine, qtyLine];
     }
 
-    const lines = [];
     const separator = '-'.repeat(maxChars);
 
-    lines.push(`STORE LOCATION : ${storeLocation}`);
-    lines.push(`EMPLOYEE : ${employeeName}`);
-    lines.push(separator);
+    // Helper to build the receipt content for one copy
+    function buildReceiptContent(copyLabel) {
+      const lines = [];
+      lines.push(`STORE LOCATION : ${storeLocation}`);
+      lines.push(`EMPLOYEE : ${employeeName}`);
+      lines.push(separator);
 
-    for (const item of transaction.items) {
-      const paidQty = item.quantity - (item.free_quantity || 0);
-      const freeQty = item.free_quantity || 0;
+      for (const item of transaction.items) {
+        const paidQty = item.quantity - (item.free_quantity || 0);
+        const freeQty = item.free_quantity || 0;
 
-      // Paid items (normal price)
-      if (paidQty > 0) {
-        const itemTotal = paidQty * item.price;
-        const [nameLine, qtyLine] = formatProductLine(item.name, item.price, paidQty, itemTotal);
-        lines.push(nameLine);
-        lines.push(qtyLine);
+        if (paidQty > 0) {
+          const itemTotal = paidQty * item.price;
+          const [nameLine, qtyLine] = formatProductLine(item.name, item.price, paidQty, itemTotal);
+          lines.push(nameLine);
+          lines.push(qtyLine);
+        }
+
+        if (freeQty > 0) {
+          const itemTotal = 0;
+          const [nameLine, qtyLine] = formatProductLine(item.name, 0, freeQty, itemTotal);
+          lines.push(nameLine);
+          lines.push(qtyLine);
+        }
       }
 
-      // Free items – show as normal product line with price 0
-      if (freeQty > 0) {
-        const itemTotal = 0;
-        const [nameLine, qtyLine] = formatProductLine(item.name, 0, freeQty, itemTotal);
-        lines.push(nameLine);
-        lines.push(qtyLine);
+      lines.push(separator);
+
+      if (transaction.discount > 0) lines.push(`Lucky Draw Discount : -RM ${transaction.discount.toFixed(2)}`);
+      if (transaction.buy2_free1_discount > 0) lines.push(`Car Aromatic Promo : -RM ${transaction.buy2_free1_discount.toFixed(2)}`);
+      if (transaction.buy3_free1_discount > 0) lines.push(`15ml Perfume EDP Promo : -RM ${transaction.buy3_free1_discount.toFixed(2)}`);
+      if (transaction.custom_discount > 0) lines.push(`Custom Discount     : -RM ${transaction.custom_discount.toFixed(2)}`);
+      if (transaction.staff_discount > 0) lines.push(`Staff 10% Discount  : -RM ${transaction.staff_discount.toFixed(2)}`);
+
+      const paymentLines = [];
+      paymentLines.push(`PAYMENT METHOD : ${transaction.payment_method}`);
+      if (transaction.cash_received && transaction.payment_method === 'Cash') {
+        const change = transaction.cash_received - transaction.total;
+        paymentLines.push(`CHANGE : RM ${change.toFixed(2)}`);
       }
+
+      const footerLines = [
+        'THANK YOU FOR YOUR PURCHASE',
+        'ANY ENQUIRY PLEASE CONTACT',
+        '+60134665831 ( MARCUS )',
+        'GOODS SOLD ARE NOT REFUNDABLE'
+      ];
+
+      const date = new Date(transaction.timestamp);
+      const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+      const txnLine = `TXN   : ${transaction.transaction_id}`;
+      const dateLine = `DATE  : ${formattedDate}`;
+
+      // Build final text
+      let text = '';
+      text += `${copyLabel}\n`;
+      text += lines.join('\n') + '\n';
+      const totalAmount = transaction.total;
+      const totalLabel = "TOTAL";
+      const totalValueStr = `RM ${totalAmount.toFixed(2)}`;
+      let totalLine = totalLabel;
+      const availableSpace = maxChars - totalValueStr.length;
+      if (totalLabel.length < availableSpace) {
+        totalLine = totalLabel.padEnd(availableSpace);
+      } else {
+        totalLine = totalLabel.substring(0, availableSpace - 3) + '...';
+      }
+      totalLine += totalValueStr;
+      text += totalLine + '\n';
+      text += paymentLines.join('\n') + '\n';
+      text += separator + '\n';
+      text += footerLines.join('\n') + '\n';
+      text += txnLine + '\n' + dateLine + '\n\n';
+      return text;
     }
 
-    lines.push(separator);
+    // Prepare commands for all copies
+    let allCommands = [];
 
-    // Discount lines
-    if (transaction.discount > 0) lines.push(`Lucky Draw Discount : -RM ${transaction.discount.toFixed(2)}`);
-    if (transaction.buy2_free1_discount > 0) lines.push(`Car Aromatic Promo : -RM ${transaction.buy2_free1_discount.toFixed(2)}`);
-    if (transaction.buy3_free1_discount > 0) lines.push(`15ml Perfume EDP Promo : -RM ${transaction.buy3_free1_discount.toFixed(2)}`);
-    if (transaction.custom_discount > 0) lines.push(`Custom Discount     : -RM ${transaction.custom_discount.toFixed(2)}`);
-    if (transaction.staff_discount > 0) lines.push(`Staff 10% Discount  : -RM ${transaction.staff_discount.toFixed(2)}`);   // ✅ NEW
-
-    const paymentLines = [];
-    paymentLines.push(`PAYMENT METHOD : ${transaction.payment_method}`);
-    if (transaction.cash_received && transaction.payment_method === 'Cash') {
-      const change = transaction.cash_received - transaction.total;
-      paymentLines.push(`CHANGE : RM ${change.toFixed(2)}`);
-    }
-
-    const footerLines = [
-      'THANK YOU FOR YOUR PURCHASE',
-      'ANY ENQUIRY PLEASE CONTACT',
-      '+60134665831 ( MARCUS )',
-      'GOODS SOLD ARE NOT REFUNDABLE'
-    ];
-
-    const date = new Date(transaction.timestamp);
-    const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-    const txnLine = `TXN   : ${transaction.transaction_id}`;
-    const dateLine = `DATE  : ${formattedDate}`;
-
-    let commands = [];
-    commands.push(0x1B, 0x40);
-
-    commands.push(0x1B, 0x61, 0x01);
-    commands.push(0x1B, 0x45, 0x01);
-    commands.push(0x1D, 0x21, 0x11);
-    const titleText = "UL PERFUMERY";
-    for (let i = 0; i < titleText.length; i++) commands.push(titleText.charCodeAt(i));
-    commands.push(0x0A);
-    commands.push(0x1B, 0x45, 0x00);
-    commands.push(0x1D, 0x21, 0x00);
-    commands.push(0x1B, 0x61, 0x00);
-    commands.push(0x0A);
-
-    const bodyText = lines.join('\n');
-    commands.push(...encoder.encode(bodyText));
-    commands.push(0x0A);
-
-    const totalAmount = transaction.total;
-    const totalLabel = "TOTAL";
-    const totalValueStr = `RM ${totalAmount.toFixed(2)}`;
-
-    let totalLine = totalLabel;
-    const availableSpace = maxChars - totalValueStr.length;
-    if (totalLabel.length < availableSpace) {
-      totalLine = totalLabel.padEnd(availableSpace);
-    } else {
-      totalLine = totalLabel.substring(0, availableSpace - 3) + '...';
-    }
-    totalLine += totalValueStr;
-
-    commands.push(0x1B, 0x45, 0x01);
-    commands.push(0x1D, 0x21, 0x01);
-    for (let i = 0; i < totalLine.length; i++) {
-      commands.push(totalLine.charCodeAt(i));
-    }
-    commands.push(0x1D, 0x21, 0x00);
-    commands.push(0x1B, 0x45, 0x00);
-    commands.push(0x0A);
-
-    const paymentText = paymentLines.join('\n');
-    commands.push(...encoder.encode(paymentText));
-    commands.push(0x0A);
-
-    commands.push(...encoder.encode(separator));
-    commands.push(0x0A);
-
-    commands.push(0x1B, 0x61, 0x01);
-    for (const line of footerLines) {
-      commands.push(...encoder.encode(line));
+    for (let i = 0; i < copies; i++) {
+      const copyLabel = (copies === 2 && i === 0) ? "CUSTOMER COPY" : (copies === 2 && i === 1) ? "MERCHANT COPY" : "";
+      const receiptText = buildReceiptContent(copyLabel);
+      let commands = [];
+      commands.push(0x1B, 0x40); // init
+      commands.push(0x1B, 0x61, 0x01); // center align
+      commands.push(0x1B, 0x45, 0x01);
+      commands.push(0x1D, 0x21, 0x11);
+      const titleText = "UL PERFUMERY";
+      for (let c of titleText) commands.push(c.charCodeAt(0));
       commands.push(0x0A);
+      commands.push(0x1B, 0x45, 0x00);
+      commands.push(0x1D, 0x21, 0x00);
+      commands.push(0x1B, 0x61, 0x00);
+      commands.push(0x0A);
+
+      // receipt body
+      for (let c of receiptText) commands.push(c.charCodeAt(0));
+
+      // barcode
+      const barcodeData = encoder.encode(transaction.transaction_id);
+      const barcodeLen = barcodeData.length;
+      commands.push(0x1D, 0x68, 0x32);
+      commands.push(0x1D, 0x77, 0x01);
+      commands.push(0x1B, 0x61, 0x01);
+      commands.push(0x1D, 0x6B, 0x49, barcodeLen);
+      for (let j = 0; j < barcodeLen; j++) commands.push(barcodeData[j]);
+      commands.push(0x0A, 0x0A);
+      commands.push(0x1B, 0x61, 0x00);
+
+      // cut after each copy except the last one? Actually we want cut after each copy.
+      // For the last copy, cut as well. Use partial cut.
+      commands.push(0x1D, 0x56, 0x41, 0x00); // partial cut
+
+      // Open drawer only for the first copy if payment is Cash
+      if (i === 0 && transaction.payment_method === 'Cash') {
+        const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
+        // Insert drawer command before the cut
+        commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
+      }
+
+      allCommands = allCommands.concat(commands);
     }
-    commands.push(0x1B, 0x61, 0x00);
-    commands.push(0x0A);
 
-    // Barcode for receipt ID
-    const barcodeData = encoder.encode(transaction.transaction_id);
-    const barcodeLen = barcodeData.length;
-    commands.push(0x1D, 0x68, 0x32);
-    commands.push(0x1D, 0x77, 0x01);
-    commands.push(0x1B, 0x61, 0x01);
-    commands.push(0x1D, 0x6B, 0x49, barcodeLen);
-    for (let i = 0; i < barcodeLen; i++) commands.push(barcodeData[i]);
-    commands.push(0x0A, 0x0A);
-    commands.push(0x1B, 0x61, 0x00);
-
-    commands.push(...encoder.encode(txnLine));
-    commands.push(0x0A);
-    commands.push(...encoder.encode(dateLine));
-    commands.push(0x0A);
-    commands.push(0x0A);
-
-    commands.push(0x1D, 0x56, 0x41, 0x00);
-    if (openDrawer) {
-      const drawerCommand = [0x1B, 0x70, 0x00, 0x19, 0xFA];
-      commands = commands.slice(0, -4).concat(drawerCommand, commands.slice(-4));
-    }
-
-    await sendChunkedData(new Uint8Array(commands), 500);
+    await sendChunkedData(new Uint8Array(allCommands), 500);
     return true;
   } catch (err) {
     console.error(err);
