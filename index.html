@@ -4276,109 +4276,132 @@ function renderReceiptsList(receipts) {
     return;
   }
 
-  let html = '';
+  // Group receipts by date (YYYY-MM-DD)
+  const grouped = {};
   receipts.forEach(rec => {
-    const date = new Date(rec.timestamp).toLocaleString();
-    const employeeName = getEmployeeName(rec.employee_id);
-    const isRefund = rec.total < 0;
-    const refundClass = isRefund ? 'refund-receipt' : '';
-    const receiptIdHtml = isRefund
-      ? `<span class="receipt-id">[REFUND] ${rec.transaction_id}</span>`
-      : `<span class="receipt-id">${rec.transaction_id}</span>`;
+    const dateObj = new Date(rec.timestamp);
+    const dateKey = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD
+    if (!grouped[dateKey]) grouped[dateKey] = [];
+    grouped[dateKey].push(rec);
+  });
 
-    // Build detailed items list
-    let itemsHtml = '<div class="receipt-items-list">';
-    let subtotal = 0;
-    for (const item of rec.items) {
-      const price = parseFloat(item.price) || 0;
-      const quantity = parseInt(item.quantity) || 0;
-      const freeQuantity = parseInt(item.free_quantity) || 0;
-      const paidQty = quantity - freeQuantity;
-      if (paidQty <= 0) continue;
-      
-      const itemTotal = paidQty * price;
-      subtotal += itemTotal;
+  // Sort date keys descending (newest first)
+  const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
 
-      itemsHtml += `
-        <div class="receipt-item-row">
-          <span class="receipt-item-name">${escapeHtml(item.name)}</span>
-          <span class="receipt-item-detail">${paidQty} x RM ${price.toFixed(2)}</span>
-          <span class="receipt-item-detail">RM ${itemTotal.toFixed(2)}</span>
+  let html = '';
+  for (const dateKey of sortedDates) {
+    const dayReceipts = grouped[dateKey];
+    // Format date for display: e.g., "Tuesday, 23 April 2026"
+    const sampleDate = new Date(dayReceipts[0].timestamp);
+    const formattedDate = sampleDate.toLocaleDateString(undefined, {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    // Day separator header
+    html += `
+      <div style="margin: 20px 0 12px 0; position: relative;">
+        <div style="background: #e2e8f0; height: 2px; margin: 0 10px;"></div>
+        <div style="text-align: center; margin-top: -12px;">
+          <span style="background: white; padding: 0 16px; font-weight: 600; font-size: 1rem; color: #475569;">📅 ${formattedDate}</span>
         </div>
-      `;
-      if (freeQuantity > 0) {
+      </div>
+    `;
+
+    // Render each receipt for this day (preserve original order, usually newest first)
+    for (const rec of dayReceipts) {
+      const date = new Date(rec.timestamp).toLocaleString();
+      const employeeName = getEmployeeName(rec.employee_id);
+      const isRefund = rec.total < 0;
+      const refundClass = isRefund ? 'refund-receipt' : '';
+      const receiptIdHtml = isRefund
+        ? `<span class="receipt-id">[REFUND] ${rec.transaction_id}</span>`
+        : `<span class="receipt-id">${rec.transaction_id}</span>`;
+
+      // Build detailed items list
+      let itemsHtml = '<div class="receipt-items-list">';
+      let subtotal = 0;
+      for (const item of rec.items) {
+        const price = parseFloat(item.price) || 0;
+        const quantity = parseInt(item.quantity) || 0;
+        const freeQuantity = parseInt(item.free_quantity) || 0;
+        const paidQty = quantity - freeQuantity;
+        if (paidQty <= 0) continue;
+
+        const itemTotal = paidQty * price;
+        subtotal += itemTotal;
+
         itemsHtml += `
-          <div class="receipt-item-row" style="color:#10b981; font-style:italic;">
-            <span class="receipt-item-name">🎁 FREE GIFT</span>
-            <span class="receipt-item-detail">${freeQuantity} x ${escapeHtml(item.name)}</span>
-            <span class="receipt-item-detail">RM 0.00</span>
+          <div class="receipt-item-row">
+            <span class="receipt-item-name">${escapeHtml(item.name)}</span>
+            <span class="receipt-item-detail">${paidQty} x RM ${price.toFixed(2)}</span>
+            <span class="receipt-item-detail">RM ${itemTotal.toFixed(2)}</span>
           </div>
         `;
+        if (freeQuantity > 0) {
+          itemsHtml += `
+            <div class="receipt-item-row" style="color:#10b981; font-style:italic;">
+              <span class="receipt-item-name">🎁 FREE GIFT</span>
+              <span class="receipt-item-detail">${freeQuantity} x ${escapeHtml(item.name)}</span>
+              <span class="receipt-item-detail">RM 0.00</span>
+            </div>
+          `;
+        }
       }
-    }
-    itemsHtml += '</div>';
+      itemsHtml += '</div>';
 
-    // Discounts with safe conversion
-    let discountsHtml = '';
-    const discount = parseFloat(rec.discount) || 0;
-    const buy2Free1 = parseFloat(rec.buy2_free1_discount) || 0;
-    const buy3Free1 = parseFloat(rec.buy3_free1_discount) || 0;
-    const customDisc = parseFloat(rec.custom_discount) || 0;
-    const staffDisc = parseFloat(rec.staff_discount) || 0;   // ✅ NEW
+      // Discounts
+      let discountsHtml = '';
+      const discount = parseFloat(rec.discount) || 0;
+      const buy2Free1 = parseFloat(rec.buy2_free1_discount) || 0;
+      const buy3Free1 = parseFloat(rec.buy3_free1_discount) || 0;
+      const customDisc = parseFloat(rec.custom_discount) || 0;
+      const staffDisc = parseFloat(rec.staff_discount) || 0;
 
-    if (discount > 0) {
-      discountsHtml += `<div class="receipt-discount-row"><span>🎲 Lucky Draw Discount</span><span>-RM ${discount.toFixed(2)}</span></div>`;
-    }
-    if (buy2Free1 > 0) {
-      discountsHtml += `<div class="receipt-discount-row"><span>🚗 Car Aromatic Promo</span><span>-RM ${buy2Free1.toFixed(2)}</span></div>`;
-    }
-    if (buy3Free1 > 0) {
-      discountsHtml += `<div class="receipt-discount-row"><span>🌸 15ml Perfume EDP Promo</span><span>-RM ${buy3Free1.toFixed(2)}</span></div>`;
-    }
-    if (customDisc > 0) {
-      discountsHtml += `<div class="receipt-discount-row"><span>💰 Custom Discount</span><span>-RM ${customDisc.toFixed(2)}</span></div>`;
-    }
-    if (staffDisc > 0) {   // ✅ NEW
-      discountsHtml += `<div class="receipt-discount-row"><span>👥 Staff 10% Discount</span><span>-RM ${staffDisc.toFixed(2)}</span></div>`;
-    }
+      if (discount > 0) discountsHtml += `<div class="receipt-discount-row"><span>🎲 Lucky Draw Discount</span><span>-RM ${discount.toFixed(2)}</span></div>`;
+      if (buy2Free1 > 0) discountsHtml += `<div class="receipt-discount-row"><span>🚗 Car Aromatic Promo</span><span>-RM ${buy2Free1.toFixed(2)}</span></div>`;
+      if (buy3Free1 > 0) discountsHtml += `<div class="receipt-discount-row"><span>🌸 15ml Perfume EDP Promo</span><span>-RM ${buy3Free1.toFixed(2)}</span></div>`;
+      if (customDisc > 0) discountsHtml += `<div class="receipt-discount-row"><span>💰 Custom Discount</span><span>-RM ${customDisc.toFixed(2)}</span></div>`;
+      if (staffDisc > 0) discountsHtml += `<div class="receipt-discount-row"><span>👥 Staff 10% Discount</span><span>-RM ${staffDisc.toFixed(2)}</span></div>`;
 
-    const total = parseFloat(rec.total) || 0;
+      const total = parseFloat(rec.total) || 0;
 
-    const actionsHtml = `
-      <div class="receipt-actions">
-        <button class="reprint-btn" data-txid="${rec.transaction_id}">🖨️ Reprint</button>
-        ${!isRefund && !rec.refunded ? `<button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">💰 Refund</button>` : ''}
-      </div>
-    `;
+      const actionsHtml = `
+        <div class="receipt-actions">
+          <button class="reprint-btn" data-txid="${rec.transaction_id}">🖨️ Reprint</button>
+          ${!isRefund && !rec.refunded ? `<button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">💰 Refund</button>` : ''}
+        </div>
+      `;
 
-    html += `
-      <div class="receipt-item ${refundClass}" data-txid="${rec.transaction_id}">
-        <div class="receipt-header" style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap;">
-          <div style="display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap;">
-            ${receiptIdHtml}
-            <strong>Payment: ${rec.payment_method}</strong>
-            <span class="receipt-total">RM ${total.toFixed(2)}</span>
+      html += `
+        <div class="receipt-item ${refundClass}" data-txid="${rec.transaction_id}">
+          <div class="receipt-header" style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap;">
+            <div style="display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap;">
+              ${receiptIdHtml}
+              <strong>Payment: ${rec.payment_method}</strong>
+              <span class="receipt-total">RM ${total.toFixed(2)}</span>
+            </div>
+            <div>
+              <span class="receipt-date">${date}</span>
+            </div>
           </div>
-          <div>
-            <span class="receipt-date">${date}</span>
+          <div class="receipt-details">
+            <div>Store: ${rec.store} | Employee: ${employeeName}</div>
           </div>
+          ${itemsHtml}
+          ${discountsHtml ? `<div class="receipt-items-list" style="margin-top:4px;">${discountsHtml}</div>` : ''}
+          <div class="receipt-item-row total-row" style="margin-top:8px; padding-top:6px; border-top:1px dashed #cbd5e1;">
+            <strong>TOTAL</strong>
+            <strong>RM ${total.toFixed(2)}</strong>
+          </div>
+          ${actionsHtml}
         </div>
-        <div class="receipt-details">
-          <div>Store: ${rec.store} | Employee: ${employeeName}</div>
-        </div>
-        ${itemsHtml}
-        ${discountsHtml ? `<div class="receipt-items-list" style="margin-top:4px;">${discountsHtml}</div>` : ''}
-        <div class="receipt-item-row total-row" style="margin-top:8px; padding-top:6px; border-top:1px dashed #cbd5e1;">
-          <strong>TOTAL</strong>
-          <strong>RM ${total.toFixed(2)}</strong>
-        </div>
-        ${actionsHtml}
-      </div>
-    `;
-  });
+      `;
+    }
+  }
+
   container.innerHTML = html;
 
-  // Re-attach event listeners for reprint and refund buttons
+  // Re-attach event listeners (same as before)
   document.querySelectorAll('.reprint-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const txId = btn.dataset.txid;
