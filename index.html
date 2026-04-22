@@ -6929,24 +6929,7 @@ function updateStoreCashSummary() {
       });
     }
   }
-// Add click listeners to store cash cards for filtering
-function attachStoreCardClickListeners() {
-  const cards = document.querySelectorAll('.store-cash-card');
-  cards.forEach(card => {
-    card.style.cursor = 'pointer';
-    card.addEventListener('click', () => {
-      const store = card.getAttribute('data-store');
-      if (store) {
-        const storeSelect = document.getElementById('collectionStoreSelect');
-        if (storeSelect) {
-          storeSelect.value = store;
-          const event = new Event('change', { bubbles: true });
-          storeSelect.dispatchEvent(event);
-        }
-      }
-    });
-  });
-}
+
 
 async function getNextTransactionNumber(store) {
   try {
