@@ -5144,8 +5144,14 @@ function attachCashCardClickListeners() {
 const originalUpdateStoreCard = window.updateStoreCard;
 window.updateStoreCard = function(storeName, salesReport, empData) {
   if (originalUpdateStoreCard) originalUpdateStoreCard(storeName, salesReport, empData);
-  attachStoreCardClickListeners();
+  if (typeof attachStoreCardClickListeners === 'function') {
+    attachStoreCardClickListeners();
+  }
 };
+// Initial call after DOM ready (e.g., inside openReportsModal after rendering)
+setTimeout(() => {
+  if (typeof attachStoreCardClickListeners === 'function') attachStoreCardClickListeners();
+}, 1000);
 
 // Initialize modal event listeners
 document.getElementById('closeStoreCardModal')?.addEventListener('click', closeStoreCardModal);
@@ -6933,12 +6939,23 @@ function updateStoreCashSummary() {
 function attachStoreCardClickListeners() {
   const cards = document.querySelectorAll('.store-summary-card');
   cards.forEach(card => {
-    card.removeEventListener('click', card._cardClickHandler);
+    // Remove old listener to avoid duplicates
+    if (card._cardClickHandler) {
+      card.removeEventListener('click', card._cardClickHandler);
+      card.removeEventListener('touchstart', card._touchStartHandler); // iOS fallback
+    }
     const store = card.getAttribute('data-store');
-    const handler = () => openStoreCardModal(store);
+    const handler = (e) => {
+      e.preventDefault(); // Helps iOS
+      openStoreCardModal(store);
+    };
     card.addEventListener('click', handler);
+    // iOS: also listen to touchstart for better responsiveness
+    card.addEventListener('touchstart', handler, { passive: false });
     card._cardClickHandler = handler;
+    card._touchStartHandler = handler;
     card.style.cursor = 'pointer';
+    card.style.webkitTapHighlightColor = 'transparent'; // improve iOS tap
   });
 }
 async function getNextTransactionNumber(store) {
