@@ -1556,6 +1556,18 @@
   font-size: 1.3rem !important;
   line-height: 1.5 !important;
 }
+.lucky-reprint-btn {
+  background: #f59e0b;  /* amber/gold background */
+  border: none;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 30px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.lucky-reprint-btn:hover {
+  background: #d97706;
+}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -1997,7 +2009,7 @@
 <script>
 
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzbzA2r2f9YnBsx-ANJu3c8TDfPYdElcszESawUtmL0f-9A9-aIUtkBvFsS0It28DoJEQ/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzMTbltQln9nPj5na9OcSirFDq5qQ-1HEQKh47VpjPgdE4wL73EXVa8XEnbEu5GSB-EBw/exec"; // REPLACE WITH YOUR URL
 
 // Haversine distance in km
 function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
@@ -4132,6 +4144,12 @@ async function completeCheckout(paymentMethod, cashReceived) {
 
   const transactionId = await getNextTransactionNumber(currentStore);
 
+  // ✅ NEW: Get selected sales person from dropdown
+  const salesPersonSelect = document.getElementById('soldBySelectCart');
+  const selectedOption = salesPersonSelect.options[salesPersonSelect.selectedIndex];
+  const salesPersonName = selectedOption ? selectedOption.text.split(' (ID:')[0] : '';
+  const salesPersonId = salesPersonSelect.value;
+
   const saleItems = cart.map(item => ({
     id: item.product.id,
     category: item.product.category,
@@ -4153,12 +4171,15 @@ async function completeCheckout(paymentMethod, cashReceived) {
     buy2_free1_discount: buy2Free1Discount,
     buy3_free1_discount: buy3Free1Discount,
     custom_discount: customDiscount,
-    staff_discount: staffDiscount,                // ✅ NEW
+    staff_discount: staffDiscount,
     prize_claimed: claimedReceiptInfo,
     customer_id: selectedCustomer ? selectedCustomer.id : null,
     store: currentStore,
-    employee_name: currentEmployee.name,
-    employee_id: currentEmployee.id
+    employee_name: currentEmployee.name,           // Cashier (logged‑in)
+    employee_id: currentEmployee.id,              // Cashier ID
+    // ✅ NEW: Sales Person fields
+    sales_person_name: salesPersonName,
+    sales_person_id: salesPersonId,
   };
 
   queueSale(transaction);
@@ -4212,7 +4233,10 @@ async function completeCheckout(paymentMethod, cashReceived) {
       buy2_free1_discount: buy2Free1Discount,
       buy3_free1_discount: buy3Free1Discount,
       custom_discount: customDiscount,
-      staff_discount: staffDiscount               // ✅ NEW
+      staff_discount: staffDiscount,
+      // ✅ NEW: Also store sales person in local receipt cache (optional)
+      sales_person_name: salesPersonName,
+      sales_person_id: salesPersonId,
     };
     if (!cachedReceipts) cachedReceipts = [];
     cachedReceipts.unshift(fakeReceipt);
@@ -4231,7 +4255,8 @@ async function completeCheckout(paymentMethod, cashReceived) {
       await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
     }
 
-    await showAlertModal('✅ Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
+    // ✅ Success alert removed as requested earlier
+    // await showAlertModal('✅ Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
 
     document.getElementById('luckyTxId').innerText = transactionId;
     const luckyModal = document.getElementById('luckyDrawModal');
@@ -4249,42 +4274,75 @@ async function completeCheckout(paymentMethod, cashReceived) {
   }
 }
   async function saveTransactionToSheet(transaction) {
-    
-    try {
-      const selectedEmployeeId = soldBySelectCart.value;
-      const employeeIdForRecord = selectedEmployeeId || currentEmployee.id;
-      const formData = new URLSearchParams();
-      formData.append("action", "saveSale");
-      formData.append("transaction_id", transaction.transaction_id);
-      formData.append("items", JSON.stringify(transaction.items));
-      formData.append("total", transaction.total);
-      formData.append("payment_method", transaction.payment_method);
-      formData.append("cash_received", transaction.cash_received || '');
-      formData.append("timestamp", transaction.timestamp);
-      formData.append("store", currentStore);
-      formData.append("employee_id", employeeIdForRecord);
-      formData.append("discount", transaction.discount || 0);
-      formData.append("buy2_free1_discount", transaction.buy2_free1_discount || 0);
-      formData.append("buy3_free1_discount", transaction.buy3_free1_discount || 0);
-      formData.append("custom_discount", transaction.custom_discount || 0);
-	  formData.append("staff_discount", transaction.staff_discount || 0);   // ✅ NEW
-      formData.append("prize_claimed", transaction.prize_claimed ? JSON.stringify(transaction.prize_claimed) : '');
-      if (transaction.customer_id) formData.append("customer_id", transaction.customer_id);
-      const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
-      const result = await response.json();
-      return result.success === true;
-    } catch (err) {
-      console.error(err);
-      return false;
-    } finally {
-      hideLoading();
-    }
+  try {
+    const formData = new URLSearchParams();
+    formData.append("action", "saveSale");
+    formData.append("transaction_id", transaction.transaction_id);
+    formData.append("items", JSON.stringify(transaction.items));
+    formData.append("total", transaction.total);
+    formData.append("payment_method", transaction.payment_method);
+    formData.append("cash_received", transaction.cash_received || '');
+    formData.append("timestamp", transaction.timestamp);
+    formData.append("store", currentStore);
+    // ✅ Use the logged‑in cashier's ID (from transaction)
+    formData.append("employee_id", transaction.employee_id);
+    formData.append("discount", transaction.discount || 0);
+    formData.append("buy2_free1_discount", transaction.buy2_free1_discount || 0);
+    formData.append("buy3_free1_discount", transaction.buy3_free1_discount || 0);
+    formData.append("custom_discount", transaction.custom_discount || 0);
+    formData.append("staff_discount", transaction.staff_discount || 0);
+    formData.append("prize_claimed", transaction.prize_claimed ? JSON.stringify(transaction.prize_claimed) : '');
+    if (transaction.customer_id) formData.append("customer_id", transaction.customer_id);
+    // ✅ Send sales person fields separately
+    formData.append("sales_person_name", transaction.sales_person_name || '');
+    formData.append("sales_person_id", transaction.sales_person_id || '');
+
+    const response = await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+    const result = await response.json();
+    return result.success === true;
+  } catch (err) {
+    console.error(err);
+    return false;
+  } finally {
+    hideLoading();
   }
+}
 function getUTCDateString(date) {
   const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, '0');
   const day = String(date.getUTCDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+async function reprintLuckyDraw(txId) {
+  try {
+    const url = `${APPS_SCRIPT_URL}?action=get&receipt=${encodeURIComponent(txId)}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    if (!result.success) {
+      await showAlertModal('Error', result.error || 'Lucky draw record not found or invalid.');
+      return;
+    }
+    const transaction = result.data;
+    // Check if the lucky draw has already been claimed
+    if (transaction.claimed === true) {
+      await showAlertModal('Already Claimed', 'This lucky draw prize has already been claimed and cannot be reprinted.');
+      return;
+    }
+    const prizeLabel = transaction.prize_label || transaction.prize || 'RM 38 FREE GIFT';
+    if (!window.printerAPI || !window.printerAPI.printPrizeVoucher) {
+      await showAlertModal('Printer Error', 'Printer not connected or print function unavailable.');
+      return;
+    }
+    const success = await window.printerAPI.printPrizeVoucher(prizeLabel, txId);
+    if (success) {
+      await showAlertModal('Reprinted', 'Lucky draw voucher reprinted successfully.');
+    } else {
+      await showAlertModal('Print Failed', 'Could not print voucher. Check printer connection.');
+    }
+  } catch (err) {
+    console.error(err);
+    await showAlertModal('Error', 'Failed to reprint lucky draw: ' + err.message);
+  }
 }
   // ==================== RECEIPTS (polling, etc.) ====================
   let cachedReceipts = null;
@@ -4401,7 +4459,7 @@ async function fetchAndCacheReceipts() {
   }
 
 async function fetchReceipts(store, employeeId, from, to, search) {
-  showLoading('Loading receipts...');
+  
   try {
     let url = `${APPS_SCRIPT_URL}?action=getReceipts&store=${store}&employeeId=${employeeId}`;
     if (from) url += `&from=${encodeURIComponent(from)}`;
@@ -4411,7 +4469,12 @@ async function fetchReceipts(store, employeeId, from, to, search) {
     const result = await response.json();
     if (result.success) {
       cachedReceipts = result.receipts;
-      // ✅ Always render – if empty, the function will show "No receipts found"
+      // ✅ Save to localStorage
+      localStorage.setItem('cachedReceipts', JSON.stringify({
+        timestamp: Date.now(),
+        receipts: cachedReceipts,
+        store, employeeId, from, to, search
+      }));
       renderReceiptsList(cachedReceipts);
     } else {
       throw new Error('Receipts data error');
@@ -4453,7 +4516,6 @@ function renderReceiptsList(receipts) {
   let html = '';
   for (const dateKey of sortedDates) {
     const dayReceipts = grouped[dateKey];
-    // Use the first receipt's timestamp for display (already validated)
     const sampleDate = new Date(dayReceipts[0].timestamp);
     const formattedDate = sampleDate.toLocaleDateString(undefined, {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
@@ -4523,12 +4585,13 @@ function renderReceiptsList(receipts) {
 
       const total = parseFloat(rec.total) || 0;
 
-      const actionsHtml = `
-        <div class="receipt-actions">
-          <button class="reprint-btn" data-txid="${rec.transaction_id}">🖨️ Reprint</button>
-          ${!isRefund && !rec.refunded ? `<button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">💰 Refund</button>` : ''}
-        </div>
-      `;
+     const actionsHtml = `
+  <div class="receipt-actions">
+    <button class="reprint-btn" data-txid="${rec.transaction_id}">🖨️ Reprint</button>
+    ${(!isRefund && !rec.refunded && !rec.transaction_id?.startsWith('REF-')) ? `<button class="lucky-reprint-btn" data-txid="${rec.transaction_id}">🎲 Reprint Lucky Draw</button>` : ''}
+    ${(!isRefund && !rec.refunded) ? `<button class="refund-btn" data-txid="${rec.transaction_id}" data-store="${rec.store}">💰 Refund</button>` : ''}
+  </div>
+`;
 
       html += `
         <div class="receipt-item ${refundClass}" data-txid="${rec.transaction_id}">
@@ -4543,7 +4606,9 @@ function renderReceiptsList(receipts) {
             </div>
           </div>
           <div class="receipt-details">
-            <div>Store: ${rec.store} | Employee: ${employeeName}</div>
+            <div>Store: ${rec.store}</div>
+            <div>Cashier ID: ${employeeName}</div>
+            <div>Sales Person: ${rec.sales_person_name || 'N/A'}</div>
           </div>
           ${itemsHtml}
           ${discountsHtml ? `<div class="receipt-items-list" style="margin-top:4px;">${discountsHtml}</div>` : ''}
@@ -4559,7 +4624,7 @@ function renderReceiptsList(receipts) {
 
   container.innerHTML = html;
 
-  // Re-attach event listeners (reprint & refund)
+  // Re-attach event listeners for reprint & refund
   document.querySelectorAll('.reprint-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const txId = btn.dataset.txid;
@@ -4578,6 +4643,15 @@ function renderReceiptsList(receipts) {
       }
       reprintReceipt(receipt);
       e.stopPropagation();
+    });
+  });
+
+  // ✅ NEW: Event listeners for the "Reprint Lucky Draw" button
+  document.querySelectorAll('.lucky-reprint-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const txId = btn.dataset.txid;
+      e.stopPropagation();
+      await reprintLuckyDraw(txId);
     });
   });
 
@@ -5683,23 +5757,57 @@ async function printReceipt(transaction, copies = 1) {
 function buildReceiptContent(copyLabel) {
   const lines = [];
   lines.push(`STORE LOCATION : ${storeLocation}`);
-  lines.push(`EMPLOYEE : ${employeeName}`);
+  lines.push(`CASHIER ID : ${employeeName}`);
+  lines.push(`SALES PERSON : ${transaction.sales_person_name || 'N/A'}`);
   lines.push(separator);
 
+  // Add bold REFUND header for refund transactions
+  if (transaction.total < 0) {
+    lines.push(`\x1B\x45\x01********** REFUND **********\x1B\x45\x00`);
+    lines.push(separator);
+  }
+
+  // ✅ Modified formatProductLine with sign support
+  function formatProductLine(name, price, qty, total, isNegative = false) {
+    const nameLine = name;
+    const sign = isNegative ? '-' : '';
+    const qtyStr = `${qty} x RM ${price.toFixed(2)}`;
+    const totalStr = `${sign} RM ${Math.abs(total).toFixed(2)}`;
+    let spaceNeeded = maxChars - totalStr.length;
+    let qtyLine = qtyStr;
+    if (qtyLine.length > spaceNeeded) {
+      qtyLine = qtyLine.substring(0, spaceNeeded - 3) + '...';
+    } else {
+      qtyLine = qtyLine.padEnd(spaceNeeded);
+    }
+    qtyLine += `\x1B\x45\x01${totalStr}\x1B\x45\x00`;
+    return [nameLine, qtyLine];
+  }
+
   for (const item of transaction.items) {
-    const paidQty = item.quantity - (item.free_quantity || 0);
-    const freeQty = item.free_quantity || 0;
+    let paidQty = item.quantity - (item.free_quantity || 0);
+    let freeQty = item.free_quantity || 0;
+    const isRefund = transaction.total < 0;
+
+    if (isRefund) {
+      paidQty = Math.abs(paidQty);
+      freeQty = 0;
+    }
 
     if (paidQty > 0) {
       const itemTotal = paidQty * item.price;
-      const [nameLine, qtyLine] = formatProductLine(item.name, item.price, paidQty, itemTotal);
-      lines.push(nameLine);
+      const [nameLine, qtyLine] = formatProductLine(item.name, item.price, paidQty, itemTotal, isRefund);
+      if (isRefund) {
+        lines.push(`[REFUND] ${nameLine}`);
+      } else {
+        lines.push(nameLine);
+      }
       lines.push(qtyLine);
     }
 
-    if (freeQty > 0) {
+    if (freeQty > 0 && !isRefund) {
       const itemTotal = 0;
-      const [nameLine, qtyLine] = formatProductLine(item.name, 0, freeQty, itemTotal);
+      const [nameLine, qtyLine] = formatProductLine(item.name, 0, freeQty, itemTotal, false);
       lines.push(nameLine);
       lines.push(qtyLine);
     }
@@ -5739,14 +5847,9 @@ function buildReceiptContent(copyLabel) {
   text += `\x1B\x45\x01${copyLabel}\x1B\x45\x00\n`;
   text += lines.join('\n') + '\n';
 
-  // ---------- TOTAL LINE: label and amount on the SAME line, without right‑alignment ----------
   const totalAmount = transaction.total;
-  // Simple format: "TOTAL : RM X.XX" (all on one line, no extra padding)
   const totalLine = `TOTAL : RM ${totalAmount.toFixed(2)}`;
-
-  // Apply bold + double height + double width to the entire TOTAL line
   text += `\x1B\x45\x01\x1D\x21\x11${totalLine}\x1D\x21\x00\x1B\x45\x00\n`;
-  // ------------------------------------------------------------------------------------------
 
   text += paymentLines.join('\n') + '\n';
   text += separator + '\n';
@@ -5893,7 +5996,7 @@ async function connectPrinter() {
     isPrinterConnected = true;
     window.printerAPI = { isConnected: true, printReceipt: printReceipt, openDrawer: openCashDrawer, printPrizeVoucher: printPrizeVoucher };
     updatePrinterStatusUI();
-    await showAlertModal('Printer Connected', 'Bluetooth printer is ready.');
+   
   } catch (err) {
     printerStatusModal.innerText = `❌ ${err.message}`;
     console.error(err);
@@ -6113,51 +6216,71 @@ if (inventoryMode) {
     }
   }
 
-  async function preloadReport() {
-    if (!currentEmployee) return;
-    try {
-      const todayStr = getLocalDateString(new Date());
-      let store, employeeId;
-      if (currentEmployee.isAdmin) {
-        store = 'all';
-        employeeId = 'all';
-      } else {
-        store = 'all';
-        employeeId = currentEmployee.id;
-      }
-      const totals = await fetchSalesReport(store, employeeId, todayStr, todayStr, false, true);
-      if (!totals) return;
-      const chartData = await fetchSalesChartData(store, employeeId, todayStr, todayStr);
-      const productData = await fetchProductSalesReport(store, employeeId, todayStr, todayStr);
-      let employeeSalesData = null;
-      if (currentEmployee.isAdmin) {
-        const empData = await fetchEmployeeSalesData(store, todayStr, todayStr);
-        if (empData) employeeSalesData = empData;
-      }
-      preloadedReportCache = {
-        store,
-        employeeId,
-        from: todayStr,
-        to: todayStr,
-        totals: {
-          totalSales: totals.totalSales,
-          cashTotal: totals.cashTotal,
-          cardTotal: totals.cardTotal,
-          otherTotal: totals.otherTotal,
-          alipayTotal: totals.alipayTotal,
-          refundTotal: totals.refundTotal,
-          refundedTransactionCount: totals.refundedTransactionCount,
-          transactionCount: totals.transactionCount,
-          totalItems: totals.totalItems
-        },
-        productDetails: productData,
-        chartData: { ...chartData, employeeSales: employeeSalesData }
-      };
-      lastProductData = productData;
-    } catch (err) {
-      console.error('Preload report failed:', err);
+async function preloadReport() {
+  if (!currentEmployee) return;
+  try {
+    const todayStr = getLocalDateString(new Date());
+    let store, employeeId;
+    if (currentEmployee.isAdmin) {
+      store = 'all';
+      employeeId = 'all';
+    } else {
+      store = 'all';
+      employeeId = currentEmployee.id;
     }
+    const totals = await fetchSalesReport(store, employeeId, todayStr, todayStr, false, true);
+    if (!totals) return;
+    const chartData = await fetchSalesChartData(store, employeeId, todayStr, todayStr);
+    const productData = await fetchProductSalesReport(store, employeeId, todayStr, todayStr);
+    let employeeSalesData = null;
+    if (currentEmployee.isAdmin) {
+      const empData = await fetchEmployeeSalesData(store, todayStr, todayStr);
+      if (empData) employeeSalesData = empData;
+    }
+    preloadedReportCache = {
+      store,
+      employeeId,
+      from: todayStr,
+      to: todayStr,
+      totals: {
+        totalSales: totals.totalSales,
+        cashTotal: totals.cashTotal,
+        cardTotal: totals.cardTotal,
+        otherTotal: totals.otherTotal,
+        alipayTotal: totals.alipayTotal,
+        refundTotal: totals.refundTotal,
+        refundedTransactionCount: totals.refundedTransactionCount,
+        transactionCount: totals.transactionCount,
+        totalItems: totals.totalItems
+      },
+      productDetails: productData,
+      chartData: { ...chartData, employeeSales: employeeSalesData }
+    };
+    lastProductData = productData;
+
+    // ✅ ADD THIS BLOCK – Preload store breakdown for today (only for admin)
+    if (currentEmployee.isAdmin) {
+      try {
+        const stores = ['queens', 'sunshine', 'gurney_paragon'];
+        for (const storeName of stores) {
+          const [salesReport, empData] = await Promise.all([
+            fetchSalesReport(storeName, 'all', todayStr, todayStr, false, true),
+            fetchEmployeeSalesData(storeName, todayStr, todayStr)
+          ]);
+          if (salesReport) {
+            setCachedStoreReport(storeName, todayStr, todayStr, { salesReport, employeeData: empData });
+          }
+        }
+      } catch (err) {
+        console.warn('Preload store breakdown failed:', err);
+      }
+    }
+    // =========================================
+
+  } catch (err) {
+    console.error('Preload report failed:', err);
   }
+}
 
   // ==================== EVENT LISTENERS ====================
   // confirmStoreBtn event listener REMOVED because the button no longer exists
@@ -6445,9 +6568,63 @@ async function openReportsModal() {
   const modal = document.getElementById('adminReportModal');
   if (modal) {
     modal.style.display = 'flex';
-    const storeBreakdown = document.getElementById('storeBreakdownContainer');
-    if (storeBreakdown) storeBreakdown.style.display = 'none';
+    const storeBreakdownDiv = document.getElementById('storeBreakdownContainer');
+    if (storeBreakdownDiv) storeBreakdownDiv.style.display = 'none';
 
+    // ==================== INSTANT TOTALS (from cache) ====================
+    const todayStr = getLocalDateString(new Date());
+    if (preloadedReportCache && preloadedReportCache.from === todayStr) {
+      const totals = preloadedReportCache.totals;
+      document.getElementById('adminReportTotalSales').innerText = `RM ${totals.totalSales.toFixed(2)}`;
+      document.getElementById('adminReportCashTotal').innerText = `RM ${totals.cashTotal.toFixed(2)}`;
+      document.getElementById('adminReportCardTotal').innerText = `RM ${totals.cardTotal.toFixed(2)}`;
+      document.getElementById('adminReportQRTotal').innerText = `RM ${totals.otherTotal.toFixed(2)}`;
+      document.getElementById('adminReportAlipayTotal').innerText = `RM ${totals.alipayTotal.toFixed(2)}`;
+      document.getElementById('adminReportRefundTotal').innerText = `RM ${Math.abs(totals.refundTotal).toFixed(2)}`;
+      document.getElementById('adminReportRefundedBills').innerText = totals.refundedTransactionCount || 0;
+      document.getElementById('adminReportTransactionCount').innerText = totals.transactionCount || 0;
+      document.getElementById('adminReportTotalItems').innerText = totals.totalItems || 0;
+    }
+
+    // ==================== INSTANT STORE CARDS (from cache) ====================
+    if (currentEmployee?.isAdmin) {
+      const todayUTC = new Date();
+      todayUTC.setUTCHours(0, 0, 0, 0);
+      const from = getUTCDateString(todayUTC);
+      const to = from;
+
+      const stores = ['queens', 'sunshine', 'gurney_paragon'];
+      let anyMissing = false;
+      for (const storeName of stores) {
+        const cached = await getCachedStoreReport(storeName, from, to);
+        if (cached) {
+          updateStoreCard(storeName, cached.salesReport, cached.employeeData);
+        } else {
+          anyMissing = true;
+          // Show loading spinner in the card
+          const card = document.querySelector(`.store-summary-card[data-store="${storeName}"]`);
+          if (card) {
+            card.querySelector('.store-total').innerHTML = '<span class="report-loading-spinner" style="width:16px;height:16px;"></span> Loading...';
+            card.querySelector('.store-cash').innerHTML = '💵 Loading...';
+            card.querySelector('.store-card').innerHTML = '💳 Loading...';
+            card.querySelector('.store-qr').innerHTML = '📱 Loading...';
+            card.querySelector('.store-alipay').innerHTML = '💸 Loading...';
+            card.querySelector('.store-refund').innerHTML = '❌ Loading...';
+            card.querySelector('.store-refunded-bills').innerHTML = '📄 Loading...';
+            card.querySelector('.store-transactions').innerHTML = 'Loading...';
+            card.querySelector('.store-items-sold').innerHTML = 'Loading...';
+            card.querySelector('.employee-list').innerHTML = '<div class="report-loading-spinner" style="width:16px;height:16px;"></div>';
+          }
+        }
+      }
+      // If all cards were cached, hide the main loading message (if any)
+      if (!anyMissing) {
+        const loadingMsgElem = document.getElementById('adminReportLoadingMsg');
+        if (loadingMsgElem) loadingMsgElem.style.display = 'none';
+      }
+    }
+
+    // ==================== SHOW LOADING SPINNER (if no cache) ====================
     let loadingMsg = document.getElementById('adminReportLoadingMsg');
     if (!loadingMsg) {
       loadingMsg = document.createElement('div');
@@ -6468,10 +6645,18 @@ async function openReportsModal() {
       const reportStats = document.querySelector('#adminReportModal .report-stats');
       if (reportStats) reportStats.insertAdjacentElement('beforebegin', loadingMsg);
     }
-    loadingMsg.style.display = 'flex';
 
+    // Hide main loading message if we already displayed cached data
+    if (preloadedReportCache && preloadedReportCache.from === todayStr) {
+      loadingMsg.style.display = 'none';
+    } else {
+      loadingMsg.style.display = 'flex';
+    }
+
+    // ==================== REFRESH IN BACKGROUND ====================
     await updateAdminReport(false);
 
+    // ==================== EMPLOYEE DROPDOWNS (admin only) ====================
     if (currentEmployee?.isAdmin) {
       const employees = await fetchEmployees();
       const adminReportEmpSelect = document.getElementById('adminReportEmployeeSelect');
@@ -6503,10 +6688,12 @@ async function openReportsModal() {
       if (receiptsStore) receiptsStore.value = currentStore;
     }
 
+    // ==================== POPULATE STORE SELECTS ====================
     populateStoreSelects();
 
-    const loadingMsgElem = document.getElementById('adminReportLoadingMsg');
-    if (loadingMsgElem) loadingMsgElem.style.display = 'none';
+    // Ensure any leftover loading message is hidden
+    const finalLoadingMsg = document.getElementById('adminReportLoadingMsg');
+    if (finalLoadingMsg) finalLoadingMsg.style.display = 'none';
   }
 }
   if (sideReportBtn) sideReportBtn.addEventListener('click', wrapMenuAction(openReportsModal));
@@ -6517,6 +6704,23 @@ async function openReportsModal() {
     const modal = document.getElementById('receiptsModal');
     if (modal) {
       modal.style.display = 'flex';
+	   // ========== ✅ INSERT LOCALSTORAGE CACHE HERE ==========
+      const cached = localStorage.getItem('cachedReceipts');
+      if (cached) {
+        try {
+          const { timestamp, receipts, store, employeeId, from, to, search } = JSON.parse(cached);
+          // Optional: also check if filters match current selection (store, employee, range, search)
+          if (Date.now() - timestamp < 5 * 60 * 1000) { // 5 minutes
+            cachedReceipts = receipts;
+            renderReceiptsList(cachedReceipts);
+            // Hide loading message if already rendered
+            const msg = document.getElementById('receiptsLoadingMsg');
+            if (msg) msg.style.display = 'none';
+          }
+        } catch(e) { console.warn(e); }
+      }
+      // =====================================================
+
       let loadingMsg = document.getElementById('receiptsLoadingMsg');
       if (!loadingMsg) {
         loadingMsg = document.createElement('div');
@@ -6691,6 +6895,7 @@ document.getElementById('checkSettlementBtn')?.addEventListener('click', async (
 });
 // Record Settlement button
 document.getElementById('recordSettlementBtn')?.addEventListener('click', async () => {
+showLoading('Recording settlement...');
   const store = document.getElementById('settlementStoreSelect').value;
   const pettyCash = parseFloat(document.getElementById('pettyCashFloat').value) || 0;
   const actualCash = parseFloat(document.getElementById('actualCash').value);
@@ -6705,7 +6910,7 @@ document.getElementById('recordSettlementBtn')?.addEventListener('click', async 
 const sysRefund = parseFloat(document.getElementById('sysRefund').innerText.replace('RM ', '')) || 0;
   const todayStr = getLocalDateString(new Date());
 
-  showLoading('Recording settlement...');
+  
   try {
     const formData = new URLSearchParams();
     formData.append('action', 'recordSettlement');
@@ -7202,41 +7407,61 @@ function updateReceipts() {
   if (closeLuckyDrawPrintModal) closeLuckyDrawPrintModal.addEventListener('click', closeLuckyDrawPrintModalFunc);
   if (closeLuckyDrawPrintModalBtn) closeLuckyDrawPrintModalBtn.addEventListener('click', closeLuckyDrawPrintModalFunc);
 
-  if (printPrizeVoucherBtn) {
-    printPrizeVoucherBtn.addEventListener('click', async () => {
-      const receiptNumber = document.getElementById('luckyDrawReceiptNumber').innerText;
-      if (!receiptNumber) {
-        await showAlertModal('Error', 'No receipt number found.');
-        return;
-      }
-      showLoading('Printing voucher...');
-      try {
-        const url = `${APPS_SCRIPT_URL}?action=get&receipt=${encodeURIComponent(receiptNumber)}`;
-        const response = await fetch(url);
-        const result = await response.json();
-        if (!result.success) throw new Error('Transaction not found');
-        const transaction = result.data;
-        let prizeLabel = transaction.prize_label || 'RM 38 FREE GIFT';
-        if (!window.printerAPI || !window.printerAPI.printPrizeVoucher) {
-          await showAlertModal('Printer Error', 'Printer API not available. Please connect printer first.');
+ if (printPrizeVoucherBtn) {
+  printPrizeVoucherBtn.addEventListener('click', async () => {
+    const receiptNumber = document.getElementById('luckyDrawReceiptNumber').innerText;
+    if (!receiptNumber) {
+      await showAlertModal('Error', 'No receipt number found.');
+      return;
+    }
+    showLoading('Printing voucher...');
+    try {
+      const url = `${APPS_SCRIPT_URL}?action=get&receipt=${encodeURIComponent(receiptNumber)}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (!result.success) throw new Error('Transaction not found');
+      const transaction = result.data;
+
+      // Get prize label – first from prize_label, then from prize, else ask
+      let prizeLabel = transaction.prize_label || transaction.prize;
+      if (!prizeLabel) {
+        const prizeAmount = await showInputModal('Enter Prize Amount (RM)', 'e.g., 38, 75, 109');
+        if (!prizeAmount) {
+          hideLoading();
           return;
         }
-        const success = await window.printerAPI.printPrizeVoucher(prizeLabel, receiptNumber);
-        if (success) {
-          await showAlertModal('Printed', 'Prize voucher printed successfully.');
-          closeLuckyDrawPrintModalFunc();
-        } else {
-          await showAlertModal('Print Failed', 'Could not print voucher. Check printer connection.');
+        const amount = parseFloat(prizeAmount);
+        if (isNaN(amount)) {
+          await showAlertModal('Invalid', 'Please enter a valid number.');
+          hideLoading();
+          return;
         }
-      } catch (err) {
-        console.error(err);
-        await showAlertModal('Error', 'Failed to fetch transaction details: ' + err.message);
-      } finally {
-        hideLoading();
+        if (amount === 38) prizeLabel = 'CAR AROMATIC - RM 38';
+        else if (amount === 75) prizeLabel = '15ML PERFUME EDP - RM 75';
+        else if (amount === 109) prizeLabel = '300ML LOTION - RM 109';
+        else prizeLabel = `FREE GIFT - RM ${amount.toFixed(2)}`;
       }
-    });
-  }
 
+      if (!window.printerAPI || !window.printerAPI.printPrizeVoucher) {
+        await showAlertModal('Printer Error', 'Printer API not available. Please connect printer first.');
+        return;
+      }
+
+      const success = await window.printerAPI.printPrizeVoucher(prizeLabel, receiptNumber);
+      if (success) {
+        await showAlertModal('Printed', 'Prize voucher printed successfully.');
+        closeLuckyDrawPrintModalFunc();
+      } else {
+        await showAlertModal('Print Failed', 'Could not print voucher. Check printer connection.');
+      }
+    } catch (err) {
+      console.error(err);
+      await showAlertModal('Error', 'Failed to fetch transaction details: ' + err.message);
+    } finally {
+      hideLoading();
+    }
+  });
+}
   document.getElementById('customerBtn').addEventListener('click', showCustomerModal);
   document.getElementById('findCustomerBtn').addEventListener('click', findCustomer);
   document.getElementById('saveCustomerBtn').addEventListener('click', saveCustomerFromModal);
