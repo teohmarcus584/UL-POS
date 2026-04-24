@@ -5818,13 +5818,11 @@ function buildReceiptContent(copyLabel) {
       lines.push(qtyLine);
     }
 
-    if (freeQty > 0 && !isRefund) {
-      const itemTotal = 0;
-      const [nameLine, qtyLine] = formatProductLine(item.name, 0, freeQty, itemTotal, false);
-      lines.push(nameLine);
-      lines.push(qtyLine);
-    }
-  }
+   if (freeQty > 0 && !isRefund) {
+  lines.push(item.name);
+  const freeLine = `${freeQty} x FREE`.padEnd(maxChars - 4) + 'FREE';
+  lines.push(freeLine);
+}
 
   lines.push(separator);
 
