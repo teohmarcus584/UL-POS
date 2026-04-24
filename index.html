@@ -1568,6 +1568,18 @@
 .lucky-reprint-btn:hover {
   background: #d97706;
 }
+/* For the store cards inside the report modal */
+.store-summary-card .employee-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 8px;
+}
+
+/* For the swipeable store card modal */
+.employee-swipe-list {
+  max-height: 500px !important;
+  overflow-y: auto !important;
+}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -2009,7 +2021,7 @@
 <script>
 
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzMTbltQln9nPj5na9OcSirFDq5qQ-1HEQKh47VpjPgdE4wL73EXVa8XEnbEu5GSB-EBw/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzfrWUxI6MiAc05CRNV5IRlTXg7pJiOqlMBCGGQISBcl1FFtkmfUwMmflEhm6tyCAr6qg/exec"; // REPLACE WITH YOUR URL
 
 // Haversine distance in km
 function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
@@ -3476,8 +3488,9 @@ async function printSettlementReport(store, date, totals) {
     lines.push('COLLECTED AMOUNT');
     lines.push(dash);
     const totalActual = totals.cashActual + totals.cardActual + totals.qrActual + totals.alipayActual;
-    lines.push(`Total Cash In Hand : RM ${totalActual.toFixed(2)}`);
+    lines.push(`TOTAL SALES : RM ${totalActual.toFixed(2)}`);
     lines.push(separator);
+	lines.push(separator);
     lines.push('SIGNATURE');
     lines.push('_________________');
     lines.push('Cashier / Manager');
@@ -6888,7 +6901,7 @@ document.getElementById('checkSettlementBtn')?.addEventListener('click', async (
     document.getElementById('checkSettlementBtn').style.display = 'block';
     return;
   }
-
+ setSettlementFieldsEnabled(false);
   document.getElementById('settlementError').style.display = 'none';
   document.getElementById('checkSettlementBtn').style.display = 'none';
   document.getElementById('recordSettlementBtn').style.display = 'block';
