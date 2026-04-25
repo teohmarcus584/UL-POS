@@ -2021,7 +2021,7 @@
 <script>
 
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAgHfr91CXLhe2-k01-y1RgITzboK64EjEDuSZB4dmwZ57-jqqn6z2VRJ1vdjB9G1ELQ/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyKFPDC3YGziA24eBGm3wFxCm_SIdVYLOUAz0alrzBejEgo9vuGGkphFGKbSVwi5ntOww/exec"; // REPLACE WITH YOUR URL
 
 // Haversine distance in km
 function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
@@ -2103,6 +2103,9 @@ async function autoSelectStoreByLocation() {
 let lowStockFilterActive = false;   // track filter state
 let staffDiscountActive = false;   // whether 10% discount is active
 let staffDiscount = 0;             // computed amount (10% of subtotal)
+// Login modal barcode scanner variables
+let loginBarcodeBuffer = '';
+let loginBarcodeTimer = null;
   // New variables for preloaded report and settlement data
   let preloadedSettlementTotals = null;      // cache settlement totals for current store today
   let preloadedReportCache = null;            // { store, employeeId, from, to, totals, productDetails, chartData }
@@ -2506,7 +2509,24 @@ function toggleLowStockFilter() {
       field.focus();
     });
   }
+function resetLoginBarcodeBuffer() {
+  loginBarcodeBuffer = '';
+  if (loginBarcodeTimer) {
+    clearTimeout(loginBarcodeTimer);
+    loginBarcodeTimer = null;
+  }
+}
 
+function processLoginBarcode() {
+  const code = loginBarcodeBuffer.trim();
+  if (code === '') return;
+  // Display the scanned PIN in the input field (optional, gives visual feedback)
+  const pinInput = document.getElementById('pinInput');
+  if (pinInput) pinInput.value = code.slice(0, 4);
+  // Verify the PIN using the existing backend call
+  verifyEmployeeByPin(code.slice(0, 4));
+  resetLoginBarcodeBuffer();
+}
   function showSelectModal(title, options) {
     return new Promise((resolve) => {
       const overlay = document.getElementById('selectModal');
@@ -3488,9 +3508,8 @@ async function printSettlementReport(store, date, totals) {
     lines.push('COLLECTED AMOUNT');
     lines.push(dash);
     const totalActual = totals.cashActual + totals.cardActual + totals.qrActual + totals.alipayActual;
-    lines.push(`TOTAL SALES : RM ${totalActual.toFixed(2)}`);
+   lines.push(`TOTAL SALES : RM ${totalActual.toFixed(2)}`);
     lines.push(separator);
-	lines.push(separator);
     lines.push('SIGNATURE');
     lines.push('_________________');
     lines.push('Cashier / Manager');
@@ -5424,6 +5443,25 @@ function processBarcode() {
 }
 
 document.addEventListener('keydown', (e) => {
+  // --- LOGIN MODE BARCODE HANDLING (always active when modal is open) ---
+  const loginModal = document.getElementById('loginModal');
+  if (loginModal && loginModal.style.display === 'flex') {
+    // Enter key finishes the barcode
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      processLoginBarcode();
+      return;
+    }
+    // Accumulate alphanumeric characters (typical barcode characters)
+    if (e.key.length === 1 && /[a-zA-Z0-9-]/.test(e.key)) {
+      if (loginBarcodeTimer) clearTimeout(loginBarcodeTimer);
+      loginBarcodeBuffer += e.key;
+      loginBarcodeTimer = setTimeout(() => resetLoginBarcodeBuffer(), 100);
+    }
+    return; // Do not process product barcode while login modal is open
+  }
+
+  // --- PRODUCT SCANNER MODE (only after login) ---
   if (!scannerActive) return;
   const activeTag = document.activeElement.tagName;
   if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
@@ -5818,11 +5856,13 @@ function buildReceiptContent(copyLabel) {
       lines.push(qtyLine);
     }
 
-   if (freeQty > 0 && !isRefund) {
-  lines.push(item.name);
-  const freeLine = `${freeQty} x FREE`.padEnd(maxChars - 4) + 'FREE';
-  lines.push(freeLine);
-}
+    if (freeQty > 0 && !isRefund) {
+      const itemTotal = 0;
+      const [nameLine, qtyLine] = formatProductLine(item.name, 0, freeQty, itemTotal, false);
+      lines.push(nameLine);
+      lines.push(qtyLine);
+    }
+  }
 
   lines.push(separator);
 
@@ -6899,7 +6939,7 @@ document.getElementById('checkSettlementBtn')?.addEventListener('click', async (
     document.getElementById('checkSettlementBtn').style.display = 'block';
     return;
   }
- setSettlementFieldsEnabled(false);
+  setSettlementFieldsEnabled(false);
   document.getElementById('settlementError').style.display = 'none';
   document.getElementById('checkSettlementBtn').style.display = 'none';
   document.getElementById('recordSettlementBtn').style.display = 'block';
@@ -7197,7 +7237,9 @@ function updateStoreCashSummary() {
     employeesLastFetched = 0;
   });
 
-  document.getElementById('closeLoginModal')?.addEventListener('click', () => {});
+ document.getElementById('closeLoginModal')?.addEventListener('click', () => {
+  resetLoginBarcodeBuffer();
+});
 
   function updateCategoryDropdown() {
     const previousSelected = categorySelect.value;
