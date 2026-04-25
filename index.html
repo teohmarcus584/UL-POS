@@ -2355,7 +2355,62 @@ async function getCachedReport(cacheKey, maxAgeMs = 5 * 60 * 1000) {
     return null;
   }
 }
+function findEmployeeByPin(pin) {
+  if (!cachedEmployees || cachedEmployees.length === 0) return null;
+  // Ensure both are compared as strings (PIN can be numeric or leading zeros)
+  return cachedEmployees.find(emp => String(emp.pin) === String(pin));
+}
+async function switchToEmployee(newEmployee) {
+  if (currentEmployee && currentEmployee.id === newEmployee.id) {
+    await showAlertModal('Already logged in', `Already logged in as ${newEmployee.name}.`);
+    return;
+  }
 
+  // --- Reset local state ---
+  clearCart();
+  discountAmount = 0;
+  buy2Free1Discount = 0;
+  buy3Free1Discount = 0;
+  customDiscount = 0;
+  staffDiscountActive = false;
+  staffDiscount = 0;
+  selectedCustomer = null;
+  updateCustomerDisplay();
+
+  // --- Set new employee ---
+  currentEmployee = newEmployee;
+  document.getElementById('employeeNameHeader').innerText = `👤 ${currentEmployee.name}`;
+
+  // --- Refresh salesperson dropdown ---
+  if (soldBySelectCart.options.length <= 1) {
+    const employees = await fetchEmployees();
+    employeeNameMap = {};
+    soldBySelectCart.innerHTML = '';
+    employees.forEach(emp => {
+      employeeNameMap[emp.id] = emp.name;
+      const option = document.createElement('option');
+      option.value = emp.id;
+      option.textContent = `${emp.name} (ID: ${emp.id})`;
+      soldBySelectCart.appendChild(option);
+    });
+  }
+  soldBySelectCart.value = currentEmployee.id;
+
+  // --- Update admin‑only UI elements ---
+  const sideInventory = document.getElementById('sideInventoryBtn');
+  const sideCollection = document.getElementById('sideCollectionBtn');
+  if (currentEmployee.isAdmin) {
+    if (sideInventory) sideInventory.style.display = 'flex';
+    if (sideCollection) sideCollection.style.display = 'flex';
+    storeSelect.disabled = false;
+  } else {
+    if (sideInventory) sideInventory.style.display = 'none';
+    if (sideCollection) sideCollection.style.display = 'none';
+    storeSelect.disabled = true;
+  }
+
+  await showAlertModal('Account Switched', `Now logged in as ${currentEmployee.name}`);
+}
 async function setCachedReport(cacheKey, report) {
   try {
     const database = await openIndexedDB();
@@ -5404,6 +5459,16 @@ function processBarcode() {
   const code = barcodeBuffer.trim();
   if (code === '') return;
   
+  // --- New: Check if scanned code matches an employee PIN ---
+  const matchedEmployee = findEmployeeByPin(code);
+  if (matchedEmployee) {
+    // Switch to that employee
+    switchToEmployee(matchedEmployee);
+    resetBarcodeBuffer();
+    return;
+  }
+  
+  // --- Otherwise, process as product barcode ---
   const product = products.find(p => String(p.id) === code);
   if (!product) {
     showAlertModal('Barcode not found', `Product with ID ${code} does not exist.`);
@@ -5412,25 +5477,21 @@ function processBarcode() {
   }
 
   if (inventoryMode) {
+    // ... (your existing inventory mode code remains unchanged)
     const oldStock = product.stock;
     const newStock = oldStock + 1;
     product.stock = newStock;
-    
     const displaySpan = document.querySelector(`.stock-display[data-id="${product.id}"]`);
     if (displaySpan) displaySpan.innerText = newStock;
-    
     scheduleStockUpdate(product.id, newStock);
     logStockChange(product.id, product.name, product.category, oldStock, newStock, 1);
     checkAndNotifyOutOfStock(product.id, product.name, newStock);
     refreshCategoryHighlighting();
-    
     const statusSpan = document.getElementById('barcodeStatus');
     if (statusSpan) {
       statusSpan.style.background = '#c8e6c9';
-      statusSpan.style.transition = '0.2s';
       setTimeout(() => { statusSpan.style.background = '#e8f5e9'; }, 200);
     }
-    console.log(`📦 Stock increased for ${product.name} to ${newStock}`);
   } else {
     addToCart(product);
     const statusSpan = document.getElementById('barcodeStatus');
