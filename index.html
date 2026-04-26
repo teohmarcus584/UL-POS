@@ -1635,7 +1635,7 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
-  
+ 
 <body>
 <!-- Store Select Modal -->
 <div id="storeSelectModal" class="modal-overlay" style="display: flex;">
@@ -6974,7 +6974,7 @@ if (applyHistoryBtn) {
 
 async function openReportsModal() {
   closeSideMenu();
-  document.querySelectorAll('#adminReportModal .stat-item.breakdown').forEach(row => row.style.display = 'none');
+  
   if (!currentEmployee) return;
   const modal = document.getElementById('adminReportModal');
   if (!modal) return;
@@ -7936,6 +7936,8 @@ if (toggleBtn && productDetailsContainer) {
       
       if (currentEmployee && !currentEmployee.isAdmin) {
         // --- Non‑admin: get current selected date range from the selector ---
+		  document.querySelectorAll('#adminReportModal .stat-item.breakdown').forEach(row => row.style.display = 'none');
+
         const rangeSelect = document.getElementById('nonAdminDateRangeSelect');
         const customDiv = document.getElementById('nonAdminCustomDateRange');
         const fromDate = document.getElementById('nonAdminFromDate');
