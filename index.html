@@ -5900,7 +5900,11 @@ async function getCachedMultiStoreReport(from, to) {
   }
   return null;
 }
-
+function hidePaymentRowsForNonAdmin() {
+  if (!currentEmployee || currentEmployee.isAdmin) return;
+  const paymentRows = document.querySelectorAll('#adminReportModal .stat-item.breakdown');
+  paymentRows.forEach(row => row.style.display = 'none');
+}
 function setCachedMultiStoreReport(from, to, data) {
   const key = `multistore_${from}_${to}`;
   storeReportCache[key] = {
@@ -6961,43 +6965,48 @@ if (applyHistoryBtn) {
 
 async function openReportsModal() {
   closeSideMenu();
-if (!currentEmployee) return;   // ✅ Add this line
+  if (!currentEmployee) return;
   const modal = document.getElementById('adminReportModal');
   if (!modal) return;
   modal.style.display = 'flex';
+
+  // Helper to hide payment breakdown rows for non‑admin (must run after any UI update)
+  function hidePaymentRowsForNonAdmin() {
+    if (!currentEmployee || currentEmployee.isAdmin) return;
+    const paymentRows = document.querySelectorAll('#adminReportModal .stat-item.breakdown');
+    paymentRows.forEach(row => row.style.display = 'none');
+  }
 
   // --- DOM references ---
   const storeBreakdownDiv = document.getElementById('storeBreakdownContainer');
   const reportFiltersDiv = document.querySelector('#adminReportModal .report-filters');
   const productToggle = document.getElementById('toggleProductDetailsBtn');
-  const nonAdminStatsDiv = document.getElementById('nonAdminReportStats'); // old, unused
+  const nonAdminStatsDiv = document.getElementById('nonAdminReportStats');
   const nonAdminDateRangeDiv = document.getElementById('nonAdminDateRange');
 
   // ========== 1. UI Toggle: Admin vs Non‑Admin ==========
   if (currentEmployee.isAdmin) {
-    // Admin view: show everything, hide old non‑admin stuff
+    // Admin view: show everything, hide non‑admin stuff
     if (storeBreakdownDiv) storeBreakdownDiv.style.display = 'block';
     if (reportFiltersDiv) reportFiltersDiv.style.display = 'flex';
     if (productToggle) productToggle.style.display = 'block';
     if (nonAdminStatsDiv) nonAdminStatsDiv.style.display = 'none';
     if (nonAdminDateRangeDiv) nonAdminDateRangeDiv.style.display = 'none';
 
-    // Ensure payment breakdown rows are visible (they might have been hidden before)
+    // Ensure all stat items are visible (admin sees everything)
     const allStatItems = document.querySelectorAll('#adminReportModal .stat-item');
     allStatItems.forEach(item => item.style.display = 'flex');
   } 
   else {
-    // Non‑admin view: hide store breakdown, filters, old stat cards
+    // Non‑admin view
     if (storeBreakdownDiv) storeBreakdownDiv.style.display = 'none';
     if (reportFiltersDiv) reportFiltersDiv.style.display = 'none';
     const nonAdminCardsDiv = document.getElementById('nonAdminStatsCards');
-if (nonAdminCardsDiv) nonAdminCardsDiv.style.display = 'block';
+    if (nonAdminCardsDiv) nonAdminCardsDiv.style.display = 'block';
     if (productToggle) productToggle.style.display = 'block';
-
-    // Show the new date range selector
     if (nonAdminDateRangeDiv) nonAdminDateRangeDiv.style.display = 'block';
 
-    // Hide only payment method rows (Cash, Card, QR Pay, Alipay) but keep Refunds & Refunded Bills
+    // Hide only payment method rows (Cash, Card, QR Pay, Alipay)
     const statItems = document.querySelectorAll('#adminReportModal .stat-item');
     statItems.forEach(item => {
       const labelSpan = item.querySelector('span:first-child');
@@ -7006,18 +7015,20 @@ if (nonAdminCardsDiv) nonAdminCardsDiv.style.display = 'block';
         if (text.includes('Cash') || text.includes('Card') || text.includes('QR Pay') || text.includes('Alipay')) {
           item.style.display = 'none';
         } else {
-          item.style.display = 'flex'; // ensure refunds, transactions etc. are visible
+          item.style.display = 'flex';
         }
       }
     });
-// Change "Total Sales" to "My Total Sales" for non-admin
-const totalSalesStatItem = document.querySelector('#adminReportModal .stat-item:first-child');
-if (totalSalesStatItem) {
-  const labelSpan = totalSalesStatItem.querySelector('span:first-child');
-  if (labelSpan) {
-    labelSpan.innerText = 'My Total Sales:';
-  }
-}
+
+    // Change "Total Sales" to "My Total Sales" for non-admin
+    const totalSalesStatItem = document.querySelector('#adminReportModal .stat-item:first-child');
+    if (totalSalesStatItem) {
+      const labelSpan = totalSalesStatItem.querySelector('span:first-child');
+      if (labelSpan) {
+        labelSpan.innerText = 'My Total Sales:';
+      }
+    }
+
     // --- Set up non‑admin date range controls ---
     const rangeSelect = document.getElementById('nonAdminDateRangeSelect');
     const customDiv = document.getElementById('nonAdminCustomDateRange');
@@ -7060,11 +7071,12 @@ if (totalSalesStatItem) {
     }
 
     async function refreshNonAdminReport() {
-	 if (!currentEmployee) return;   // ✅ Add this line
+      if (!currentEmployee) return;
       const range = getDateRange();
       if (!range) return;
       await updateNonAdminReport(range.from, range.to);
-	  await updateNonAdminStatsCards(range.from, range.to);   // <-- add this line
+      await updateNonAdminStatsCards(range.from, range.to);
+      hidePaymentRowsForNonAdmin();   // ✅ ensure payment rows stay hidden
     }
 
     // Event: show/hide custom range inputs
@@ -7079,12 +7091,12 @@ if (totalSalesStatItem) {
 
     // Initial load: Today
     const todayStr = getLocalDateString(new Date());
-await updateNonAdminReport(todayStr, todayStr);
-await updateNonAdminStatsCards(todayStr, todayStr);
-
+    await updateNonAdminReport(todayStr, todayStr);
+    await updateNonAdminStatsCards(todayStr, todayStr);
+    hidePaymentRowsForNonAdmin();   // ✅ initial hide
   }
 
-  // ========== 2. Instant totals from cache (if available) – works for both ==========
+  // ========== 2. Instant totals from cache (if available) ==========
   const todayStr = getLocalDateString(new Date());
   if (preloadedReportCache && preloadedReportCache.from === todayStr) {
     const totals = preloadedReportCache.totals;
@@ -7167,9 +7179,7 @@ await updateNonAdminStatsCards(todayStr, todayStr);
   if (currentEmployee.isAdmin) {
     await updateAdminReport(false);
   } else {
-    // For non‑admin, the initial refresh was already done inside the branch,
-    // but we still need to hide the loading spinner after any pending fetches.
-    // The spinner will be hidden automatically when data arrives, or we can hide it after a short delay.
+    // For non‑admin, just hide the loading spinner after a short delay
     setTimeout(() => {
       const msg = document.getElementById('adminReportLoadingMsg');
       if (msg) msg.style.display = 'none';
