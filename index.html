@@ -7142,6 +7142,7 @@ async function openReportsModal() {
   }
 
   // ========== 2. Instant totals from cache ==========
+if (currentEmployee.isAdmin) {
   const todayStr = getLocalDateString(new Date());
   if (preloadedReportCache && preloadedReportCache.from === todayStr) {
     const totals = preloadedReportCache.totals;
@@ -7155,6 +7156,7 @@ async function openReportsModal() {
     document.getElementById('adminReportTransactionCount').innerText = totals.transactionCount || 0;
     document.getElementById('adminReportTotalItems').innerText = totals.totalItems || 0;
   }
+}
 
   // ========== 3. Instant store cards from cache (admin only) ==========
   if (currentEmployee.isAdmin) {
