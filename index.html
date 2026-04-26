@@ -7965,11 +7965,11 @@ if (toggleBtn && productDetailsContainer) {
     if (productDetailsVisible) {
       productDetailsContainer.style.display = 'block';
       toggleBtn.innerText = '📦 Hide Product Details';
+      
       if (currentEmployee && !currentEmployee.isAdmin) {
-  setTimeout(() => {
-    document.querySelectorAll('#adminReportModal .stat-item.breakdown').forEach(row => row.style.display = 'none');
-  }, 100);
-}
+        setTimeout(() => {
+          document.querySelectorAll('#adminReportModal .stat-item.breakdown').forEach(row => row.style.display = 'none');
+        }, 100);
 
         const rangeSelect = document.getElementById('nonAdminDateRangeSelect');
         const customDiv = document.getElementById('nonAdminCustomDateRange');
@@ -8005,7 +8005,6 @@ if (toggleBtn && productDetailsContainer) {
           from = fromDate.value;
           to = toDate.value;
           if (!from || !to) {
-            // fallback to today
             from = to = getLocalDateString(now);
           }
         }
