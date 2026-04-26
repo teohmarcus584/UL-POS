@@ -1635,7 +1635,7 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
- 
+  
 <body>
 <!-- Store Select Modal -->
 <div id="storeSelectModal" class="modal-overlay" style="display: flex;">
@@ -2623,6 +2623,8 @@ function applyRoleBasedUI() {
   const settlementStoreSelect = document.getElementById('settlementStoreSelect');
   if (settlementStoreSelect) {
     if (!currentEmployee.isAdmin) {
+	
+	 document.querySelectorAll('#adminReportModal .stat-item.breakdown').forEach(row => row.style.display = 'none');
       settlementStoreSelect.value = initialStore;
       settlementStoreSelect.disabled = true;
     } else {
@@ -2634,6 +2636,7 @@ function applyRoleBasedUI() {
   const systemTotalsDiv = document.getElementById('systemTotalsDisplay');
   if (systemTotalsDiv) {
     if (!currentEmployee.isAdmin) {
+	 document.querySelectorAll('#adminReportModal .stat-item.breakdown').forEach(row => row.style.display = 'none');
       systemTotalsDiv.style.display = 'block';
       const breakdownIds = ['sysCash', 'sysCard', 'sysQR', 'sysRefund', 'sysAlipay'];
       breakdownIds.forEach(id => {
@@ -5992,6 +5995,8 @@ async function openSettlementModal() {
   try {
     let store;
     if (!currentEmployee.isAdmin) {
+	 document.querySelectorAll('#adminReportModal .stat-item.breakdown').forEach(row => row.style.display = 'none');
+	 
       store = initialStore;
       document.getElementById('settlementStoreSelect').value = store;
       document.getElementById('settlementStoreSelect').disabled = true;
@@ -6026,6 +6031,7 @@ async function openSettlementModal() {
     await refreshSettlementTotals(store);
     loadingMsg.style.display = 'none';
     if (!currentEmployee.isAdmin) {
+	 document.querySelectorAll('#adminReportModal .stat-item.breakdown').forEach(row => row.style.display = 'none');
       const netTotalRow = document.getElementById('sysNetTotal')?.parentElement;
       if (netTotalRow) netTotalRow.style.display = 'block';
     }
@@ -7935,10 +7941,11 @@ if (toggleBtn && productDetailsContainer) {
     if (productDetailsVisible) {
       productDetailsContainer.style.display = 'block';
       toggleBtn.innerText = '📦 Hide Product Details';
-      
       if (currentEmployee && !currentEmployee.isAdmin) {
-        // --- Non‑admin: get current selected date range from the selector ---
-		  document.querySelectorAll('#adminReportModal .stat-item.breakdown').forEach(row => row.style.display = 'none');
+  setTimeout(() => {
+    document.querySelectorAll('#adminReportModal .stat-item.breakdown').forEach(row => row.style.display = 'none');
+  }, 100);
+}
 
         const rangeSelect = document.getElementById('nonAdminDateRangeSelect');
         const customDiv = document.getElementById('nonAdminCustomDateRange');
