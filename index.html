@@ -7000,47 +7000,39 @@ if (applyHistoryBtn) {
 
 async function openReportsModal() {
   closeSideMenu();
-  if (!currentEmployee) return;   // ✅ guard against null
+  if (!currentEmployee) return;
 
   const modal = document.getElementById('adminReportModal');
   if (!modal) return;
   modal.style.display = 'flex';
 
-  // Helper to hide payment breakdown rows for non‑admin
   function hidePaymentRowsForNonAdmin() {
     if (!currentEmployee || currentEmployee.isAdmin) return;
     const paymentRows = document.querySelectorAll('#adminReportModal .stat-item.breakdown');
     paymentRows.forEach(row => row.style.display = 'none');
   }
 
-  // --- DOM references ---
   const storeBreakdownDiv = document.getElementById('storeBreakdownContainer');
   const reportFiltersDiv = document.querySelector('#adminReportModal .report-filters');
   const productToggle = document.getElementById('toggleProductDetailsBtn');
   const nonAdminStatsDiv = document.getElementById('nonAdminReportStats');
   const nonAdminDateRangeDiv = document.getElementById('nonAdminDateRange');
 
-  // ========== 1. UI Toggle: Admin vs Non‑Admin ==========
   if (currentEmployee.isAdmin) {
-    // Admin view
     if (storeBreakdownDiv) storeBreakdownDiv.style.display = 'block';
     if (reportFiltersDiv) reportFiltersDiv.style.display = 'flex';
     if (productToggle) productToggle.style.display = 'block';
     if (nonAdminStatsDiv) nonAdminStatsDiv.style.display = 'none';
     if (nonAdminDateRangeDiv) nonAdminDateRangeDiv.style.display = 'none';
 
-    // Ensure all stat items are visible
     const allStatItems = document.querySelectorAll('#adminReportModal .stat-item');
     allStatItems.forEach(item => item.style.display = 'flex');
-    
-    // Stop any previous polling
+
     if (window.paymentHideInterval) {
       clearInterval(window.paymentHideInterval);
       window.paymentHideInterval = null;
     }
-  } 
-  else {
-    // Non‑admin view
+  } else {
     if (storeBreakdownDiv) storeBreakdownDiv.style.display = 'none';
     if (reportFiltersDiv) reportFiltersDiv.style.display = 'none';
     const nonAdminCardsDiv = document.getElementById('nonAdminStatsCards');
@@ -7048,7 +7040,6 @@ async function openReportsModal() {
     if (productToggle) productToggle.style.display = 'block';
     if (nonAdminDateRangeDiv) nonAdminDateRangeDiv.style.display = 'block';
 
-    // Hide payment method rows (Cash, Card, QR Pay, Alipay)
     const statItems = document.querySelectorAll('#adminReportModal .stat-item');
     statItems.forEach(item => {
       const labelSpan = item.querySelector('span:first-child');
@@ -7062,16 +7053,12 @@ async function openReportsModal() {
       }
     });
 
-    // ✅ Change "Total Sales" to "My Total Sales" for non‑admin
     const totalSalesStatItem = document.querySelector('#adminReportModal .stat-item:first-child');
     if (totalSalesStatItem) {
       const labelSpan = totalSalesStatItem.querySelector('span:first-child');
-      if (labelSpan) {
-        labelSpan.innerText = 'My Total Sales:';
-      }
+      if (labelSpan) labelSpan.innerText = 'My Total Sales:';
     }
 
-    // --- Set up non‑admin date range controls ---
     const rangeSelect = document.getElementById('nonAdminDateRangeSelect');
     const customDiv = document.getElementById('nonAdminCustomDateRange');
     const fromDate = document.getElementById('nonAdminFromDate');
@@ -7082,13 +7069,12 @@ async function openReportsModal() {
       const range = rangeSelect.value;
       const now = new Date();
       let from = null, to = null;
-
       if (range === 'today') {
         from = to = getLocalDateString(now);
       } else if (range === 'week') {
         const start = new Date(now);
         const dayOfWeek = now.getDay();
-        const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+        const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
         start.setDate(now.getDate() - diffToMonday);
         from = getLocalDateString(start);
         const end = new Date(start);
@@ -7130,31 +7116,26 @@ async function openReportsModal() {
     }
     if (applyBtn) applyBtn.addEventListener('click', refreshNonAdminReport);
 
-    // Initial load
     const todayStr = getLocalDateString(new Date());
     await updateNonAdminReport(todayStr, todayStr);
     await updateNonAdminStatsCards(todayStr, todayStr);
     hidePaymentRowsForNonAdmin();
 
-    // Optional: polling as a safety net (can be removed if not needed)
     if (window.paymentHideInterval) clearInterval(window.paymentHideInterval);
     window.paymentHideInterval = setInterval(() => {
       if (!currentEmployee || currentEmployee.isAdmin) return;
       const modalEl = document.getElementById('adminReportModal');
       if (modalEl && modalEl.style.display === 'flex') {
         document.querySelectorAll('#adminReportModal .stat-item.breakdown').forEach(row => row.style.display = 'none');
-        // Also ensure label stays "My Total Sales"
         const firstStat = document.querySelector('#adminReportModal .stat-item:first-child span:first-child');
-        if (firstStat && firstStat.innerText !== 'My Total Sales:') {
-          firstStat.innerText = 'My Total Sales:';
-        }
+        if (firstStat && firstStat.innerText !== 'My Total Sales:') firstStat.innerText = 'My Total Sales:';
       } else if (window.paymentHideInterval) {
         clearInterval(window.paymentHideInterval);
         window.paymentHideInterval = null;
       }
     }, 500);
-  }
-}
+  }   // <-- THIS WAS MISSING (closes the outer if/else)
+
   // ========== 2. Instant totals from cache ==========
   const todayStr = getLocalDateString(new Date());
   if (preloadedReportCache && preloadedReportCache.from === todayStr) {
@@ -7172,13 +7153,37 @@ async function openReportsModal() {
 
   // ========== 3. Instant store cards from cache (admin only) ==========
   if (currentEmployee.isAdmin) {
-    // ... (keep your existing code for store cards)
     const todayUTC = new Date();
     todayUTC.setUTCHours(0, 0, 0, 0);
     const from = getUTCDateString(todayUTC);
     const to = from;
     const stores = ['queens', 'sunshine', 'gurney_paragon'];
-    // ... rest of your store card logic
+    let anyMissing = false;
+    for (const storeName of stores) {
+      const cached = await getCachedStoreReport(storeName, from, to);
+      if (cached) {
+        updateStoreCard(storeName, cached.salesReport, cached.employeeData);
+      } else {
+        anyMissing = true;
+        const card = document.querySelector(`.store-summary-card[data-store="${storeName}"]`);
+        if (card) {
+          card.querySelector('.store-total').innerHTML = '<span class="report-loading-spinner"></span> Loading...';
+          card.querySelector('.store-cash').innerHTML = '💵 Loading...';
+          card.querySelector('.store-card').innerHTML = '💳 Loading...';
+          card.querySelector('.store-qr').innerHTML = '📱 Loading...';
+          card.querySelector('.store-alipay').innerHTML = '💸 Loading...';
+          card.querySelector('.store-refund').innerHTML = '❌ Loading...';
+          card.querySelector('.store-refunded-bills').innerHTML = '📄 Loading...';
+          card.querySelector('.store-transactions').innerHTML = 'Loading...';
+          card.querySelector('.store-items-sold').innerHTML = 'Loading...';
+          card.querySelector('.employee-list').innerHTML = '<div class="report-loading-spinner"></div>';
+        }
+      }
+    }
+    if (!anyMissing) {
+      const loadingMsgElem = document.getElementById('adminReportLoadingMsg');
+      if (loadingMsgElem) loadingMsgElem.style.display = 'none';
+    }
   }
 
   // ========== 4. Loading spinner ==========
@@ -7191,10 +7196,7 @@ async function openReportsModal() {
     loadingMsg.style.background = '#f8fafc';
     loadingMsg.style.borderRadius = '12px';
     loadingMsg.style.margin = '10px 0';
-    loadingMsg.innerHTML = `
-      <div class="report-loading-spinner"></div>
-      <span>Loading report data...</span>
-    `;
+    loadingMsg.innerHTML = '<div class="report-loading-spinner"></div><span>Loading report data...</span>';
     const reportStats = document.querySelector('#adminReportModal .report-stats');
     if (reportStats) reportStats.insertAdjacentElement('beforebegin', loadingMsg);
   }
@@ -7212,7 +7214,27 @@ async function openReportsModal() {
 
   // ========== 6. Employee dropdowns (admin only) ==========
   if (currentEmployee.isAdmin) {
-    // ... keep your existing employee dropdown code
+    const employees = await fetchEmployees();
+    const adminReportEmpSelect = document.getElementById('adminReportEmployeeSelect');
+    const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
+    if (adminReportEmpSelect && receiptsEmpSelect) {
+      adminReportEmpSelect.innerHTML = '<option value="all">All Employees</option>';
+      receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
+      employees.forEach(emp => {
+        const opt1 = document.createElement('option');
+        opt1.value = emp.id;
+        opt1.textContent = `${emp.name} (ID: ${emp.id})`;
+        const opt2 = document.createElement('option');
+        opt2.value = emp.id;
+        opt2.textContent = `${emp.name} (ID: ${emp.id})`;
+        adminReportEmpSelect.appendChild(opt1);
+        receiptsEmpSelect.appendChild(opt2);
+      });
+    }
+    const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
+    const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
+    if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'flex';
+    if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'flex';
   } else {
     const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
     const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
@@ -7225,7 +7247,6 @@ async function openReportsModal() {
   // ========== 7. Populate store selects ==========
   populateStoreSelects();
 
-  // Final cleanup
   const finalLoadingMsg = document.getElementById('adminReportLoadingMsg');
   if (finalLoadingMsg) finalLoadingMsg.style.display = 'none';
 }
