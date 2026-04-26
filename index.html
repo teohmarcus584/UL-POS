@@ -2571,7 +2571,12 @@ async function switchToEmployee(newEmployee) {
 }
 function applyRoleBasedUI() {
   if (!currentEmployee) return;
-
+  // ✅ Add/remove admin class on body
+  if (currentEmployee.isAdmin) {
+    document.body.classList.add('admin-mode');
+  } else {
+    document.body.classList.remove('admin-mode');
+  }
   // --- Side menu buttons ---
   const sideInventory = document.getElementById('sideInventoryBtn');
   const sideCollection = document.getElementById('sideCollectionBtn');
