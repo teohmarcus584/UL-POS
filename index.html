@@ -7070,76 +7070,81 @@ async function openReportsModal() {
     allStatItems.forEach(item => item.style.display = 'flex');
 
     if (window.paymentHideInterval) clearInterval(window.paymentHideInterval);
-  } else {
-    // ========== NON‑ADMIN VIEW ==========
-    if (storeBreakdownDiv) storeBreakdownDiv.style.display = 'none';
-    if (reportFiltersDiv) reportFiltersDiv.style.display = 'none';
-    const nonAdminCardsDiv = document.getElementById('nonAdminStatsCards');
-    if (nonAdminCardsDiv) nonAdminCardsDiv.style.display = 'block';
-    if (productToggle) productToggle.style.display = 'block';
-    if (nonAdminDateRangeDiv) nonAdminDateRangeDiv.style.display = 'block';
+} else {
+  // ========== NON‑ADMIN VIEW ==========
+  if (storeBreakdownDiv) storeBreakdownDiv.style.display = 'none';
+  if (reportFiltersDiv) reportFiltersDiv.style.display = 'none';
+  const nonAdminCardsDiv = document.getElementById('nonAdminStatsCards');
+  if (nonAdminCardsDiv) nonAdminCardsDiv.style.display = 'block';
+  if (productToggle) productToggle.style.display = 'block';
+  if (nonAdminDateRangeDiv) nonAdminDateRangeDiv.style.display = 'block';
 
-    hidePaymentRowsForNonAdmin();
+  hidePaymentRowsForNonAdmin();
 
-    const totalSalesStatItem = document.querySelector('#adminReportModal .stat-item:first-child');
-    if (totalSalesStatItem) {
-      const labelSpan = totalSalesStatItem.querySelector('span:first-child');
-      if (labelSpan) labelSpan.innerText = 'My Total Sales:';
+  const totalSalesStatItem = document.querySelector('#adminReportModal .stat-item:first-child');
+  if (totalSalesStatItem) {
+    const labelSpan = totalSalesStatItem.querySelector('span:first-child');
+    if (labelSpan) labelSpan.innerText = 'My Total Sales:';
+  }
+
+  const rangeSelect = document.getElementById('nonAdminDateRangeSelect');
+  const customDiv = document.getElementById('nonAdminCustomDateRange');
+  const fromDate = document.getElementById('nonAdminFromDate');
+  const toDate = document.getElementById('nonAdminToDate');
+  const applyBtn = document.getElementById('applyNonAdminDateBtn');
+
+  async function refreshNonAdmin() {
+    const range = rangeSelect.value;
+    const now = new Date();
+    let from, to;
+    if (range === 'today') {
+      const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+      from = to = getUTCDateString(todayUTC);
+    } else if (range === 'week') {
+      const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+      const day = todayUTC.getUTCDay();
+      const diff = day === 0 ? 6 : day - 1;
+      const start = new Date(todayUTC);
+      start.setUTCDate(todayUTC.getUTCDate() - diff);
+      from = getUTCDateString(start);
+      const end = new Date(start);
+      end.setUTCDate(start.getUTCDate() + 6);
+      to = getUTCDateString(end);
+    } else if (range === 'month') {
+      const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+      from = getUTCDateString(start);
+      const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
+      to = getUTCDateString(end);
+    } else if (range === 'year') {
+      const start = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+      from = getUTCDateString(start);
+      const end = new Date(Date.UTC(now.getUTCFullYear(), 11, 31));
+      to = getUTCDateString(end);
+    } else if (range === 'custom') {
+      from = fromDate.value;
+      to = toDate.value;
+      if (!from || !to) return;
     }
-
-    const rangeSelect = document.getElementById('nonAdminDateRangeSelect');
-    const customDiv = document.getElementById('nonAdminCustomDateRange');
-    const fromDate = document.getElementById('nonAdminFromDate');
-    const toDate = document.getElementById('nonAdminToDate');
-    const applyBtn = document.getElementById('applyNonAdminDateBtn');
-
-    async function refreshNonAdmin() {
-      const range = rangeSelect.value;
-      const now = new Date();
-      let from, to;
-      if (range === 'today') {
-        from = to = getLocalDateString(now);
-      } else if (range === 'week') {
-        const start = new Date(now);
-        const day = now.getDay();
-        const diff = day === 0 ? 6 : day - 1;
-        start.setDate(now.getDate() - diff);
-        from = getLocalDateString(start);
-        const end = new Date(start);
-        end.setDate(start.getDate() + 6);
-        to = getLocalDateString(end);
-      } else if (range === 'month') {
-        const start = new Date(now.getFullYear(), now.getMonth(), 1);
-        from = getLocalDateString(start);
-        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        to = getLocalDateString(end);
-      } else if (range === 'year') {
-        const start = new Date(now.getFullYear(), 0, 1);
-        from = getLocalDateString(start);
-        const end = new Date(now.getFullYear(), 11, 31);
-        to = getLocalDateString(end);
-      } else if (range === 'custom') {
-        from = fromDate.value;
-        to = toDate.value;
-        if (!from || !to) return;
-      }
-      await updateNonAdminReport(from, to);
-      await updateNonAdminStatsCards(from, to);
-      hidePaymentRowsForNonAdmin();
-    }
-
-    rangeSelect.addEventListener('change', () => {
-      const isCustom = rangeSelect.value === 'custom';
-      customDiv.style.display = isCustom ? 'flex' : 'none';
-      if (!isCustom) refreshNonAdmin();
-    });
-    if (applyBtn) applyBtn.addEventListener('click', refreshNonAdmin);
-
-    await updateNonAdminReport(todayStr, todayStr);
-    await updateNonAdminStatsCards(todayStr, todayStr);
+    await updateNonAdminReport(from, to);
+    await updateNonAdminStatsCards(from, to);
     hidePaymentRowsForNonAdmin();
   }
 
+  rangeSelect.addEventListener('change', () => {
+    const isCustom = rangeSelect.value === 'custom';
+    customDiv.style.display = isCustom ? 'flex' : 'none';
+    if (!isCustom) refreshNonAdmin();
+  });
+  if (applyBtn) applyBtn.addEventListener('click', refreshNonAdmin);
+
+  // ✅ FIXED INITIAL LOAD – use UTC today
+  const now = new Date();
+  const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const todayStrUTC = getUTCDateString(todayUTC);
+  await updateNonAdminReport(todayStrUTC, todayStrUTC);
+  await updateNonAdminStatsCards(todayStrUTC, todayStrUTC);
+  hidePaymentRowsForNonAdmin();
+}
   // ========== 2. Instant totals from cache (admin only) ==========
   if (currentEmployee.isAdmin) {
     if (preloadedReportCache && preloadedReportCache.from === todayStr) {
