@@ -7055,6 +7055,9 @@ async function openReportsModal() {
   const nonAdminStatsDiv = document.getElementById('nonAdminReportStats');
   const nonAdminDateRangeDiv = document.getElementById('nonAdminDateRange');
 
+  // ✅ Moved todayStr to the top so it's available everywhere
+  const todayStr = getLocalDateString(new Date());
+
   // ========== 1. UI Toggle ==========
   if (currentEmployee.isAdmin) {
     if (storeBreakdownDiv) storeBreakdownDiv.style.display = 'block';
@@ -7076,17 +7079,14 @@ async function openReportsModal() {
     if (productToggle) productToggle.style.display = 'block';
     if (nonAdminDateRangeDiv) nonAdminDateRangeDiv.style.display = 'block';
 
-    
     hidePaymentRowsForNonAdmin();
 
-    // Change first stat label to "My Total Sales"
     const totalSalesStatItem = document.querySelector('#adminReportModal .stat-item:first-child');
     if (totalSalesStatItem) {
       const labelSpan = totalSalesStatItem.querySelector('span:first-child');
       if (labelSpan) labelSpan.innerText = 'My Total Sales:';
     }
 
-    // Date range controls for non‑admin
     const rangeSelect = document.getElementById('nonAdminDateRangeSelect');
     const customDiv = document.getElementById('nonAdminCustomDateRange');
     const fromDate = document.getElementById('nonAdminFromDate');
@@ -7135,28 +7135,26 @@ async function openReportsModal() {
     });
     if (applyBtn) applyBtn.addEventListener('click', refreshNonAdmin);
 
-    const todayStr = getLocalDateString(new Date());
     await updateNonAdminReport(todayStr, todayStr);
     await updateNonAdminStatsCards(todayStr, todayStr);
     hidePaymentRowsForNonAdmin();
   }
 
-  // ========== 2. Instant totals from cache ==========
-if (currentEmployee.isAdmin) {
-  const todayStr = getLocalDateString(new Date());
-  if (preloadedReportCache && preloadedReportCache.from === todayStr) {
-    const totals = preloadedReportCache.totals;
-    document.getElementById('adminReportTotalSales').innerText = `RM ${totals.totalSales.toFixed(2)}`;
-    document.getElementById('adminReportCashTotal').innerText = `RM ${totals.cashTotal.toFixed(2)}`;
-    document.getElementById('adminReportCardTotal').innerText = `RM ${totals.cardTotal.toFixed(2)}`;
-    document.getElementById('adminReportQRTotal').innerText = `RM ${totals.otherTotal.toFixed(2)}`;
-    document.getElementById('adminReportAlipayTotal').innerText = `RM ${totals.alipayTotal.toFixed(2)}`;
-    document.getElementById('adminReportRefundTotal').innerText = `RM ${Math.abs(totals.refundTotal).toFixed(2)}`;
-    document.getElementById('adminReportRefundedBills').innerText = totals.refundedTransactionCount || 0;
-    document.getElementById('adminReportTransactionCount').innerText = totals.transactionCount || 0;
-    document.getElementById('adminReportTotalItems').innerText = totals.totalItems || 0;
+  // ========== 2. Instant totals from cache (admin only) ==========
+  if (currentEmployee.isAdmin) {
+    if (preloadedReportCache && preloadedReportCache.from === todayStr) {
+      const totals = preloadedReportCache.totals;
+      document.getElementById('adminReportTotalSales').innerText = `RM ${totals.totalSales.toFixed(2)}`;
+      document.getElementById('adminReportCashTotal').innerText = `RM ${totals.cashTotal.toFixed(2)}`;
+      document.getElementById('adminReportCardTotal').innerText = `RM ${totals.cardTotal.toFixed(2)}`;
+      document.getElementById('adminReportQRTotal').innerText = `RM ${totals.otherTotal.toFixed(2)}`;
+      document.getElementById('adminReportAlipayTotal').innerText = `RM ${totals.alipayTotal.toFixed(2)}`;
+      document.getElementById('adminReportRefundTotal').innerText = `RM ${Math.abs(totals.refundTotal).toFixed(2)}`;
+      document.getElementById('adminReportRefundedBills').innerText = totals.refundedTransactionCount || 0;
+      document.getElementById('adminReportTransactionCount').innerText = totals.transactionCount || 0;
+      document.getElementById('adminReportTotalItems').innerText = totals.totalItems || 0;
+    }
   }
-}
 
   // ========== 3. Instant store cards from cache (admin only) ==========
   if (currentEmployee.isAdmin) {
