@@ -2430,22 +2430,37 @@ function setCachedStoreReport(store, from, to, data) {
     };
   }
 })();
-async function updateNonAdminReport(from, to, employeeId = null) {
+// For non‑admin: show store total + current staff's sales (based on sales_person_id)
+async function updateNonAdminReport(from, to) {
   if (!currentEmployee || currentEmployee.isAdmin) return;
   const store = currentStore;
-  // Use provided employeeId, otherwise fallback to currentEmployee (cashier)
-  const targetEmployeeId = employeeId !== null ? employeeId : currentEmployee.id;
-  const totals = await fetchSalesReport(store, targetEmployeeId, from, to, false, true);
-  if (!totals) return;
 
-  document.getElementById('adminReportTotalSales').innerText = `RM ${totals.totalSales.toFixed(2)}`;
-  document.getElementById('adminReportRefundTotal').innerText = `RM ${Math.abs(totals.refundTotal || 0).toFixed(2)}`;
-  document.getElementById('adminReportRefundedBills').innerText = totals.refundedTransactionCount || 0;
-  document.getElementById('adminReportTransactionCount').innerText = totals.transactionCount || 0;
-  document.getElementById('adminReportTotalItems').innerText = totals.totalItems || 0;
+  // 1. Store total (all transactions, no employee filter)
+  const storeTotals = await fetchSalesReport(store, 'all', from, to, false, true);
+  if (storeTotals) {
+    document.getElementById('adminReportTotalSales').innerText = `RM ${storeTotals.totalSales.toFixed(2)}`;
+    document.getElementById('adminReportRefundTotal').innerText = `RM ${Math.abs(storeTotals.refundTotal || 0).toFixed(2)}`;
+    document.getElementById('adminReportRefundedBills').innerText = storeTotals.refundedTransactionCount || 0;
+    document.getElementById('adminReportTransactionCount').innerText = storeTotals.transactionCount || 0;
+    document.getElementById('adminReportTotalItems').innerText = storeTotals.totalItems || 0;
+  }
 
+  // 2. Staff's own sales (using sales_person_id)
+  const staffAgg = await fetchEmployeeSalesAggregate(store, from, to);
+  if (staffAgg && staffAgg.labels.length) {
+    const staffIndex = staffAgg.labels.findIndex(name =>
+      name === currentEmployee.name || name.includes(currentEmployee.id)
+    );
+    const mySales = staffIndex !== -1 ? staffAgg.data[staffIndex] : 0;
+    document.getElementById('adminReportTotalSales').innerText = `RM ${mySales.toFixed(2)}`;
+    // Also update the separate "nonAdminEmployeeTotal" if you keep that card
+    const empTotalEl = document.getElementById('nonAdminEmployeeTotal');
+    if (empTotalEl) empTotalEl.innerText = `RM ${mySales.toFixed(2)}`;
+  }
+
+  // 3. Refresh product details if visible (also filter by sales_person_id)
   if (productDetailsVisible) {
-    const productData = await fetchProductSalesReport(store, targetEmployeeId, from, to);
+    const productData = await fetchProductSalesReport(store, currentEmployee.id, from, to);
     renderProductDetails(productData);
   }
 }
@@ -4243,27 +4258,34 @@ async function checkReceiptForClaim() {
     hideLoading();
   }
 }
-async function updateNonAdminStatsCards(from, to, employeeId = null) {
+async function updateNonAdminStatsCards(from, to) {
   if (!currentEmployee || currentEmployee.isAdmin) return;
   const store = currentStore;
-  const targetEmployeeId = employeeId !== null ? employeeId : currentEmployee.id;
 
-  const storeReport = await fetchSalesReport(store, 'all', from, to, false, true);
-  const empReport = await fetchSalesReport('all', targetEmployeeId, from, to, false, true);
+  // Store total (all employees)
+  const storeTotals = await fetchSalesReport(store, 'all', from, to, false, true);
+  const storeTotalElem = document.getElementById('nonAdminStoreTotal');
+  const storeNameElem = document.getElementById('nonAdminStoreName');
+  if (storeTotalElem && storeTotals) {
+    storeTotalElem.innerText = `RM ${storeTotals.totalSales.toFixed(2)}`;
+  }
+  if (storeNameElem) {
+    storeNameElem.innerText = store.charAt(0).toUpperCase() + store.slice(1);
+  }
 
-  if (storeReport) {
-    const storeTotalElem = document.getElementById('nonAdminStoreTotal');
-    const storeNameElem = document.getElementById('nonAdminStoreName');
-    if (storeTotalElem) storeTotalElem.innerText = `RM ${storeReport.totalSales.toFixed(2)}`;
-    if (storeNameElem) storeNameElem.innerText = store.charAt(0).toUpperCase() + store.slice(1).replace('_', ' ');
+  // Staff's own sales (sales_person_id)
+  const staffAgg = await fetchEmployeeSalesAggregate(store, from, to);
+  let mySales = 0;
+  if (staffAgg && staffAgg.labels.length) {
+    const idx = staffAgg.labels.findIndex(name =>
+      name === currentEmployee.name || name.includes(currentEmployee.id)
+    );
+    if (idx !== -1) mySales = staffAgg.data[idx];
   }
-  if (empReport && currentEmployee) {
-    const empTotalElem = document.getElementById('nonAdminEmployeeTotal');
-    const empNameElem = document.getElementById('nonAdminEmployeeName');
-    if (empTotalElem) empTotalElem.innerText = `RM ${empReport.totalSales.toFixed(2)}`;
-    if (empNameElem) empNameElem.innerText = 
-      employeeId ? (employeeNameMap[employeeId] || 'Selected Sales Person') : currentEmployee.name;
-  }
+  const empTotalElem = document.getElementById('nonAdminEmployeeTotal');
+  const empNameElem = document.getElementById('nonAdminEmployeeName');
+  if (empTotalElem) empTotalElem.innerText = `RM ${mySales.toFixed(2)}`;
+  if (empNameElem) empNameElem.innerText = currentEmployee.name;
 }
  function applyPrizeToCart() {
   if (!window.pendingClaimReceipt) return;
@@ -5294,9 +5316,10 @@ async function fetchSalesReport(store, employeeId, from, to, unsettledOnly, sile
     } catch(err) { console.error(err); return null; }
   }
 
- async function fetchProductSalesReport(store, employeeId, from, to) {
+async function fetchProductSalesReport(store, employeeId, from, to) {
   try {
-    let url = `${APPS_SCRIPT_URL}?action=getReceipts&store=${store}&employeeId=${employeeId}`;
+    // 1. Fetch all receipts for the store (no employee filter)
+    let url = `${APPS_SCRIPT_URL}?action=getReceipts&store=${store}&employeeId=all`;
     if (from) url += `&from=${encodeURIComponent(from)}`;
     if (to) url += `&to=${encodeURIComponent(to)}`;
     const response = await fetch(url);
@@ -5304,28 +5327,39 @@ async function fetchSalesReport(store, employeeId, from, to, unsettledOnly, sile
 
     if (!result.success || !result.receipts) return [];
 
-    const productMap = new Map(); // key: product id
+    // 2. Filter receipts by sales_person_id (or fallback to employee_id)
+    const filteredReceipts = result.receipts.filter(rec => {
+      const salesPersonId = rec.sales_person_id || rec.employee_id;
+      return String(salesPersonId) === String(employeeId);
+    });
 
-    for (const receipt of result.receipts) {
-      // Get discount amounts
-      const buy2Free1Discount = parseFloat(receipt.buy2_free1_discount) || 0;
-      const buy3Free1Discount = parseFloat(receipt.buy3_free1_discount) || 0;
-      const otherDiscounts = (parseFloat(receipt.discount) || 0) +
-                             (parseFloat(receipt.custom_discount) || 0) +
-                             (parseFloat(receipt.staff_discount) || 0);
+    // 3. Aggregate product sales with discount distribution
+    const productMap = new Map(); // key = product id
 
-      // Build list of items with original totals
-      const itemsWithOrig = [];
+    for (const receipt of filteredReceipts) {
+      // Extract discount amounts
+      const luckyDrawDiscount = parseFloat(receipt.discount) || 0;
+      const carPromoDiscount = parseFloat(receipt.buy2_free1_discount) || 0;
+      const perfumePromoDiscount = parseFloat(receipt.buy3_free1_discount) || 0;
+      const customDiscount = parseFloat(receipt.custom_discount) || 0;
+      const staffDiscount = parseFloat(receipt.staff_discount) || 0;
+      const otherDiscounts = luckyDrawDiscount + customDiscount + staffDiscount;
+      const promoDiscounts = carPromoDiscount + perfumePromoDiscount;
+
+      // Build items with original paid totals (excluding free gifts)
+      const paidItems = [];
       let originalSubtotal = 0;
+
       for (const item of receipt.items) {
         const price = parseFloat(item.price) || 0;
         const quantity = parseInt(item.quantity) || 0;
         const freeQuantity = parseInt(item.free_quantity) || 0;
         const paidQty = quantity - freeQuantity;
         if (paidQty <= 0) continue;
+
         const origTotal = paidQty * price;
         originalSubtotal += origTotal;
-        itemsWithOrig.push({
+        paidItems.push({
           id: item.id,
           name: item.name,
           category: item.category || "Uncategorized",
@@ -5335,37 +5369,37 @@ async function fetchSalesReport(store, employeeId, from, to, unsettledOnly, sile
         });
       }
 
-      if (itemsWithOrig.length === 0) continue;
+      if (paidItems.length === 0) continue;
 
-      // --- Apply Car Aromatic promo (RM 2 fixed price) ---
-      if (buy2Free1Discount > 0) {
-        const targetItem = itemsWithOrig.find(i => i.category === "CAR AROMATIC");
+      // Apply car aromatic promo (fixed RM 2 price) – discount already in receipt
+      if (carPromoDiscount > 0) {
+        const targetItem = paidItems.find(i => i.category === "CAR AROMATIC");
         if (targetItem) {
-          // Reduce its total by the discount amount (original price - 2)
-          const newTotal = Math.max(0, targetItem.origTotal - buy2Free1Discount);
+          // The discount is the difference between original price and RM 2
+          const newTotal = Math.max(0, targetItem.origTotal - carPromoDiscount);
           targetItem.origTotal = newTotal;
         }
       }
 
-      // --- Apply 15ml Perfume EDP promo (RM 8 fixed price) ---
-      if (buy3Free1Discount > 0) {
-        const targetItem = itemsWithOrig.find(i => i.category === "15ML PERFUME EDP");
+      // Apply 15ml perfume promo (fixed RM 8 price)
+      if (perfumePromoDiscount > 0) {
+        const targetItem = paidItems.find(i => i.category === "15ML PERFUME EDP");
         if (targetItem) {
-          const newTotal = Math.max(0, targetItem.origTotal - buy3Free1Discount);
+          const newTotal = Math.max(0, targetItem.origTotal - perfumePromoDiscount);
           targetItem.origTotal = newTotal;
         }
       }
 
-      // --- Apply remaining discounts proportionally ---
+      // Apply remaining discounts proportionally
       if (otherDiscounts > 0 && originalSubtotal > 0) {
         const ratio = 1 - (otherDiscounts / originalSubtotal);
-        for (const item of itemsWithOrig) {
+        for (const item of paidItems) {
           item.origTotal = item.origTotal * ratio;
         }
       }
 
       // Aggregate into productMap
-      for (const item of itemsWithOrig) {
+      for (const item of paidItems) {
         const id = item.id;
         if (productMap.has(id)) {
           const existing = productMap.get(id);
@@ -5382,14 +5416,14 @@ async function fetchSalesReport(store, employeeId, from, to, unsettledOnly, sile
       }
     }
 
-    // Convert map to array and sort by quantity sold
+    // Convert to array and sort by quantity sold
     const productsArray = Array.from(productMap.values())
       .filter(p => p.quantity > 0)
       .sort((a, b) => b.quantity - a.quantity);
 
     return productsArray;
   } catch (err) {
-    console.error("fetchProductSalesReport error:", err);
+    console.error('fetchProductSalesReport error:', err);
     return [];
   }
 }
@@ -7037,7 +7071,7 @@ async function openReportsModal() {
       window.paymentHideInterval = null;
     }
   } else {
-  // Non‑admin view
+  // ========== NON‑ADMIN VIEW ==========
   if (storeBreakdownDiv) storeBreakdownDiv.style.display = 'none';
   if (reportFiltersDiv) reportFiltersDiv.style.display = 'none';
   const nonAdminCardsDiv = document.getElementById('nonAdminStatsCards');
@@ -7045,9 +7079,8 @@ async function openReportsModal() {
   if (productToggle) productToggle.style.display = 'block';
   if (nonAdminDateRangeDiv) nonAdminDateRangeDiv.style.display = 'block';
 
-  // Hide payment rows (Cash, Card, QR Pay, Alipay) but keep Refunds and Refunded Bills
+  // Hide payment rows for non‑admin
   function hidePaymentRowsForNonAdmin() {
-    if (!currentEmployee || currentEmployee.isAdmin) return;
     const allBreakdownRows = document.querySelectorAll('#adminReportModal .stat-item.breakdown');
     allBreakdownRows.forEach(row => {
       const labelSpan = row.querySelector('span:first-child');
@@ -7063,6 +7096,69 @@ async function openReportsModal() {
   }
   hidePaymentRowsForNonAdmin();
 
+  // Change first stat label to "My Total Sales"
+  const totalSalesStatItem = document.querySelector('#adminReportModal .stat-item:first-child');
+  if (totalSalesStatItem) {
+    const labelSpan = totalSalesStatItem.querySelector('span:first-child');
+    if (labelSpan) labelSpan.innerText = 'My Total Sales:';
+  }
+
+  // Date range controls for non‑admin
+  const rangeSelect = document.getElementById('nonAdminDateRangeSelect');
+  const customDiv = document.getElementById('nonAdminCustomDateRange');
+  const fromDate = document.getElementById('nonAdminFromDate');
+  const toDate = document.getElementById('nonAdminToDate');
+  const applyBtn = document.getElementById('applyNonAdminDateBtn');
+
+  async function refreshNonAdmin() {
+    const range = rangeSelect.value;
+    const now = new Date();
+    let from, to;
+    if (range === 'today') {
+      from = to = getLocalDateString(now);
+    } else if (range === 'week') {
+      const start = new Date(now);
+      const day = now.getDay();
+      const diff = day === 0 ? 6 : day - 1;
+      start.setDate(now.getDate() - diff);
+      from = getLocalDateString(start);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      to = getLocalDateString(end);
+    } else if (range === 'month') {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      from = getLocalDateString(start);
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      to = getLocalDateString(end);
+    } else if (range === 'year') {
+      const start = new Date(now.getFullYear(), 0, 1);
+      from = getLocalDateString(start);
+      const end = new Date(now.getFullYear(), 11, 31);
+      to = getLocalDateString(end);
+    } else if (range === 'custom') {
+      from = fromDate.value;
+      to = toDate.value;
+      if (!from || !to) return;
+    }
+    await updateNonAdminReport(from, to);
+    await updateNonAdminStatsCards(from, to);
+    hidePaymentRowsForNonAdmin();
+  }
+
+  rangeSelect.addEventListener('change', () => {
+    const isCustom = rangeSelect.value === 'custom';
+    customDiv.style.display = isCustom ? 'flex' : 'none';
+    if (!isCustom) refreshNonAdmin();
+  });
+  if (applyBtn) applyBtn.addEventListener('click', refreshNonAdmin);
+
+  // Initial load
+  const todayStr = getLocalDateString(new Date());
+  await updateNonAdminReport(todayStr, todayStr);
+  await updateNonAdminStatsCards(todayStr, todayStr);
+  hidePaymentRowsForNonAdmin();
+}
+
   // Change "Total Sales" to "My Total Sales" for non‑admin
   const totalSalesStatItem = document.querySelector('#adminReportModal .stat-item:first-child');
   if (totalSalesStatItem) {
@@ -7077,9 +7173,53 @@ async function openReportsModal() {
   const toDate = document.getElementById('nonAdminToDate');
   const applyBtn = document.getElementById('applyNonAdminDateBtn');
 
-  function getDateRange() {
-    // ... (same as your existing getDateRange)
+ function getDateRange() {
+  const rangeSelect = document.getElementById('nonAdminDateRangeSelect');
+  if (!rangeSelect) return null;
+
+  const range = rangeSelect.value;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // local midnight
+
+  let from, to;
+
+  if (range === 'today') {
+    from = to = getLocalDateString(today);
+  } 
+  else if (range === 'week') {
+    // Monday of current week (ISO week: Monday first)
+    const dayOfWeek = today.getDay(); // 0 = Sunday
+    const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+    const start = new Date(today);
+    start.setDate(today.getDate() - diffToMonday);
+    from = getLocalDateString(start);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    to = getLocalDateString(end);
   }
+  else if (range === 'month') {
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    from = getLocalDateString(start);
+    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    to = getLocalDateString(end);
+  }
+  else if (range === 'year') {
+    const start = new Date(today.getFullYear(), 0, 1);
+    from = getLocalDateString(start);
+    const end = new Date(today.getFullYear(), 11, 31);
+    to = getLocalDateString(end);
+  }
+  else if (range === 'custom') {
+    const fromEl = document.getElementById('nonAdminFromDate');
+    const toEl = document.getElementById('nonAdminToDate');
+    if (!fromEl || !toEl) return null;
+    from = fromEl.value;
+    to = toEl.value;
+    if (!from || !to) return null;
+  }
+
+  return { from, to };
+}
 
   async function refreshNonAdminReport() {
     if (!currentEmployee) return;
@@ -7542,6 +7682,23 @@ const sysRefund = parseFloat(document.getElementById('sysRefund').innerText.repl
 
   // ✅ Load collection history
   await loadCollectionHistory();
+}
+// Fetch aggregated sales per sales_person (by store and date)
+async function fetchEmployeeSalesAggregate(store, from, to) {
+  try {
+    let url = `${APPS_SCRIPT_URL}?action=getEmployeeSalesData&store=${store}`;
+    if (from) url += `&from=${encodeURIComponent(from)}`;
+    if (to) url += `&to=${encodeURIComponent(to)}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    if (result.success) {
+      return { labels: result.labels || [], data: result.data || [] };
+    }
+    return null;
+  } catch (err) {
+    console.error('fetchEmployeeSalesAggregate error:', err);
+    return null;
+  }
 }
 async function updateAdminReportForDate(dateStr = null) {
   if (!currentEmployee) return;
