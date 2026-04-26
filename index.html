@@ -6999,12 +6999,13 @@ if (applyHistoryBtn) {
 
 async function openReportsModal() {
   closeSideMenu();
-  if (!currentEmployee) return;
+  if (!currentEmployee) return;   // ✅ guard against null
+
   const modal = document.getElementById('adminReportModal');
   if (!modal) return;
   modal.style.display = 'flex';
 
-  // Helper to hide payment breakdown rows for non‑admin (must run after any UI update)
+  // Helper to hide payment breakdown rows for non‑admin
   function hidePaymentRowsForNonAdmin() {
     if (!currentEmployee || currentEmployee.isAdmin) return;
     const paymentRows = document.querySelectorAll('#adminReportModal .stat-item.breakdown');
@@ -7020,18 +7021,18 @@ async function openReportsModal() {
 
   // ========== 1. UI Toggle: Admin vs Non‑Admin ==========
   if (currentEmployee.isAdmin) {
-    // Admin view: show everything, hide non‑admin stuff
+    // Admin view
     if (storeBreakdownDiv) storeBreakdownDiv.style.display = 'block';
     if (reportFiltersDiv) reportFiltersDiv.style.display = 'flex';
     if (productToggle) productToggle.style.display = 'block';
     if (nonAdminStatsDiv) nonAdminStatsDiv.style.display = 'none';
     if (nonAdminDateRangeDiv) nonAdminDateRangeDiv.style.display = 'none';
 
-    // Ensure all stat items are visible (admin sees everything)
+    // Ensure all stat items are visible
     const allStatItems = document.querySelectorAll('#adminReportModal .stat-item');
     allStatItems.forEach(item => item.style.display = 'flex');
     
-    // Stop the polling interval if it was running (e.g., after a role switch)
+    // Stop any previous polling
     if (window.paymentHideInterval) {
       clearInterval(window.paymentHideInterval);
       window.paymentHideInterval = null;
@@ -7046,7 +7047,7 @@ async function openReportsModal() {
     if (productToggle) productToggle.style.display = 'block';
     if (nonAdminDateRangeDiv) nonAdminDateRangeDiv.style.display = 'block';
 
-    // Hide only payment method rows (Cash, Card, QR Pay, Alipay)
+    // Hide payment method rows (Cash, Card, QR Pay, Alipay)
     const statItems = document.querySelectorAll('#adminReportModal .stat-item');
     statItems.forEach(item => {
       const labelSpan = item.querySelector('span:first-child');
@@ -7060,7 +7061,7 @@ async function openReportsModal() {
       }
     });
 
-    // Change "Total Sales" to "My Total Sales" for non-admin
+    // ✅ Change "Total Sales" to "My Total Sales" for non‑admin
     const totalSalesStatItem = document.querySelector('#adminReportModal .stat-item:first-child');
     if (totalSalesStatItem) {
       const labelSpan = totalSalesStatItem.querySelector('span:first-child');
@@ -7119,7 +7120,6 @@ async function openReportsModal() {
       hidePaymentRowsForNonAdmin();
     }
 
-    // Event: show/hide custom range inputs
     if (rangeSelect) {
       rangeSelect.addEventListener('change', () => {
         const isCustom = rangeSelect.value === 'custom';
@@ -7129,29 +7129,32 @@ async function openReportsModal() {
     }
     if (applyBtn) applyBtn.addEventListener('click', refreshNonAdminReport);
 
-    // Initial load: Today
+    // Initial load
     const todayStr = getLocalDateString(new Date());
     await updateNonAdminReport(todayStr, todayStr);
     await updateNonAdminStatsCards(todayStr, todayStr);
     hidePaymentRowsForNonAdmin();
 
-    // ========== 🔥 BRUTE‑FORCE POLLING 🔥 ==========
-    // Start a polling interval that force‑hides payment rows every 500ms while modal is open
+    // Optional: polling as a safety net (can be removed if not needed)
     if (window.paymentHideInterval) clearInterval(window.paymentHideInterval);
     window.paymentHideInterval = setInterval(() => {
       if (!currentEmployee || currentEmployee.isAdmin) return;
       const modalEl = document.getElementById('adminReportModal');
       if (modalEl && modalEl.style.display === 'flex') {
         document.querySelectorAll('#adminReportModal .stat-item.breakdown').forEach(row => row.style.display = 'none');
+        // Also ensure label stays "My Total Sales"
+        const firstStat = document.querySelector('#adminReportModal .stat-item:first-child span:first-child');
+        if (firstStat && firstStat.innerText !== 'My Total Sales:') {
+          firstStat.innerText = 'My Total Sales:';
+        }
       } else if (window.paymentHideInterval) {
-        // Modal closed – stop polling
         clearInterval(window.paymentHideInterval);
         window.paymentHideInterval = null;
       }
     }, 500);
   }
 
-  // ========== 2. Instant totals from cache (if available) ==========
+  // ========== 2. Instant totals from cache ==========
   const todayStr = getLocalDateString(new Date());
   if (preloadedReportCache && preloadedReportCache.from === todayStr) {
     const totals = preloadedReportCache.totals;
@@ -7168,41 +7171,16 @@ async function openReportsModal() {
 
   // ========== 3. Instant store cards from cache (admin only) ==========
   if (currentEmployee.isAdmin) {
+    // ... (keep your existing code for store cards)
     const todayUTC = new Date();
     todayUTC.setUTCHours(0, 0, 0, 0);
     const from = getUTCDateString(todayUTC);
     const to = from;
     const stores = ['queens', 'sunshine', 'gurney_paragon'];
-
-    let anyMissing = false;
-    for (const storeName of stores) {
-      const cached = await getCachedStoreReport(storeName, from, to);
-      if (cached) {
-        updateStoreCard(storeName, cached.salesReport, cached.employeeData);
-      } else {
-        anyMissing = true;
-        const card = document.querySelector(`.store-summary-card[data-store="${storeName}"]`);
-        if (card) {
-          card.querySelector('.store-total').innerHTML = '<span class="report-loading-spinner" style="width:16px;height:16px;"></span> Loading...';
-          card.querySelector('.store-cash').innerHTML = '💵 Loading...';
-          card.querySelector('.store-card').innerHTML = '💳 Loading...';
-          card.querySelector('.store-qr').innerHTML = '📱 Loading...';
-          card.querySelector('.store-alipay').innerHTML = '💸 Loading...';
-          card.querySelector('.store-refund').innerHTML = '❌ Loading...';
-          card.querySelector('.store-refunded-bills').innerHTML = '📄 Loading...';
-          card.querySelector('.store-transactions').innerHTML = 'Loading...';
-          card.querySelector('.store-items-sold').innerHTML = 'Loading...';
-          card.querySelector('.employee-list').innerHTML = '<div class="report-loading-spinner" style="width:16px;height:16px;"></div>';
-        }
-      }
-    }
-    if (!anyMissing) {
-      const loadingMsgElem = document.getElementById('adminReportLoadingMsg');
-      if (loadingMsgElem) loadingMsgElem.style.display = 'none';
-    }
+    // ... rest of your store card logic
   }
 
-  // ========== 4. Loading spinner (if no cache) ==========
+  // ========== 4. Loading spinner ==========
   let loadingMsg = document.getElementById('adminReportLoadingMsg');
   if (!loadingMsg) {
     loadingMsg = document.createElement('div');
@@ -7212,29 +7190,19 @@ async function openReportsModal() {
     loadingMsg.style.background = '#f8fafc';
     loadingMsg.style.borderRadius = '12px';
     loadingMsg.style.margin = '10px 0';
-    loadingMsg.style.display = 'flex';
-    loadingMsg.style.alignItems = 'center';
-    loadingMsg.style.justifyContent = 'center';
-    loadingMsg.style.gap = '12px';
     loadingMsg.innerHTML = `
       <div class="report-loading-spinner"></div>
-      <span style="font-size: 1rem; color: #334155;">Loading report data...</span>
+      <span>Loading report data...</span>
     `;
     const reportStats = document.querySelector('#adminReportModal .report-stats');
     if (reportStats) reportStats.insertAdjacentElement('beforebegin', loadingMsg);
   }
+  loadingMsg.style.display = (preloadedReportCache && preloadedReportCache.from === todayStr) ? 'none' : 'flex';
 
-  if (preloadedReportCache && preloadedReportCache.from === todayStr) {
-    loadingMsg.style.display = 'none';
-  } else {
-    loadingMsg.style.display = 'flex';
-  }
-
-  // ========== 5. Refresh admin report in background ==========
+  // ========== 5. Background refresh ==========
   if (currentEmployee.isAdmin) {
     await updateAdminReport(false);
   } else {
-    // For non‑admin, just hide the loading spinner after a short delay
     setTimeout(() => {
       const msg = document.getElementById('adminReportLoadingMsg');
       if (msg) msg.style.display = 'none';
@@ -7243,27 +7211,7 @@ async function openReportsModal() {
 
   // ========== 6. Employee dropdowns (admin only) ==========
   if (currentEmployee.isAdmin) {
-    const employees = await fetchEmployees();
-    const adminReportEmpSelect = document.getElementById('adminReportEmployeeSelect');
-    const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
-    if (adminReportEmpSelect && receiptsEmpSelect) {
-      adminReportEmpSelect.innerHTML = '<option value="all">All Employees</option>';
-      receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
-      employees.forEach(emp => {
-        const opt1 = document.createElement('option');
-        opt1.value = emp.id;
-        opt1.textContent = `${emp.name} (ID: ${emp.id})`;
-        const opt2 = document.createElement('option');
-        opt2.value = emp.id;
-        opt2.textContent = `${emp.name} (ID: ${emp.id})`;
-        adminReportEmpSelect.appendChild(opt1);
-        receiptsEmpSelect.appendChild(opt2);
-      });
-    }
-    const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
-    const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
-    if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'flex';
-    if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'flex';
+    // ... keep your existing employee dropdown code
   } else {
     const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
     const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
@@ -7273,10 +7221,10 @@ async function openReportsModal() {
     if (receiptsStore) receiptsStore.value = currentStore;
   }
 
-  // ========== 7. Populate store selects (for receipts modal) ==========
+  // ========== 7. Populate store selects ==========
   populateStoreSelects();
 
-  // Final: ensure any leftover loading message is hidden
+  // Final cleanup
   const finalLoadingMsg = document.getElementById('adminReportLoadingMsg');
   if (finalLoadingMsg) finalLoadingMsg.style.display = 'none';
 }
