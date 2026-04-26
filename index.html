@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1608,9 +1609,6 @@
   color: #0b2b44;
   font-family: 'Segoe UI', 'Roboto', sans-serif;
 }
-.corporate-modal .modal-buttons {
-  justify-content: center;
-}
 .corporate-modal .modal-btn-primary {
   background: #0b2b44;
   border: none;
@@ -1628,14 +1626,11 @@
   transform: translateY(-1px);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
-/* Force hide payment breakdown for non‑admin */
-body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
-    display: none !important;
-}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
- 
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icon-192.png">
 <body>
 <!-- Store Select Modal -->
 <div id="storeSelectModal" class="modal-overlay" style="display: flex;">
@@ -1892,47 +1887,6 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
       <div class="filter-group"><label>Date Range</label><select id="adminReportDateRangeSelect"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="year">This Year</option><option value="custom">Custom</option></select></div>
       <div id="adminReportCustomDateRange" style="display: none;" class="date-range"><input type="date" id="adminReportFromDate"><input type="date" id="adminReportToDate"></div>
     </div>
- <div id="nonAdminStatsCards" style="margin: 20px 0; display: none;">
-  <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-end;">
-    <div class="stats-card" style="flex:1; background: white; border-radius: 28px; padding: 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
-      <div class="stats-label" style="font-size: 0.9rem; color: #64748b;">🏪 Store Total Sales</div>
-      <div class="stats-value" id="nonAdminStoreTotal" style="font-size: 2rem; font-weight: 800; color: #2c7a4b;">RM 0.00</div>
-      <div class="stats-store-name" id="nonAdminStoreName" style="font-size: 0.8rem;"></div>
-    </div>
-    <div class="stats-card" style="flex:1; background: white; border-radius: 28px; padding: 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
-      <div class="stats-label" style="font-size: 0.9rem; color: #64748b;">👤 My Sales</div>
-      <div class="stats-value" id="nonAdminEmployeeTotal" style="font-size: 2rem; font-weight: 800; color: #2c7a4b;">RM 0.00</div>
-      <div class="stats-employee-name" id="nonAdminEmployeeName" style="font-size: 0.8rem;"></div>
-    </div>
-  </div>
-</div>
-
-<!-- Non‑admin date range selector -->
-<div id="nonAdminDateRange" style="margin: 15px 0;">
-  <div class="report-filters" style="justify-content: flex-end;">
-    <div class="filter-group">
-      <label>📅 Date Range</label>
-      <select id="nonAdminDateRangeSelect">
-        <option value="today">Today</option>
-        <option value="week">This Week</option>
-        <option value="month">This Month</option>
-        <option value="year">This Year</option>
-        <option value="custom">Custom</option>
-      </select>
-    </div>
-    <div id="nonAdminCustomDateRange" style="display: none; gap: 8px; align-items: flex-end;">
-      <div class="filter-group">
-        <label>From</label>
-        <input type="date" id="nonAdminFromDate">
-      </div>
-      <div class="filter-group">
-        <label>To</label>
-        <input type="date" id="nonAdminToDate">
-      </div>
-      <button id="applyNonAdminDateBtn" class="cart-header-btn">Apply</button>
-    </div>
-  </div>
-</div>
     <div id="storeBreakdownContainer" style="margin: 20px 0; display: none;">
       <h3 style="margin-bottom: 16px;">🏪 Store Breakdown</h3>
       <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between;">
@@ -2113,7 +2067,7 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
 <script>
 
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEpeOAl41EjAxVnyEab3tJKOJFw4H9kYb5VfhiuFrJgmDEeLX54ILXOp0zh0ER8uJOeA/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyKFPDC3YGziA24eBGm3wFxCm_SIdVYLOUAz0alrzBejEgo9vuGGkphFGKbSVwi5ntOww/exec"; // REPLACE WITH YOUR URL
 
 // Haversine distance in km
 function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
@@ -2195,9 +2149,6 @@ async function autoSelectStoreByLocation() {
 let lowStockFilterActive = false;   // track filter state
 let staffDiscountActive = false;   // whether 10% discount is active
 let staffDiscount = 0;             // computed amount (10% of subtotal)
-let claimBarcodeBuffer = '';
-let claimBarcodeTimer = null;
-let paymentHideInterval = null;
 // Login modal barcode scanner variables
 let loginBarcodeBuffer = '';
 let loginBarcodeTimer = null;
@@ -2428,29 +2379,6 @@ function setCachedStoreReport(store, from, to, data) {
     };
   }
 })();
-async function updateNonAdminReport(from, to) {
-  if (!currentEmployee || currentEmployee.isAdmin) return;
-
-  const store = currentStore;
-  const employeeId = currentEmployee.id;
-
-  // Fetch report (silent)
-  const totals = await fetchSalesReport(store, employeeId, from, to, false, true);
-  if (!totals) return;
-
-  // Update the five visible stats
-  document.getElementById('adminReportTotalSales').innerText = `RM ${totals.totalSales.toFixed(2)}`;
-  document.getElementById('adminReportRefundTotal').innerText = `RM ${Math.abs(totals.refundTotal || 0).toFixed(2)}`;
-  document.getElementById('adminReportRefundedBills').innerText = totals.refundedTransactionCount || 0;
-  document.getElementById('adminReportTransactionCount').innerText = totals.transactionCount || 0;
-  document.getElementById('adminReportTotalItems').innerText = totals.totalItems || 0;
-
-  // Update product details if visible
-  if (productDetailsVisible) {
-    const productData = await fetchProductSalesReport(store, employeeId, from, to);
-    renderProductDetails(productData);
-  }
-}
 function showAccountSwitchModal(employeeName) {
   return new Promise((resolve) => {
     const modal = document.createElement('div');
@@ -2477,23 +2405,6 @@ function showAccountSwitchModal(employeeName) {
     // Optional: auto‑close after 2.5 seconds (can be removed for stricter bank feel)
     setTimeout(closeModal, 3000);
   });
-}
-function resetClaimBarcodeBuffer() {
-  claimBarcodeBuffer = '';
-  if (claimBarcodeTimer) {
-    clearTimeout(claimBarcodeTimer);
-    claimBarcodeTimer = null;
-  }
-}
-
-function processClaimBarcode() {
-  const code = claimBarcodeBuffer.trim();
-  if (code === '') return;
-  const inputField = document.getElementById('claimReceiptInput');
-  if (inputField) inputField.value = code;
-  // Auto-trigger check
-  checkReceiptForClaim();
-  resetClaimBarcodeBuffer();
 }
 async function getCachedReport(cacheKey, maxAgeMs = 5 * 60 * 1000) {
   try {
@@ -2558,29 +2469,7 @@ async function switchToEmployee(newEmployee) {
   }
   soldBySelectCart.value = currentEmployee.id;
 
-  // --- Update role‑based UI (this now handles everything) ---
-  applyRoleBasedUI();
-
-  await showAccountSwitchModal(currentEmployee.name);
-
-  // --- If report modal is open, ensure it refreshes (already inside applyRoleBasedUI, but kept for safety) ---
-  const reportModal = document.getElementById('adminReportModal');
-  if (reportModal && reportModal.style.display === 'flex') {
-    reportModal.style.display = 'none';
-    await openReportsModal();
-  }
-}
-function applyRoleBasedUI() {
-  if (!currentEmployee) return;
-
-  // ✅ ADD THESE TWO LINES – toggle admin class on body
-  if (currentEmployee.isAdmin) {
-    document.body.classList.add('admin-mode');
-  } else {
-    document.body.classList.remove('admin-mode');
-  }
-
-  // --- Side menu buttons ---
+  // --- Update admin‑only UI elements ---
   const sideInventory = document.getElementById('sideInventoryBtn');
   const sideCollection = document.getElementById('sideCollectionBtn');
   if (currentEmployee.isAdmin) {
@@ -2593,81 +2482,7 @@ function applyRoleBasedUI() {
     storeSelect.disabled = true;
   }
 
-  // --- Report modal filter groups & charts ---
-  const reportStoreFilter = document.getElementById('reportStoreFilterGroup');
-  const employeeFilterGroup = document.getElementById('employeeFilterGroup');
-  const storeChartContainer = document.getElementById('storeChartContainer');
-  const employeeChartContainer = document.getElementById('employeeChartContainer');
-
-  if (currentEmployee.isAdmin) {
-    if (reportStoreFilter) reportStoreFilter.style.display = 'flex';
-    if (employeeFilterGroup) employeeFilterGroup.style.display = 'flex';
-    if (storeChartContainer) storeChartContainer.style.display = 'block';
-    if (employeeChartContainer) employeeChartContainer.style.display = 'block';
-  } else {
-    if (reportStoreFilter) reportStoreFilter.style.display = 'none';
-    if (employeeFilterGroup) employeeFilterGroup.style.display = 'none';
-    if (storeChartContainer) storeChartContainer.style.display = 'none';
-    if (employeeChartContainer) employeeChartContainer.style.display = 'none';
-  }
-
-  // --- Payment breakdown rows (Cash, Card, QR, Alipay) ---
-  const paymentRows = document.querySelectorAll('#adminReportModal .stat-item.breakdown');
-  paymentRows.forEach(row => row.style.display = 'none');
-  if (currentEmployee.isAdmin) {
-    paymentRows.forEach(row => row.style.display = 'flex');
-  } else {
-    paymentRows.forEach(row => row.style.display = 'none');
-  }
-
-  // --- Settlement modal store selector ---
-  const settlementStoreSelect = document.getElementById('settlementStoreSelect');
-  if (settlementStoreSelect) {
-    if (!currentEmployee.isAdmin) {
-	
-	 document.querySelectorAll('#adminReportModal .stat-item.breakdown').forEach(row => row.style.display = 'none');
-      settlementStoreSelect.value = initialStore;
-      settlementStoreSelect.disabled = true;
-    } else {
-      settlementStoreSelect.disabled = false;
-    }
-  }
-
-  // --- System totals display in settlement modal ---
-  const systemTotalsDiv = document.getElementById('systemTotalsDisplay');
-  if (systemTotalsDiv) {
-    if (!currentEmployee.isAdmin) {
-	 document.querySelectorAll('#adminReportModal .stat-item.breakdown').forEach(row => row.style.display = 'none');
-      systemTotalsDiv.style.display = 'block';
-      const breakdownIds = ['sysCash', 'sysCard', 'sysQR', 'sysRefund', 'sysAlipay'];
-      breakdownIds.forEach(id => {
-        const el = document.getElementById(id);
-        if (el && el.parentElement) el.parentElement.style.display = 'none';
-      });
-      const netTotalParent = document.getElementById('sysNetTotal')?.parentElement;
-      if (netTotalParent) netTotalParent.style.display = 'block';
-    } else {
-      systemTotalsDiv.style.display = 'block';
-      const allIds = ['sysCash', 'sysCard', 'sysQR', 'sysRefund', 'sysAlipay', 'sysNetTotal'];
-      allIds.forEach(id => {
-        const el = document.getElementById(id);
-        if (el && el.parentElement) el.parentElement.style.display = 'block';
-      });
-    }
-  }
-
-  // --- If the report modal is open, force a full refresh (close + reopen) ---
-  const reportModal = document.getElementById('adminReportModal');
-  if (reportModal && reportModal.style.display === 'flex') {
-    // Clear any cached report data for the current role
-    if (window.preloadedReportCache) window.preloadedReportCache = null;
-    if (window.storeReportCache) window.storeReportCache = {};
-    // Close and reopen after a tiny delay to ensure clean state
-    reportModal.style.display = 'none';
-    setTimeout(() => {
-      openReportsModal();
-    }, 50);
-  }
+ await showAccountSwitchModal(currentEmployee.name);
 }
 async function setCachedReport(cacheKey, report) {
   try {
@@ -4172,119 +3987,56 @@ function applyStaffDiscount() {
     errorDiv.style.display = 'block';
   }
 
-async function checkReceiptForClaim() {
-  const receipt = document.getElementById('claimReceiptInput').value.trim();
-  if (!receipt) {
-    showClaimError('Please enter a receipt number.');
-    return;
-  }
-  showLoading('Checking receipt...');
-  try {
-    const url = `${APPS_SCRIPT_URL}?action=get&receipt=${encodeURIComponent(receipt)}`;
-    const response = await fetch(url);
-    const result = await response.json();
-    if (result.success) {
-      const data = result.data;
-      if (data.claimed) {
-        showClaimError('This prize has already been claimed.');
-        return;
-      }
-      if (data.is_expired) {
-        showClaimError('This prize has expired (30 days after creation).');
-        return;
-      }
-      window.pendingClaimReceipt = data;
-
-      // Extract prize label and value
-      let prizeLabel = data.prize_label || data.prize || '';
-      let prizeValue = data.value;
-      if (!prizeValue && prizeLabel) {
-        const match = prizeLabel.match(/RM\s*(\d+(?:\.\d+)?)/);
-        if (match) prizeValue = parseFloat(match[1]);
-      }
-      if (!prizeValue) {
-        prizeValue = 38;
-        prizeLabel = prizeLabel || `RM ${prizeValue} FREE GIFT`;
-      }
-
-      // Store for later use
-      window.pendingPrizeValue = prizeValue;
-      window.pendingPrizeLabel = prizeLabel;
-
-      // ✅ Reset barcode buffer after successful fetch
-      resetClaimBarcodeBuffer();
-
-      // Replace step2 content with prize info (no dropdown)
-      const step2Div = document.getElementById('claimStep2');
-      step2Div.innerHTML = `
-        <p>Receipt: <strong id="validReceiptId">${escapeHtml(data.receipt)}</strong></p>
-        <p>Prize won: <strong>${escapeHtml(prizeLabel)}</strong></p>
-        <p>Discount amount: <strong>RM ${prizeValue.toFixed(2)}</strong></p>
-        <div class="modal-buttons">
-          <button id="applyPrizeBtn" class="modal-btn modal-btn-primary">Apply Discount</button>
-          <button id="cancelClaimStep2Btn" class="modal-btn modal-btn-secondary">Cancel</button>
-        </div>
-      `;
-
-      document.getElementById('claimStep1').style.display = 'none';
-      step2Div.style.display = 'block';
-
-      // Re-attach event listeners
-      document.getElementById('applyPrizeBtn').addEventListener('click', applyPrizeToCart);
-      document.getElementById('cancelClaimStep2Btn').addEventListener('click', () => {
-        document.getElementById('claimPrizeModal').style.display = 'none';
-        resetClaimBarcodeBuffer();   // Also reset on cancel
-      });
-    } else {
-      showClaimError(result.error || 'Receipt not found.');
+  async function checkReceiptForClaim() {
+    const receipt = document.getElementById('claimReceiptInput').value.trim();
+    if (!receipt) {
+      showClaimError('Please enter a receipt number.');
+      return;
     }
-  } catch (err) {
-    console.error(err);
-    showClaimError('Connection error. Please try again.');
-  } finally {
-    hideLoading();
+    showLoading('Checking receipt...');
+    try {
+      const url = `${APPS_SCRIPT_URL}?action=get&receipt=${encodeURIComponent(receipt)}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.success) {
+        const data = result.data;
+        if (data.claimed) {
+          showClaimError('This prize has already been claimed.');
+          return;
+        }
+        if (data.is_expired) {
+          showClaimError('This prize has expired (30 days after creation).');
+          return;
+        }
+        window.pendingClaimReceipt = data;
+        document.getElementById('validReceiptId').innerText = data.receipt;
+        document.getElementById('claimStep1').style.display = 'none';
+        document.getElementById('claimStep2').style.display = 'block';
+      } else {
+        showClaimError(result.error || 'Receipt not found.');
+      }
+    } catch (err) {
+      console.error(err);
+      showClaimError('Connection error. Please try again.');
+    } finally {
+      hideLoading();
+    }
   }
-}
-async function updateNonAdminStatsCards(from, to) {
-  // Guard: ensure currentEmployee exists and is not admin
-  if (!currentEmployee || currentEmployee.isAdmin) return;
-  
-  // Additional safety: ensure currentStore is defined
-  const store = currentStore;
-  const employeeId = currentEmployee.id;
-  if (!store || !employeeId) return;
 
-  // Fetch store total (all employees in this store)
-  const storeReport = await fetchSalesReport(store, 'all', from, to, false, true);
-  // Fetch employee total (only this employee)
-   const empReport = await fetchSalesReport('all', employeeId, from, to, false, true);
+  function applyPrizeToCart() {
+    const receiptData = window.pendingClaimReceipt;
+    if (!receiptData) return;
+    const prizeValue = parseFloat(document.getElementById('prizeSelect').value);
+    const prizeText = document.getElementById('prizeSelect').selectedOptions[0].text;
 
-  if (storeReport) {
-    const storeTotalElem = document.getElementById('nonAdminStoreTotal');
-    const storeNameElem = document.getElementById('nonAdminStoreName');
-    if (storeTotalElem) storeTotalElem.innerText = `RM ${storeReport.totalSales.toFixed(2)}`;
-    if (storeNameElem) storeNameElem.innerText = store.charAt(0).toUpperCase() + store.slice(1).replace('_', ' ');
+    pendingPrize = { receipt: receiptData.receipt, value: prizeValue, name: prizeText };
+    discountAmount = prizeValue;
+    claimedReceiptInfo = pendingPrize;
+    updateCartUI();
+
+    showAlertModal('Prize Applied', `Discount of RM ${prizeValue.toFixed(2)} has been applied to this sale.\nThe prize will be marked as claimed only after successful payment.`);
+    document.getElementById('claimPrizeModal').style.display = 'none';
   }
-  if (empReport && currentEmployee) {  // ✅ Re-check currentEmployee
-    const empTotalElem = document.getElementById('nonAdminEmployeeTotal');
-    const empNameElem = document.getElementById('nonAdminEmployeeName');
-    if (empTotalElem) empTotalElem.innerText = `RM ${empReport.totalSales.toFixed(2)}`;
-    if (empNameElem) empNameElem.innerText = currentEmployee.name;
-  }
-}
- function applyPrizeToCart() {
-  if (!window.pendingClaimReceipt) return;
-  const prizeValue = window.pendingPrizeValue || 38;
-  const prizeText = window.pendingPrizeLabel || `RM ${prizeValue} FREE GIFT`;
-
-  pendingPrize = { receipt: window.pendingClaimReceipt.receipt, value: prizeValue, name: prizeText };
-  discountAmount = prizeValue;
-  claimedReceiptInfo = pendingPrize;
-  updateCartUI();
-
-  showAlertModal('Prize Applied', `Discount of RM ${prizeValue.toFixed(2)} has been applied to this sale.\nThe prize will be marked as claimed only after successful payment.`);
-  document.getElementById('claimPrizeModal').style.display = 'none';
-}
 
   async function claimPrizeAfterSale(receipt, prizeValue, finalTotal) {
     try {
@@ -4726,27 +4478,21 @@ async function reprintLuckyDraw(txId) {
     const url = `${APPS_SCRIPT_URL}?action=get&receipt=${encodeURIComponent(txId)}`;
     const response = await fetch(url);
     const result = await response.json();
-    
     if (!result.success) {
-      // No lucky draw record found – open the spin page
-      await showAlertModal('No Lucky Draw Record', 'This receipt has not been entered into the lucky draw. Opening the lucky draw page to spin now.');
-      openLuckyDraw(txId, null);
+      await showAlertModal('Error', result.error || 'Lucky draw record not found or invalid.');
       return;
     }
-    
     const transaction = result.data;
     // Check if the lucky draw has already been claimed
     if (transaction.claimed === true) {
       await showAlertModal('Already Claimed', 'This lucky draw prize has already been claimed and cannot be reprinted.');
       return;
     }
-    
     const prizeLabel = transaction.prize_label || transaction.prize || 'RM 38 FREE GIFT';
     if (!window.printerAPI || !window.printerAPI.printPrizeVoucher) {
       await showAlertModal('Printer Error', 'Printer not connected or print function unavailable.');
       return;
     }
-    
     const success = await window.printerAPI.printPrizeVoucher(prizeLabel, txId);
     if (success) {
       await showAlertModal('Reprinted', 'Lucky draw voucher reprinted successfully.');
@@ -4957,34 +4703,30 @@ function renderReceiptsList(receipts) {
 
       // Items list
       let itemsHtml = '<div class="receipt-items-list">';
-     for (const item of rec.items) {
-  const price = parseFloat(item.price) || 0;
-  const quantity = parseInt(item.quantity) || 0;
-  const freeQuantity = parseInt(item.free_quantity) || 0;
-  const paidQty = quantity - freeQuantity;
-
-  // Free gift line (if any free units)
-  if (freeQuantity > 0) {
-    itemsHtml += `
-      <div class="receipt-item-row" style="color:#10b981; font-style:italic;">
-        <span class="receipt-item-name">🎁 ${escapeHtml(item.name)} (Free)</span>
-        <span class="receipt-item-detail">RM 0.00</span>
-      </div>
-    `;
-  }
-
-  // Paid portion (if any)
-  if (paidQty > 0) {
-    const itemTotal = paidQty * price;
-    itemsHtml += `
-      <div class="receipt-item-row">
-        <span class="receipt-item-name">${escapeHtml(item.name)}</span>
-        <span class="receipt-item-detail">${paidQty} x RM ${price.toFixed(2)}</span>
-        <span class="receipt-item-detail">RM ${itemTotal.toFixed(2)}</span>
-      </div>
-    `;
-  }
-}
+      for (const item of rec.items) {
+        const price = parseFloat(item.price) || 0;
+        const quantity = parseInt(item.quantity) || 0;
+        const freeQuantity = parseInt(item.free_quantity) || 0;
+        const paidQty = quantity - freeQuantity;
+        if (paidQty <= 0) continue;
+        const itemTotal = paidQty * price;
+        itemsHtml += `
+          <div class="receipt-item-row">
+            <span class="receipt-item-name">${escapeHtml(item.name)}</span>
+            <span class="receipt-item-detail">${paidQty} x RM ${price.toFixed(2)}</span>
+            <span class="receipt-item-detail">RM ${itemTotal.toFixed(2)}</span>
+          </div>
+        `;
+        if (freeQuantity > 0) {
+          itemsHtml += `
+            <div class="receipt-item-row" style="color:#10b981; font-style:italic;">
+              <span class="receipt-item-name">🎁 FREE GIFT</span>
+              <span class="receipt-item-detail">${freeQuantity} x ${escapeHtml(item.name)}</span>
+              <span class="receipt-item-detail">RM 0.00</span>
+            </div>
+          `;
+        }
+      }
       itemsHtml += '</div>';
 
       // Discounts
@@ -5785,22 +5527,16 @@ function resetBarcodeBuffer() {
   barcodeTimer = null;
 }
 
-async function processBarcode() {
+function processBarcode() {
   if (!scannerActive) return;
   const code = barcodeBuffer.trim();
   if (code === '') return;
   
-   
-  // --- First, try to switch employee using server verification ---
-  let isEmployee = false;
-  showLoading("🔍 Verifying PIN...");
-  try {
-    isEmployee = await verifyAndSwitchEmployee(code);
-  } finally {
-    hideLoading();   // closes the modal regardless of success/failure
-  }
-  
-  if (isEmployee) {
+  // --- New: Check if scanned code matches an employee PIN ---
+  const matchedEmployee = findEmployeeByPin(code);
+  if (matchedEmployee) {
+    // Switch to that employee
+    switchToEmployee(matchedEmployee);
     resetBarcodeBuffer();
     return;
   }
@@ -5814,6 +5550,7 @@ async function processBarcode() {
   }
 
   if (inventoryMode) {
+    // ... (your existing inventory mode code remains unchanged)
     const oldStock = product.stock;
     const newStock = oldStock + 1;
     product.stock = newStock;
@@ -5843,34 +5580,19 @@ document.addEventListener('keydown', (e) => {
   // --- LOGIN MODE BARCODE HANDLING (always active when modal is open) ---
   const loginModal = document.getElementById('loginModal');
   if (loginModal && loginModal.style.display === 'flex') {
+    // Enter key finishes the barcode
     if (e.key === 'Enter') {
       e.preventDefault();
       processLoginBarcode();
       return;
     }
+    // Accumulate alphanumeric characters (typical barcode characters)
     if (e.key.length === 1 && /[a-zA-Z0-9-]/.test(e.key)) {
       if (loginBarcodeTimer) clearTimeout(loginBarcodeTimer);
       loginBarcodeBuffer += e.key;
       loginBarcodeTimer = setTimeout(() => resetLoginBarcodeBuffer(), 100);
     }
-    return;
-  }
-
-  // --- CLAIM PRIZE MODAL (step1) BARCODE HANDLING ---
-  const claimModal = document.getElementById('claimPrizeModal');
-  const claimStep1 = document.getElementById('claimStep1');
-  if (claimModal && claimModal.style.display === 'flex' && claimStep1 && claimStep1.style.display !== 'none') {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      processClaimBarcode();
-      return;
-    }
-    if (e.key.length === 1 && /[a-zA-Z0-9-]/.test(e.key)) {
-      if (claimBarcodeTimer) clearTimeout(claimBarcodeTimer);
-      claimBarcodeBuffer += e.key;
-      claimBarcodeTimer = setTimeout(() => resetClaimBarcodeBuffer(), 100);
-    }
-    return; // Don't process product barcode while claiming
+    return; // Do not process product barcode while login modal is open
   }
 
   // --- PRODUCT SCANNER MODE (only after login) ---
@@ -5892,21 +5614,6 @@ document.addEventListener('keydown', (e) => {
     }, 100);
   }
 });
-async function verifyAndSwitchEmployee(pin) {
-  try {
-    const url = `${APPS_SCRIPT_URL}?action=verifyByPin&pin=${encodeURIComponent(pin)}`;
-    const response = await fetch(url);
-    const result = await response.json();
-    if (result.success && result.employee) {
-      await switchToEmployee(result.employee);
-      return true;
-    }
-    return false;
-  } catch (err) {
-    console.error('Employee verification failed:', err);
-    return false;
-  }
-}
 async function getCachedMultiStoreReport(from, to) {
   const key = `multistore_${from}_${to}`;
   const cached = storeReportCache[key];
@@ -5915,11 +5622,7 @@ async function getCachedMultiStoreReport(from, to) {
   }
   return null;
 }
-function hidePaymentRowsForNonAdmin() {
-  if (!currentEmployee || currentEmployee.isAdmin) return;
-  const paymentRows = document.querySelectorAll('#adminReportModal .stat-item.breakdown');
-  paymentRows.forEach(row => row.style.display = 'none');
-}
+
 function setCachedMultiStoreReport(from, to, data) {
   const key = `multistore_${from}_${to}`;
   storeReportCache[key] = {
@@ -5996,8 +5699,6 @@ async function openSettlementModal() {
   try {
     let store;
     if (!currentEmployee.isAdmin) {
-	 document.querySelectorAll('#adminReportModal .stat-item.breakdown').forEach(row => row.style.display = 'none');
-	 
       store = initialStore;
       document.getElementById('settlementStoreSelect').value = store;
       document.getElementById('settlementStoreSelect').disabled = true;
@@ -6032,7 +5733,6 @@ async function openSettlementModal() {
     await refreshSettlementTotals(store);
     loadingMsg.style.display = 'none';
     if (!currentEmployee.isAdmin) {
-	 document.querySelectorAll('#adminReportModal .stat-item.breakdown').forEach(row => row.style.display = 'none');
       const netTotalRow = document.getElementById('sysNetTotal')?.parentElement;
       if (netTotalRow) netTotalRow.style.display = 'block';
     }
@@ -6689,7 +6389,6 @@ if (inventoryMode) {
 
   // ==================== PRELOAD SETTLEMENT AND REPORT AFTER LOGIN ====================
   async function preloadSettlement() {
-   if (!currentEmployee) return; 
     try {
       const store = currentStore;
       const todayStr = getLocalDateString(new Date());
@@ -6703,7 +6402,7 @@ if (inventoryMode) {
   }
 
 async function preloadReport() {
-  if (!currentEmployee) return;   
+  if (!currentEmployee) return;
   try {
     const todayStr = getLocalDateString(new Date());
     let store, employeeId;
@@ -6959,310 +6658,228 @@ if (applyHistoryBtn) {
   document.getElementById('closeTelegramModalBtn')?.addEventListener('click', () => document.getElementById('telegramModal').style.display = 'none');
 
   async function finishLoginAfterVerification() {
-  if (window.autoSyncInterval) clearInterval(window.autoSyncInterval);
-  await loadInitialData();
-  soldBySelectCart.value = currentEmployee.id;
+    if (window.autoSyncInterval) clearInterval(window.autoSyncInterval);
+    await loadInitialData();
+    soldBySelectCart.value = currentEmployee.id;
 
-  // --- Apply all role‑based UI updates (admin/non‑admin) ---
-  applyRoleBasedUI();
+    const sideInventory = document.getElementById('sideInventoryBtn');
+    const sideCollection = document.getElementById('sideCollectionBtn');
+    if (currentEmployee.isAdmin) {
+      if (sideInventory) sideInventory.style.display = 'flex';
+      if (sideCollection) sideCollection.style.display = 'flex';
+      storeSelect.disabled = false;
+    } else {
+      if (sideInventory) sideInventory.style.display = 'none';
+      if (sideCollection) sideCollection.style.display = 'none';
+      storeSelect.disabled = true;
+    }
 
-  startReceiptPolling();
-  updateCartUI();
-  checkNotificationSupport();
-  updateStockAlertButtonUI();
-  loadPendingSales();
-  syncPendingSales();
-  preloadSettlement();
-  preloadReport();
-  enableBarcodeScanner();
-  refreshCategoryHighlighting();
+    const systemTotalsDiv = document.getElementById('systemTotalsDisplay');
+    if (systemTotalsDiv) {
+      if (!currentEmployee.isAdmin) {
+        systemTotalsDiv.style.display = 'block';
+        const breakdownIds = ['sysCash', 'sysCard', 'sysQR', 'sysRefund', 'sysAlipay'];
+        breakdownIds.forEach(id => {
+          const el = document.getElementById(id);
+          if (el && el.parentElement) el.parentElement.style.display = 'none';
+        });
+        const netTotalParent = document.getElementById('sysNetTotal')?.parentElement;
+        if (netTotalParent) netTotalParent.style.display = 'block';
+      } else {
+        systemTotalsDiv.style.display = 'block';
+        const allIds = ['sysCash', 'sysCard', 'sysQR', 'sysRefund', 'sysAlipay', 'sysNetTotal'];
+        allIds.forEach(id => {
+          const el = document.getElementById(id);
+          if (el && el.parentElement) el.parentElement.style.display = 'block';
+        });
+      }
+    }
 
-  if (window.autoSyncInterval) clearInterval(window.autoSyncInterval);
-  window.autoSyncInterval = setInterval(() => backgroundSync(), 60000);
-}
+    const reportStoreFilter = document.getElementById('reportStoreFilterGroup');
+    const employeeFilterGroup = document.getElementById('employeeFilterGroup');
+    const storeChartContainer = document.getElementById('storeChartContainer');
+    const employeeChartContainer = document.getElementById('employeeChartContainer');
+    if (currentEmployee.isAdmin) {
+      if (reportStoreFilter) reportStoreFilter.style.display = 'flex';
+      if (employeeFilterGroup) employeeFilterGroup.style.display = 'flex';
+      if (storeChartContainer) storeChartContainer.style.display = 'block';
+      if (employeeChartContainer) employeeChartContainer.style.display = 'block';
+    } else {
+      if (reportStoreFilter) reportStoreFilter.style.display = 'none';
+      if (employeeFilterGroup) employeeFilterGroup.style.display = 'none';
+      if (storeChartContainer) storeChartContainer.style.display = 'none';
+      if (employeeChartContainer) employeeChartContainer.style.display = 'none';
+      const paymentBreakdownIds = [
+        'adminReportCashTotal',
+        'adminReportCardTotal',
+        'adminReportQRTotal',
+        'adminReportAlipayTotal'
+      ];
+      paymentBreakdownIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.parentElement && el.parentElement.classList.contains('stat-item')) {
+          el.parentElement.style.display = 'none';
+        }
+      });
+    }
+
+    const settlementStoreSelect = document.getElementById('settlementStoreSelect');
+    if (!currentEmployee.isAdmin) {
+      if (settlementStoreSelect) {
+        settlementStoreSelect.value = initialStore;
+        settlementStoreSelect.disabled = true;
+      }
+    } else {
+      if (settlementStoreSelect) settlementStoreSelect.disabled = false;
+    }
+
+    startReceiptPolling();
+    updateCartUI();
+    checkNotificationSupport();
+    updateStockAlertButtonUI();
+    loadPendingSales();
+    syncPendingSales();
+    preloadSettlement();
+    preloadReport();
+    enableBarcodeScanner();
+    refreshCategoryHighlighting();
+    if (window.autoSyncInterval) clearInterval(window.autoSyncInterval);
+    window.autoSyncInterval = setInterval(() => backgroundSync(), 60000);
+  }
 
 async function openReportsModal() {
   closeSideMenu();
-  if (!currentEmployee) return;
+
   const modal = document.getElementById('adminReportModal');
-  if (!modal) return;
-  modal.style.display = 'flex';
-
-  // Helper to hide payment breakdown rows for non‑admin (must run after any UI update)
-  function hidePaymentRowsForNonAdmin() {
-    if (!currentEmployee || currentEmployee.isAdmin) return;
-    const paymentRows = document.querySelectorAll('#adminReportModal .stat-item.breakdown');
-    paymentRows.forEach(row => row.style.display = 'none');
-  }
-
-  // --- DOM references ---
-  const storeBreakdownDiv = document.getElementById('storeBreakdownContainer');
-  const reportFiltersDiv = document.querySelector('#adminReportModal .report-filters');
-  const productToggle = document.getElementById('toggleProductDetailsBtn');
-  const nonAdminStatsDiv = document.getElementById('nonAdminReportStats');
-  const nonAdminDateRangeDiv = document.getElementById('nonAdminDateRange');
-
-  // ========== 1. UI Toggle: Admin vs Non‑Admin ==========
-  if (currentEmployee.isAdmin) {
-    // Admin view: show everything, hide non‑admin stuff
-    if (storeBreakdownDiv) storeBreakdownDiv.style.display = 'block';
-    if (reportFiltersDiv) reportFiltersDiv.style.display = 'flex';
-    if (productToggle) productToggle.style.display = 'block';
-    if (nonAdminStatsDiv) nonAdminStatsDiv.style.display = 'none';
-    if (nonAdminDateRangeDiv) nonAdminDateRangeDiv.style.display = 'none';
-
-    // Ensure all stat items are visible (admin sees everything)
-    const allStatItems = document.querySelectorAll('#adminReportModal .stat-item');
-    allStatItems.forEach(item => item.style.display = 'flex');
-    
-    // Stop the polling interval if it was running (e.g., after a role switch)
-    if (window.paymentHideInterval) {
-      clearInterval(window.paymentHideInterval);
-      window.paymentHideInterval = null;
-    }
-  } 
-  else {
-    // Non‑admin view
+  if (modal) {
+    modal.style.display = 'flex';
+    const storeBreakdownDiv = document.getElementById('storeBreakdownContainer');
     if (storeBreakdownDiv) storeBreakdownDiv.style.display = 'none';
-    if (reportFiltersDiv) reportFiltersDiv.style.display = 'none';
-    const nonAdminCardsDiv = document.getElementById('nonAdminStatsCards');
-    if (nonAdminCardsDiv) nonAdminCardsDiv.style.display = 'block';
-    if (productToggle) productToggle.style.display = 'block';
-    if (nonAdminDateRangeDiv) nonAdminDateRangeDiv.style.display = 'block';
 
-    // Hide only payment method rows (Cash, Card, QR Pay, Alipay)
-    const statItems = document.querySelectorAll('#adminReportModal .stat-item');
-    statItems.forEach(item => {
-      const labelSpan = item.querySelector('span:first-child');
-      if (labelSpan) {
-        const text = labelSpan.innerText.trim();
-        if (text.includes('Cash') || text.includes('Card') || text.includes('QR Pay') || text.includes('Alipay')) {
-          item.style.display = 'none';
-        } else {
-          item.style.display = 'flex';
-        }
-      }
-    });
-
-    // Change "Total Sales" to "My Total Sales" for non-admin
-    const totalSalesStatItem = document.querySelector('#adminReportModal .stat-item:first-child');
-    if (totalSalesStatItem) {
-      const labelSpan = totalSalesStatItem.querySelector('span:first-child');
-      if (labelSpan) {
-        labelSpan.innerText = 'My Total Sales:';
-      }
-    }
-
-    // --- Set up non‑admin date range controls ---
-    const rangeSelect = document.getElementById('nonAdminDateRangeSelect');
-    const customDiv = document.getElementById('nonAdminCustomDateRange');
-    const fromDate = document.getElementById('nonAdminFromDate');
-    const toDate = document.getElementById('nonAdminToDate');
-    const applyBtn = document.getElementById('applyNonAdminDateBtn');
-
-    function getDateRange() {
-      const range = rangeSelect.value;
-      const now = new Date();
-      let from = null, to = null;
-
-      if (range === 'today') {
-        from = to = getLocalDateString(now);
-      } else if (range === 'week') {
-        const start = new Date(now);
-        const dayOfWeek = now.getDay();
-        const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
-        start.setDate(now.getDate() - diffToMonday);
-        from = getLocalDateString(start);
-        const end = new Date(start);
-        end.setDate(start.getDate() + 6);
-        to = getLocalDateString(end);
-      } else if (range === 'month') {
-        const start = new Date(now.getFullYear(), now.getMonth(), 1);
-        from = getLocalDateString(start);
-        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        to = getLocalDateString(end);
-      } else if (range === 'year') {
-        const start = new Date(now.getFullYear(), 0, 1);
-        from = getLocalDateString(start);
-        const end = new Date(now.getFullYear(), 11, 31);
-        to = getLocalDateString(end);
-      } else if (range === 'custom') {
-        from = fromDate.value;
-        to = toDate.value;
-        if (!from || !to) return null;
-      }
-      return { from, to };
-    }
-
-    async function refreshNonAdminReport() {
-      if (!currentEmployee) return;
-      const range = getDateRange();
-      if (!range) return;
-      await updateNonAdminReport(range.from, range.to);
-      await updateNonAdminStatsCards(range.from, range.to);
-      hidePaymentRowsForNonAdmin();
-    }
-
-    // Event: show/hide custom range inputs
-    if (rangeSelect) {
-      rangeSelect.addEventListener('change', () => {
-        const isCustom = rangeSelect.value === 'custom';
-        if (customDiv) customDiv.style.display = isCustom ? 'flex' : 'none';
-        if (!isCustom) refreshNonAdminReport();
-      });
-    }
-    if (applyBtn) applyBtn.addEventListener('click', refreshNonAdminReport);
-
-    // Initial load: Today
+    // ==================== INSTANT TOTALS (from cache) ====================
     const todayStr = getLocalDateString(new Date());
-    await updateNonAdminReport(todayStr, todayStr);
-    await updateNonAdminStatsCards(todayStr, todayStr);
-    hidePaymentRowsForNonAdmin();
+    if (preloadedReportCache && preloadedReportCache.from === todayStr) {
+      const totals = preloadedReportCache.totals;
+      document.getElementById('adminReportTotalSales').innerText = `RM ${totals.totalSales.toFixed(2)}`;
+      document.getElementById('adminReportCashTotal').innerText = `RM ${totals.cashTotal.toFixed(2)}`;
+      document.getElementById('adminReportCardTotal').innerText = `RM ${totals.cardTotal.toFixed(2)}`;
+      document.getElementById('adminReportQRTotal').innerText = `RM ${totals.otherTotal.toFixed(2)}`;
+      document.getElementById('adminReportAlipayTotal').innerText = `RM ${totals.alipayTotal.toFixed(2)}`;
+      document.getElementById('adminReportRefundTotal').innerText = `RM ${Math.abs(totals.refundTotal).toFixed(2)}`;
+      document.getElementById('adminReportRefundedBills').innerText = totals.refundedTransactionCount || 0;
+      document.getElementById('adminReportTransactionCount').innerText = totals.transactionCount || 0;
+      document.getElementById('adminReportTotalItems').innerText = totals.totalItems || 0;
+    }
 
-    // ========== 🔥 BRUTE‑FORCE POLLING 🔥 ==========
-    // Start a polling interval that force‑hides payment rows every 500ms while modal is open
-    if (window.paymentHideInterval) clearInterval(window.paymentHideInterval);
-    window.paymentHideInterval = setInterval(() => {
-      if (!currentEmployee || currentEmployee.isAdmin) return;
-      const modalEl = document.getElementById('adminReportModal');
-      if (modalEl && modalEl.style.display === 'flex') {
-        document.querySelectorAll('#adminReportModal .stat-item.breakdown').forEach(row => row.style.display = 'none');
-      } else if (window.paymentHideInterval) {
-        // Modal closed – stop polling
-        clearInterval(window.paymentHideInterval);
-        window.paymentHideInterval = null;
-      }
-    }, 500);
-  }
+    // ==================== INSTANT STORE CARDS (from cache) ====================
+    if (currentEmployee?.isAdmin) {
+      const todayUTC = new Date();
+      todayUTC.setUTCHours(0, 0, 0, 0);
+      const from = getUTCDateString(todayUTC);
+      const to = from;
 
-  // ========== 2. Instant totals from cache (if available) ==========
-  const todayStr = getLocalDateString(new Date());
-  if (preloadedReportCache && preloadedReportCache.from === todayStr) {
-    const totals = preloadedReportCache.totals;
-    document.getElementById('adminReportTotalSales').innerText = `RM ${totals.totalSales.toFixed(2)}`;
-    document.getElementById('adminReportCashTotal').innerText = `RM ${totals.cashTotal.toFixed(2)}`;
-    document.getElementById('adminReportCardTotal').innerText = `RM ${totals.cardTotal.toFixed(2)}`;
-    document.getElementById('adminReportQRTotal').innerText = `RM ${totals.otherTotal.toFixed(2)}`;
-    document.getElementById('adminReportAlipayTotal').innerText = `RM ${totals.alipayTotal.toFixed(2)}`;
-    document.getElementById('adminReportRefundTotal').innerText = `RM ${Math.abs(totals.refundTotal).toFixed(2)}`;
-    document.getElementById('adminReportRefundedBills').innerText = totals.refundedTransactionCount || 0;
-    document.getElementById('adminReportTransactionCount').innerText = totals.transactionCount || 0;
-    document.getElementById('adminReportTotalItems').innerText = totals.totalItems || 0;
-  }
-
-  // ========== 3. Instant store cards from cache (admin only) ==========
-  if (currentEmployee.isAdmin) {
-    const todayUTC = new Date();
-    todayUTC.setUTCHours(0, 0, 0, 0);
-    const from = getUTCDateString(todayUTC);
-    const to = from;
-    const stores = ['queens', 'sunshine', 'gurney_paragon'];
-
-    let anyMissing = false;
-    for (const storeName of stores) {
-      const cached = await getCachedStoreReport(storeName, from, to);
-      if (cached) {
-        updateStoreCard(storeName, cached.salesReport, cached.employeeData);
-      } else {
-        anyMissing = true;
-        const card = document.querySelector(`.store-summary-card[data-store="${storeName}"]`);
-        if (card) {
-          card.querySelector('.store-total').innerHTML = '<span class="report-loading-spinner" style="width:16px;height:16px;"></span> Loading...';
-          card.querySelector('.store-cash').innerHTML = '💵 Loading...';
-          card.querySelector('.store-card').innerHTML = '💳 Loading...';
-          card.querySelector('.store-qr').innerHTML = '📱 Loading...';
-          card.querySelector('.store-alipay').innerHTML = '💸 Loading...';
-          card.querySelector('.store-refund').innerHTML = '❌ Loading...';
-          card.querySelector('.store-refunded-bills').innerHTML = '📄 Loading...';
-          card.querySelector('.store-transactions').innerHTML = 'Loading...';
-          card.querySelector('.store-items-sold').innerHTML = 'Loading...';
-          card.querySelector('.employee-list').innerHTML = '<div class="report-loading-spinner" style="width:16px;height:16px;"></div>';
+      const stores = ['queens', 'sunshine', 'gurney_paragon'];
+      let anyMissing = false;
+      for (const storeName of stores) {
+        const cached = await getCachedStoreReport(storeName, from, to);
+        if (cached) {
+          updateStoreCard(storeName, cached.salesReport, cached.employeeData);
+        } else {
+          anyMissing = true;
+          // Show loading spinner in the card
+          const card = document.querySelector(`.store-summary-card[data-store="${storeName}"]`);
+          if (card) {
+            card.querySelector('.store-total').innerHTML = '<span class="report-loading-spinner" style="width:16px;height:16px;"></span> Loading...';
+            card.querySelector('.store-cash').innerHTML = '💵 Loading...';
+            card.querySelector('.store-card').innerHTML = '💳 Loading...';
+            card.querySelector('.store-qr').innerHTML = '📱 Loading...';
+            card.querySelector('.store-alipay').innerHTML = '💸 Loading...';
+            card.querySelector('.store-refund').innerHTML = '❌ Loading...';
+            card.querySelector('.store-refunded-bills').innerHTML = '📄 Loading...';
+            card.querySelector('.store-transactions').innerHTML = 'Loading...';
+            card.querySelector('.store-items-sold').innerHTML = 'Loading...';
+            card.querySelector('.employee-list').innerHTML = '<div class="report-loading-spinner" style="width:16px;height:16px;"></div>';
+          }
         }
       }
+      // If all cards were cached, hide the main loading message (if any)
+      if (!anyMissing) {
+        const loadingMsgElem = document.getElementById('adminReportLoadingMsg');
+        if (loadingMsgElem) loadingMsgElem.style.display = 'none';
+      }
     }
-    if (!anyMissing) {
-      const loadingMsgElem = document.getElementById('adminReportLoadingMsg');
-      if (loadingMsgElem) loadingMsgElem.style.display = 'none';
+
+    // ==================== SHOW LOADING SPINNER (if no cache) ====================
+    let loadingMsg = document.getElementById('adminReportLoadingMsg');
+    if (!loadingMsg) {
+      loadingMsg = document.createElement('div');
+      loadingMsg.id = 'adminReportLoadingMsg';
+      loadingMsg.style.textAlign = 'center';
+      loadingMsg.style.padding = '20px';
+      loadingMsg.style.background = '#f8fafc';
+      loadingMsg.style.borderRadius = '12px';
+      loadingMsg.style.margin = '10px 0';
+      loadingMsg.style.display = 'flex';
+      loadingMsg.style.alignItems = 'center';
+      loadingMsg.style.justifyContent = 'center';
+      loadingMsg.style.gap = '12px';
+      loadingMsg.innerHTML = `
+        <div class="report-loading-spinner"></div>
+        <span style="font-size: 1rem; color: #334155;">Loading report data...</span>
+      `;
+      const reportStats = document.querySelector('#adminReportModal .report-stats');
+      if (reportStats) reportStats.insertAdjacentElement('beforebegin', loadingMsg);
     }
-  }
 
-  // ========== 4. Loading spinner (if no cache) ==========
-  let loadingMsg = document.getElementById('adminReportLoadingMsg');
-  if (!loadingMsg) {
-    loadingMsg = document.createElement('div');
-    loadingMsg.id = 'adminReportLoadingMsg';
-    loadingMsg.style.textAlign = 'center';
-    loadingMsg.style.padding = '20px';
-    loadingMsg.style.background = '#f8fafc';
-    loadingMsg.style.borderRadius = '12px';
-    loadingMsg.style.margin = '10px 0';
-    loadingMsg.style.display = 'flex';
-    loadingMsg.style.alignItems = 'center';
-    loadingMsg.style.justifyContent = 'center';
-    loadingMsg.style.gap = '12px';
-    loadingMsg.innerHTML = `
-      <div class="report-loading-spinner"></div>
-      <span style="font-size: 1rem; color: #334155;">Loading report data...</span>
-    `;
-    const reportStats = document.querySelector('#adminReportModal .report-stats');
-    if (reportStats) reportStats.insertAdjacentElement('beforebegin', loadingMsg);
-  }
+    // Hide main loading message if we already displayed cached data
+    if (preloadedReportCache && preloadedReportCache.from === todayStr) {
+      loadingMsg.style.display = 'none';
+    } else {
+      loadingMsg.style.display = 'flex';
+    }
 
-  if (preloadedReportCache && preloadedReportCache.from === todayStr) {
-    loadingMsg.style.display = 'none';
-  } else {
-    loadingMsg.style.display = 'flex';
-  }
-
-  // ========== 5. Refresh admin report in background ==========
-  if (currentEmployee.isAdmin) {
+    // ==================== REFRESH IN BACKGROUND ====================
     await updateAdminReport(false);
-  } else {
-    // For non‑admin, just hide the loading spinner after a short delay
-    setTimeout(() => {
-      const msg = document.getElementById('adminReportLoadingMsg');
-      if (msg) msg.style.display = 'none';
-    }, 500);
-  }
 
-  // ========== 6. Employee dropdowns (admin only) ==========
-  if (currentEmployee.isAdmin) {
-    const employees = await fetchEmployees();
-    const adminReportEmpSelect = document.getElementById('adminReportEmployeeSelect');
-    const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
-    if (adminReportEmpSelect && receiptsEmpSelect) {
-      adminReportEmpSelect.innerHTML = '<option value="all">All Employees</option>';
-      receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
-      employees.forEach(emp => {
-        const opt1 = document.createElement('option');
-        opt1.value = emp.id;
-        opt1.textContent = `${emp.name} (ID: ${emp.id})`;
-        const opt2 = document.createElement('option');
-        opt2.value = emp.id;
-        opt2.textContent = `${emp.name} (ID: ${emp.id})`;
-        adminReportEmpSelect.appendChild(opt1);
-        receiptsEmpSelect.appendChild(opt2);
-      });
+    // ==================== EMPLOYEE DROPDOWNS (admin only) ====================
+    if (currentEmployee?.isAdmin) {
+      const employees = await fetchEmployees();
+      const adminReportEmpSelect = document.getElementById('adminReportEmployeeSelect');
+      const receiptsEmpSelect = document.getElementById('receiptsEmployeeSelect');
+      if (adminReportEmpSelect && receiptsEmpSelect) {
+        adminReportEmpSelect.innerHTML = '<option value="all">All Employees</option>';
+        receiptsEmpSelect.innerHTML = '<option value="all">All Employees</option>';
+        employees.forEach(emp => {
+          const opt1 = document.createElement('option');
+          opt1.value = emp.id;
+          opt1.textContent = `${emp.name} (ID: ${emp.id})`;
+          const opt2 = document.createElement('option');
+          opt2.value = emp.id;
+          opt2.textContent = `${emp.name} (ID: ${emp.id})`;
+          adminReportEmpSelect.appendChild(opt1);
+          receiptsEmpSelect.appendChild(opt2);
+        });
+      }
+      const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
+      const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
+      if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'flex';
+      if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'flex';
+    } else {
+      const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
+      const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
+      if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'none';
+      if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'none';
+      const receiptsStore = document.getElementById('receiptsStoreSelect');
+      if (receiptsStore) receiptsStore.value = currentStore;
     }
-    const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
-    const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
-    if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'flex';
-    if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'flex';
-  } else {
-    const receiptsEmpFilter = document.getElementById('receiptsEmployeeFilter');
-    const receiptsStoreFilter = document.getElementById('receiptsStoreFilterGroup');
-    if (receiptsEmpFilter) receiptsEmpFilter.style.display = 'none';
-    if (receiptsStoreFilter) receiptsStoreFilter.style.display = 'none';
-    const receiptsStore = document.getElementById('receiptsStoreSelect');
-    if (receiptsStore) receiptsStore.value = currentStore;
+
+    // ==================== POPULATE STORE SELECTS ====================
+    populateStoreSelects();
+
+    // Ensure any leftover loading message is hidden
+    const finalLoadingMsg = document.getElementById('adminReportLoadingMsg');
+    if (finalLoadingMsg) finalLoadingMsg.style.display = 'none';
   }
-
-  // ========== 7. Populate store selects (for receipts modal) ==========
-  populateStoreSelects();
-
-  // Final: ensure any leftover loading message is hidden
-  const finalLoadingMsg = document.getElementById('adminReportLoadingMsg');
-  if (finalLoadingMsg) finalLoadingMsg.style.display = 'none';
 }
   if (sideReportBtn) sideReportBtn.addEventListener('click', wrapMenuAction(openReportsModal));
   if (sideSettlementBtn) sideSettlementBtn.addEventListener('click', wrapMenuAction(() => { openSettlementModal(); }));
@@ -7347,21 +6964,8 @@ async function openReportsModal() {
     }
   }));
 
-  document.getElementById('closeAdminReportBtn')?.addEventListener('click', () => {
-  if (window.paymentHideInterval) {
-    clearInterval(window.paymentHideInterval);
-    window.paymentHideInterval = null;
-  }
-  document.getElementById('adminReportModal').style.display = 'none';
-});
-
-document.getElementById('closeAdminReportModal')?.addEventListener('click', () => {
-  if (window.paymentHideInterval) {
-    clearInterval(window.paymentHideInterval);
-    window.paymentHideInterval = null;
-  }
-  document.getElementById('adminReportModal').style.display = 'none';
-});
+  document.getElementById('closeAdminReportBtn')?.addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
+  document.getElementById('closeAdminReportModal')?.addEventListener('click', () => document.getElementById('adminReportModal').style.display = 'none');
   document.getElementById('adminReportStoreSelect')?.addEventListener('change', updateAdminReport);
   document.getElementById('adminReportEmployeeSelect')?.addEventListener('change', updateAdminReport);
   document.getElementById('adminReportDateRangeSelect')?.addEventListener('change', (e) => {
@@ -7573,37 +7177,6 @@ const sysRefund = parseFloat(document.getElementById('sysRefund').innerText.repl
   // ✅ Load collection history
   await loadCollectionHistory();
 }
-async function updateAdminReportForDate(dateStr = null) {
-  if (!currentEmployee) return;
-
-  let from, to;
-  if (dateStr) {
-    from = to = dateStr;
-  } else {
-    // Default to today
-    const today = new Date();
-    from = to = getLocalDateString(today);
-  }
-
-  const store = currentStore;          // non‑admin sees only their store
-  const employeeId = currentEmployee.id;
-
-  // Fetch the report (silent, no loading overlay)
-  const totals = await fetchSalesReport(store, employeeId, from, to, false, true);
-  if (!totals) return;
-
-  // Update the totals in .report-stats (these elements exist in the modal)
-  document.getElementById('adminReportTotalSales').innerText = `RM ${totals.totalSales.toFixed(2)}`;
-  document.getElementById('adminReportRefundTotal').innerText = `RM ${Math.abs(totals.refundTotal || 0).toFixed(2)}`;
-  document.getElementById('adminReportRefundedBills').innerText = totals.refundedTransactionCount || 0;
-  document.getElementById('adminReportTransactionCount').innerText = totals.transactionCount || 0;
-  document.getElementById('adminReportTotalItems').innerText = totals.totalItems || 0;
-
-  // Fetch and render product details (if visible)
-  const productData = await fetchProductSalesReport(store, employeeId, from, to);
-  lastProductData = productData;
-  if (productDetailsVisible) renderProductDetails(lastProductData);
-}
 function renderProductDetails(productsData) {
   const tbody = document.getElementById('productDetailsBody');
   if (!tbody) return;
@@ -7783,10 +7356,6 @@ function updateStoreCashSummary() {
     currentEmployee = null;
     disableBarcodeScanner();
     if (syncInterval) clearInterval(syncInterval);
-  if (window.paymentHideInterval) {
-    clearInterval(window.paymentHideInterval);
-    window.paymentHideInterval = null;
-  }
     document.getElementById('mainContent').style.display = 'none';
     document.getElementById('loginModal').style.display = 'flex';
     document.getElementById('pinInput').value = '';
@@ -7971,97 +7540,36 @@ function updateReceipts() {
 
   fetchReceipts(store, employeeId, from, to, search);
 }
-const toggleBtn = document.getElementById('toggleProductDetailsBtn');
-const productDetailsContainer = document.getElementById('productDetailsContainer');
-if (toggleBtn && productDetailsContainer) {
-  toggleBtn.addEventListener('click', async () => {
-    productDetailsVisible = !productDetailsVisible;
-    if (productDetailsVisible) {
-      productDetailsContainer.style.display = 'block';
-      toggleBtn.innerText = '📦 Hide Product Details';
-      if (currentEmployee && !currentEmployee.isAdmin) {
-  setTimeout(() => {
-    document.querySelectorAll('#adminReportModal .stat-item.breakdown').forEach(row => row.style.display = 'none');
-  }, 100);
-}
-
-        const rangeSelect = document.getElementById('nonAdminDateRangeSelect');
-        const customDiv = document.getElementById('nonAdminCustomDateRange');
-        const fromDate = document.getElementById('nonAdminFromDate');
-        const toDate = document.getElementById('nonAdminToDate');
-        let from, to;
-        
-        const range = rangeSelect.value;
-        const now = new Date();
-        
-        if (range === 'today') {
-          from = to = getLocalDateString(now);
-        } else if (range === 'week') {
-          const start = new Date(now);
-          const dayOfWeek = now.getDay();
-          const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
-          start.setDate(now.getDate() - diffToMonday);
-          from = getLocalDateString(start);
-          const end = new Date(start);
-          end.setDate(start.getDate() + 6);
-          to = getLocalDateString(end);
-        } else if (range === 'month') {
-          const start = new Date(now.getFullYear(), now.getMonth(), 1);
-          from = getLocalDateString(start);
-          const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-          to = getLocalDateString(end);
-        } else if (range === 'year') {
-          const start = new Date(now.getFullYear(), 0, 1);
-          from = getLocalDateString(start);
-          const end = new Date(now.getFullYear(), 11, 31);
-          to = getLocalDateString(end);
-        } else if (range === 'custom') {
-          from = fromDate.value;
-          to = toDate.value;
-          if (!from || !to) {
-            // fallback to today
-            from = to = getLocalDateString(now);
-          }
-        }
-        
-        if (from && to) {
-          const productData = await fetchProductSalesReport(currentStore, currentEmployee.id, from, to);
-          renderProductDetails(productData);
+  const toggleBtn = document.getElementById('toggleProductDetailsBtn');
+  const productDetailsContainer = document.getElementById('productDetailsContainer');
+  if (toggleBtn && productDetailsContainer) {
+    toggleBtn.addEventListener('click', async () => {
+      productDetailsVisible = !productDetailsVisible;
+      if (productDetailsVisible) {
+        productDetailsContainer.style.display = 'block';
+        toggleBtn.innerText = '📦 Hide Product Details';
+        if (!lastProductData || lastProductData.length === 0) {
+          await updateAdminReport();
+        } else {
+          renderProductDetails(lastProductData);
         }
       } else {
-        // Admin: refresh report (already includes product details if visible)
-        await updateAdminReport();
+        productDetailsContainer.style.display = 'none';
+        toggleBtn.innerText = '📦 Show Product Details';
       }
-    } else {
-      productDetailsContainer.style.display = 'none';
-      toggleBtn.innerText = '📦 Show Product Details';
-    }
-  });
-}
+    });
+  }
 
   const closeClaimPrizeModal = document.getElementById('closeClaimPrizeModal');
-if (closeClaimPrizeModal) {
-  closeClaimPrizeModal.addEventListener('click', () => {
-    document.getElementById('claimPrizeModal').style.display = 'none';
-    resetClaimBarcodeBuffer();
-  });
-}
-const cancelClaimBtn = document.getElementById('cancelClaimBtn');
-if (cancelClaimBtn) {
-  cancelClaimBtn.addEventListener('click', () => {
-    document.getElementById('claimPrizeModal').style.display = 'none';
-    resetClaimBarcodeBuffer();
-  });
-}
-const cancelClaimStep2Btn = document.getElementById('cancelClaimStep2Btn');
-if (cancelClaimStep2Btn) {
-  cancelClaimStep2Btn.addEventListener('click', () => {
-    document.getElementById('claimPrizeModal').style.display = 'none';
-    resetClaimBarcodeBuffer();
-  });
-}
-document.getElementById('applyPrizeBtn').addEventListener('click', applyPrizeToCart);
-document.getElementById('checkReceiptBtn').addEventListener('click', checkReceiptForClaim);
+  if (closeClaimPrizeModal) closeClaimPrizeModal.addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
+  const cancelClaimBtn = document.getElementById('cancelClaimBtn');
+  if (cancelClaimBtn) cancelClaimBtn.addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
+  const cancelClaimStep2Btn = document.getElementById('cancelClaimStep2Btn');
+  if (cancelClaimStep2Btn) cancelClaimStep2Btn.addEventListener('click', () => document.getElementById('claimPrizeModal').style.display = 'none');
+  const checkReceiptBtn = document.getElementById('checkReceiptBtn');
+  if (checkReceiptBtn) checkReceiptBtn.addEventListener('click', checkReceiptForClaim);
+  const applyPrizeBtn = document.getElementById('applyPrizeBtn');
+  if (applyPrizeBtn) applyPrizeBtn.addEventListener('click', applyPrizeToCart);
 
   const closeSpecialPromoModal = document.getElementById('closeSpecialPromoModal');
   if (closeSpecialPromoModal) closeSpecialPromoModal.addEventListener('click', () => document.getElementById('specialPromoModal').style.display = 'none');
@@ -8188,7 +7696,15 @@ document.getElementById('checkReceiptBtn').addEventListener('click', checkReceip
     categorySelect.value = 'all';
     renderProductGrid();
   });
-
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js')
+        .then(reg => console.log('SW registered:', reg))
+        .catch(err => console.error('SW registration failed:', err));
+    });
+  }
 </script>
 </body>
 </html>
