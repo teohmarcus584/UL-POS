@@ -6974,6 +6974,7 @@ if (applyHistoryBtn) {
 
 async function openReportsModal() {
   closeSideMenu();
+  document.querySelectorAll('#adminReportModal .stat-item.breakdown').forEach(row => row.style.display = 'none');
   if (!currentEmployee) return;
   const modal = document.getElementById('adminReportModal');
   if (!modal) return;
