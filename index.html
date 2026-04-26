@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2429,26 +2430,22 @@ function setCachedStoreReport(store, from, to, data) {
     };
   }
 })();
-async function updateNonAdminReport(from, to) {
+async function updateNonAdminReport(from, to, employeeId = null) {
   if (!currentEmployee || currentEmployee.isAdmin) return;
-
   const store = currentStore;
-  const employeeId = currentEmployee.id;
-
-  // Fetch report (silent)
-  const totals = await fetchSalesReport(store, employeeId, from, to, false, true);
+  // Use provided employeeId, otherwise fallback to currentEmployee (cashier)
+  const targetEmployeeId = employeeId !== null ? employeeId : currentEmployee.id;
+  const totals = await fetchSalesReport(store, targetEmployeeId, from, to, false, true);
   if (!totals) return;
 
-  // Update the five visible stats
   document.getElementById('adminReportTotalSales').innerText = `RM ${totals.totalSales.toFixed(2)}`;
   document.getElementById('adminReportRefundTotal').innerText = `RM ${Math.abs(totals.refundTotal || 0).toFixed(2)}`;
   document.getElementById('adminReportRefundedBills').innerText = totals.refundedTransactionCount || 0;
   document.getElementById('adminReportTransactionCount').innerText = totals.transactionCount || 0;
   document.getElementById('adminReportTotalItems').innerText = totals.totalItems || 0;
 
-  // Update product details if visible
   if (productDetailsVisible) {
-    const productData = await fetchProductSalesReport(store, employeeId, from, to);
+    const productData = await fetchProductSalesReport(store, targetEmployeeId, from, to);
     renderProductDetails(productData);
   }
 }
@@ -4246,19 +4243,13 @@ async function checkReceiptForClaim() {
     hideLoading();
   }
 }
-async function updateNonAdminStatsCards(from, to) {
-  // Guard: ensure currentEmployee exists and is not admin
+async function updateNonAdminStatsCards(from, to, employeeId = null) {
   if (!currentEmployee || currentEmployee.isAdmin) return;
-  
-  // Additional safety: ensure currentStore is defined
   const store = currentStore;
-  const employeeId = currentEmployee.id;
-  if (!store || !employeeId) return;
+  const targetEmployeeId = employeeId !== null ? employeeId : currentEmployee.id;
 
-  // Fetch store total (all employees in this store)
   const storeReport = await fetchSalesReport(store, 'all', from, to, false, true);
-  // Fetch employee total (only this employee)
-   const empReport = await fetchSalesReport('all', employeeId, from, to, false, true);
+  const empReport = await fetchSalesReport('all', targetEmployeeId, from, to, false, true);
 
   if (storeReport) {
     const storeTotalElem = document.getElementById('nonAdminStoreTotal');
@@ -4266,11 +4257,12 @@ async function updateNonAdminStatsCards(from, to) {
     if (storeTotalElem) storeTotalElem.innerText = `RM ${storeReport.totalSales.toFixed(2)}`;
     if (storeNameElem) storeNameElem.innerText = store.charAt(0).toUpperCase() + store.slice(1).replace('_', ' ');
   }
-  if (empReport && currentEmployee) {  // ✅ Re-check currentEmployee
+  if (empReport && currentEmployee) {
     const empTotalElem = document.getElementById('nonAdminEmployeeTotal');
     const empNameElem = document.getElementById('nonAdminEmployeeName');
     if (empTotalElem) empTotalElem.innerText = `RM ${empReport.totalSales.toFixed(2)}`;
-    if (empNameElem) empNameElem.innerText = currentEmployee.name;
+    if (empNameElem) empNameElem.innerText = 
+      employeeId ? (employeeNameMap[employeeId] || 'Selected Sales Person') : currentEmployee.name;
   }
 }
  function applyPrizeToCart() {
