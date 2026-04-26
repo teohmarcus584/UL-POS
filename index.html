@@ -1628,7 +1628,10 @@
   transform: translateY(-1px);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
-
+/* Force hide payment breakdown for non‑admin */
+body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
+    display: none !important;
+}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -2602,6 +2605,7 @@ function applyRoleBasedUI() {
 
   // --- Payment breakdown rows (Cash, Card, QR, Alipay) ---
   const paymentRows = document.querySelectorAll('#adminReportModal .stat-item.breakdown');
+  paymentRows.forEach(row => row.style.display = 'none');
   if (currentEmployee.isAdmin) {
     paymentRows.forEach(row => row.style.display = 'flex');
   } else {
