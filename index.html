@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1633,6 +1632,12 @@
 body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
     display: none !important;
 }
+/* Out of stock highlight for selling mode */
+.product-card.out-of-stock-card {
+  background: #fee2e2;
+  border-left: 4px solid #ef4444;
+  box-shadow: 0 1px 3px rgba(239,68,68,0.2);
+}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -1681,6 +1686,7 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
       </div>
     </div>
     <div class="pos-header-right">
+	 <button id="addProductHeaderBtn" class="cart-header-btn" style="display: none;">➕ Add Product</button>
       <span class="cashier-info" id="employeeNameHeader"></span>
       <span id="barcodeStatus" class="cashier-info" style="background:#e8f5e9; color:#2c7a4b;">📷 Barcode ready</span>
       <button id="logoutHeaderBtn" class="logout-header-btn">🚪 Logout</button>
@@ -1815,11 +1821,12 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
 
 <div id="luckyDrawModal" class="modal-overlay">
   <div class="modal-container" style="max-width: 400px;">
-    <span class="close-modal" id="closeLuckyDrawModal">×</span>
     <div class="modal-title">🎲 Lucky Draw</div>
     <p>Transaction ID: <strong id="luckyTxId"></strong></p>
     <p>Click below to enter the Lucky Draw with this receipt number.</p>
-    <div class="modal-buttons"><button id="openLuckyDrawBtn" class="modal-btn modal-btn-primary">🎁 Go to Lucky Draw</button><button id="closeLuckyDrawBtn" class="modal-btn modal-btn-secondary">Close</button></div>
+    <div class="modal-buttons">
+      <button id="openLuckyDrawBtn" class="modal-btn modal-btn-primary">🎁 Go to Lucky Draw</button>
+    </div>
   </div>
 </div>
 
@@ -1995,7 +2002,24 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
     <div class="modal-buttons"><button id="closeAdminReportBtn" class="modal-btn modal-btn-secondary">Close</button></div>
   </div>
 </div>
-
+<!-- Modal to select a past settlement for reprinting -->
+<div id="reprintSettlementModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 500px;">
+    <span class="close-modal" id="closeReprintModal">×</span>
+    <div class="modal-title">📋 Select Settlement to Reprint</div>
+    <div class="filter-group">
+      <label>Settlement Date</label>
+      <select id="settlementDateSelect" class="modal-input">
+        <option value="">Loading settlements...</option>
+      </select>
+    </div>
+    <div id="reprintSettlementError" style="color:#ef4444; margin:12px 0; display:none;"></div>
+    <div class="modal-buttons">
+      <button id="confirmReprintSettlementBtn" class="modal-btn modal-btn-primary">🖨️ Reprint</button>
+      <button id="cancelReprintSettlementBtn" class="modal-btn modal-btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>
 <div id="settlementModal" class="modal-overlay">
   <div class="modal-container" style="max-width: 500px;">
     <span class="close-modal" id="closeSettlementModal">×</span>
@@ -2008,7 +2032,7 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
     <div class="filter-group"><label>QR Settlement (Actual)</label><input type="number" id="actualQR" class="modal-input" placeholder="Enter actual QR settlement" step="0.01"></div>
     <div class="filter-group"><label>Alipay Settlement (Actual)</label><input type="number" id="actualAlipay" class="modal-input" placeholder="Enter actual Alipay settlement" step="0.01"></div>
     <div id="settlementError" style="color:#ef4444; margin: 12px 0; display: none;"></div>
-    <div class="modal-buttons"><button id="checkSettlementBtn" class="modal-btn modal-btn-primary">Check</button><button id="recordSettlementBtn" class="modal-btn modal-btn-primary" style="display: none;">Record Settlement</button><button id="closeSettlementModalBtn" class="modal-btn modal-btn-secondary">Cancel</button></div>
+    <div class="modal-buttons"><button id="checkSettlementBtn" class="modal-btn modal-btn-primary">Check</button><button id="recordSettlementBtn" class="modal-btn modal-btn-primary" style="display: none;">Record Settlement</button> <button id="reprintSettlementBtn" class="modal-btn modal-btn-secondary">Settlement History</button><button id="closeSettlementModalBtn" class="modal-btn modal-btn-secondary">Cancel</button></div>
   </div>
 </div>
 
@@ -2109,13 +2133,41 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
     <div id="telegramStatus" style="margin-top: 12px; font-size: 0.9rem; color: #2c7a4b;"></div>
   </div>
 </div>
-
+<!-- Add Product Modal (for Inventory Mode) -->
+<div id="addProductModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 500px;">
+    <span class="close-modal" id="closeAddProductModal">×</span>
+    <div class="modal-title">➕ Add New Product</div>
+    <div class="filter-group">
+      <label>Product Name</label>
+      <input type="text" id="newProductName" class="modal-input" placeholder="e.g., Luxury Perfume">
+    </div>
+    <div class="filter-group">
+      <label>Selling Price (RM)</label>
+      <input type="number" id="newProductPrice" class="modal-input" step="0.01" min="0" placeholder="0.00">
+    </div>
+    <div class="filter-group">
+  <label>Category</label>
+  <select id="newProductCategorySelect" class="modal-input">
+    <option value="">-- Select or create category --</option>
+  </select>
+  <div id="newCategoryInputGroup" style="display: none; margin-top: 8px;">
+    <input type="text" id="newProductCategoryText" class="modal-input" placeholder="Enter new category name">
+  </div>
+</div>
+    <div id="addProductError" style="color:#ef4444; margin-top: 12px; display: none;"></div>
+    <div class="modal-buttons">
+      <button id="confirmAddProductBtn" class="modal-btn modal-btn-primary">➕ Add Product</button>
+      <button id="cancelAddProductBtn" class="modal-btn modal-btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
 
 <script>
 
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEpeOAl41EjAxVnyEab3tJKOJFw4H9kYb5VfhiuFrJgmDEeLX54ILXOp0zh0ER8uJOeA/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxqcCd-Ih5fjKsKfJLhrvQx4ZNBO9mfxuVFlkpwelZysoJG1EWfQ7XofFw40g2yVAqnGA/exec"; // REPLACE WITH YOUR URL
 
 // Haversine distance in km
 function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
@@ -2498,7 +2550,36 @@ function resetClaimBarcodeBuffer() {
     claimBarcodeTimer = null;
   }
 }
-
+function toggleNewCategoryInput() {
+  const select = document.getElementById('newProductCategorySelect');
+  const inputGroup = document.getElementById('newCategoryInputGroup');
+  if (select.value === "__NEW__") {
+    inputGroup.style.display = 'block';
+  } else {
+    inputGroup.style.display = 'none';
+    document.getElementById('newProductCategoryText').value = '';
+  }
+}
+function populateCategorySelect() {
+  const select = document.getElementById('newProductCategorySelect');
+  if (!select) return;
+  
+  // Get unique categories from products
+  const categories = [...new Set(products.map(p => p.category))].sort();
+  
+  select.innerHTML = '<option value="">-- Select or create category --</option>';
+  categories.forEach(cat => {
+    const option = document.createElement('option');
+    option.value = cat;
+    option.textContent = cat;
+    select.appendChild(option);
+  });
+  // Add "New Category" option at the end
+  const newOption = document.createElement('option');
+  newOption.value = "__NEW__";
+  newOption.textContent = "➕ New Category";
+  select.appendChild(newOption);
+}
 function processClaimBarcode() {
   const code = claimBarcodeBuffer.trim();
   if (code === '') return;
@@ -2682,6 +2763,7 @@ function applyRoleBasedUI() {
     }, 50);
   }
 }
+
 async function setCachedReport(cacheKey, report) {
   try {
     const database = await openIndexedDB();
@@ -2758,6 +2840,9 @@ const categoryImages = {
   "HAND SANITIZER GEL 500ML": "https://i.imgur.com/geU2ZqO.jpeg",
   "HUMDIFIER MACHINE": "https://i.imgur.com/MmVhFbE.jpeg",
   "ROOM SPRAY 100ml": "https://i.imgur.com/7dVMBOZ.jpeg",
+  "Shipping Fees": "https://i.imgur.com/6QOc0Gz.jpeg",
+"SHIPPING FEES": "https://i.imgur.com/6QOc0Gz.jpeg",
+"shipping fees": "https://i.imgur.com/6QOc0Gz.jpeg",
   // Add all your categories here
   "default": "https://i.imgur.com/n3KS0n1.jpeg"  // fallback image
 };
@@ -2842,7 +2927,109 @@ function resetLoginBarcodeBuffer() {
     loginBarcodeTimer = null;
   }
 }
+// Fetch all settlement records for a specific store
+async function fetchSettlementsForStore(store) {
+  try {
+    const url = `${APPS_SCRIPT_URL}?action=getSettlementsForStore&store=${store}&_=${Date.now()}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    if (result.success && result.settlements) {
+      return result.settlements; // array of { date, petty_cash_float, cash_system, card_system, qr_system, alipay_system, cash_actual, card_actual, qr_actual, alipay_actual, employee_name, ... }
+    } else {
+      console.error("Failed to fetch settlements:", result.error);
+      return [];
+    }
+  } catch (err) {
+    console.error("fetchSettlementsForStore error:", err);
+    return [];
+  }
+}
 
+// Populate the settlement select dropdown and show the modal
+async function showReprintSettlementModal() {
+  const modal = document.getElementById('reprintSettlementModal');
+  const select = document.getElementById('settlementDateSelect');
+  const errorDiv = document.getElementById('reprintSettlementError');
+  
+  // Determine store (use currentStore, or for non‑admin the initial store)
+  let store = currentStore;
+  if (!currentEmployee?.isAdmin) {
+    store = initialStore;
+  }
+  
+  select.innerHTML = '<option value="">Loading settlements...</option>';
+  errorDiv.style.display = 'none';
+  modal.style.display = 'flex';
+  
+  const settlements = await fetchSettlementsForStore(store);
+  if (settlements.length === 0) {
+    select.innerHTML = '<option value="">No previous settlements found</option>';
+    return;
+  }
+  
+  // Sort by date descending (most recent first)
+  settlements.sort((a, b) => new Date(b.date) - new Date(a.date));
+  
+  let options = '';
+  settlements.forEach(s => {
+    const displayDate = new Date(s.date).toLocaleDateString();
+    const employee = s.employee_name ? ` (by ${s.employee_name})` : '';
+    options += `<option value="${s.date}" data-settlement='${JSON.stringify(s)}'>${displayDate}${employee}</option>`;
+  });
+  select.innerHTML = options;
+}
+
+// Reprint a selected settlement
+async function reprintSelectedSettlement() {
+  const select = document.getElementById('settlementDateSelect');
+  const selectedOption = select.options[select.selectedIndex];
+  if (!selectedOption || !selectedOption.value) {
+    const errorDiv = document.getElementById('reprintSettlementError');
+    errorDiv.innerText = 'Please select a settlement date.';
+    errorDiv.style.display = 'block';
+    return;
+  }
+  
+  const settlementData = JSON.parse(selectedOption.dataset.settlement);
+  const store = currentStore || initialStore;
+  const date = settlementData.date;
+  
+  const totals = {
+    cashSystem: settlementData.cash_system || 0,
+    cardSystem: settlementData.card_system || 0,
+    qrSystem: settlementData.qr_system || 0,
+    alipaySystem: settlementData.alipay_system || 0,
+    refundSystem: settlementData.refund_system || 0,
+    cashActual: settlementData.cash_actual,
+    cardActual: settlementData.card_actual,
+    qrActual: settlementData.qr_actual,
+    alipayActual: settlementData.alipay_actual,
+    pettyCash: settlementData.petty_cash_float
+  };
+  
+  if (!totals.refundSystem) totals.refundSystem = 0;
+  
+  // Check printer connection – if not connected, try to connect automatically
+  if (!isPrinterConnected) {
+    showLoading('Printer not connected. Opening Bluetooth selection...');
+    try {
+      await connectPrinter();
+      hideLoading();
+    } catch (err) {
+      hideLoading();
+      await showAlertModal('Connection Failed', 'Could not connect to printer. Please try again.');
+      return;
+    }
+  }
+  
+  // Now print the settlement report
+  const printed = await printSettlementReport(store, date, totals);
+  if (printed) {
+    document.getElementById('reprintSettlementModal').style.display = 'none';
+  } else {
+    await showAlertModal('Error', 'Failed to print settlement. Check printer connection.');
+  }
+}
 function processLoginBarcode() {
   const code = loginBarcodeBuffer.trim();
   if (code === '') return;
@@ -3441,34 +3628,121 @@ async function saveTelegramSettings() {
   }
 
   // ==================== INVENTORY MODE TOGGLE ====================
- function toggleInventoryMode() {
+function toggleInventoryMode() {
   inventoryMode = !inventoryMode;
   const lowStockBtn = document.getElementById('lowStockToggleBtn');
+  const addProductBtn = document.getElementById('addProductHeaderBtn');
+
   if (inventoryMode) {
     cartNormalContent.style.display = 'none';
     stockHistoryContainerDiv.style.display = 'flex';
     cartTitleElement.innerText = '📦 Inventory Mode';
-    if (updateStockTimeout) clearTimeout(updateStockTimeout);
-    loadStockHistoryFromSheet();
-    // Show low stock button
+    if (addProductBtn) addProductBtn.style.display = 'inline-flex';
     if (lowStockBtn) lowStockBtn.style.display = 'inline-flex';
+    loadStockHistoryFromSheet();
   } else {
     cartNormalContent.style.display = 'block';
     stockHistoryContainerDiv.style.display = 'none';
     cartTitleElement.innerText = '🧾 Current Sale';
-    // Hide low stock button
+    if (addProductBtn) addProductBtn.style.display = 'none';
     if (lowStockBtn) lowStockBtn.style.display = 'none';
-    // Optionally reset the low stock filter when leaving inventory mode
     if (lowStockFilterActive) {
       lowStockFilterActive = false;
       if (lowStockBtn) lowStockBtn.classList.remove('active');
       renderProductGrid();
     }
   }
-  // Refresh category highlighting based on new inventory mode
   refreshCategoryHighlighting();
   renderProductGrid();
   if (typeof updateHandleIcon === 'function') updateHandleIcon();
+}
+function showAddProductModal() {
+  document.getElementById('newProductName').value = '';
+  document.getElementById('newProductPrice').value = '';
+  document.getElementById('newProductCategoryText').value = '';
+  document.getElementById('addProductError').style.display = 'none';
+  
+  // Populate category dropdown
+  populateCategorySelect();
+  
+  // Ensure the new-category input is hidden initially
+  document.getElementById('newCategoryInputGroup').style.display = 'none';
+  document.getElementById('newProductCategorySelect').value = '';
+  
+  document.getElementById('addProductModal').style.display = 'flex';
+}
+
+// Close Add Product modal
+function closeAddProductModal() {
+  document.getElementById('addProductModal').style.display = 'none';
+}
+
+// Add new product to Google Sheet
+async function addNewProduct() {
+  const name = document.getElementById('newProductName').value.trim();
+  const price = parseFloat(document.getElementById('newProductPrice').value);
+  const select = document.getElementById('newProductCategorySelect');
+  let category = select.value;
+  const errorDiv = document.getElementById('addProductError');
+  
+  // If "New Category" is selected, use the text input value
+  if (category === "__NEW__") {
+    const newCat = document.getElementById('newProductCategoryText').value.trim();
+    if (!newCat) {
+      errorDiv.innerText = 'Please enter a new category name.';
+      errorDiv.style.display = 'block';
+      return;
+    }
+    category = newCat;
+  } else if (!category) {
+    errorDiv.innerText = 'Please select or create a category.';
+    errorDiv.style.display = 'block';
+    return;
+  }
+  
+  // Validate name, price (same as before)
+  if (!name) {
+    errorDiv.innerText = 'Product name is required.';
+    errorDiv.style.display = 'block';
+    return;
+  }
+  if (isNaN(price) || price <= 0) {
+    errorDiv.innerText = 'Please enter a valid selling price (greater than 0).';
+    errorDiv.style.display = 'block';
+    return;
+  }
+  
+  // Rest of the function unchanged...
+  showLoading('Adding product...');
+  try {
+    const formData = new URLSearchParams();
+    formData.append('action', 'addProduct');
+    formData.append('name', name);
+    formData.append('price', price);
+    formData.append('category', category);
+    const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
+    const result = await response.json();
+    if (result.success) {
+	closeAddProductModal();
+      await showAlertModal('Success', `Product "${name}" added successfully.`);
+      
+      await fetchProductsFromSheet(true);
+      if (inventoryMode) {
+        renderProductGrid();
+        refreshCategoryHighlighting();
+      } else {
+        renderProductGrid();
+      }
+    } else {
+      throw new Error(result.error || 'Unknown error');
+    }
+  } catch (err) {
+    console.error(err);
+    errorDiv.innerText = 'Failed to add product: ' + err.message;
+    errorDiv.style.display = 'block';
+  } finally {
+    hideLoading();
+  }
 }
   // ==================== CATEGORY HIGHLIGHTING FOR LOW STOCK (Inventory mode only) ====================
   function refreshCategoryHighlighting() {
@@ -4179,11 +4453,15 @@ function applyStaffDiscount() {
     document.getElementById('claimPrizeModal').style.display = 'flex';
   }
 
-  function showClaimError(msg) {
-    const errorDiv = document.getElementById('claimError');
+  function showClaimError(msg, isHtml = false) {
+  const errorDiv = document.getElementById('claimError');
+  if (isHtml) {
+    errorDiv.innerHTML = msg;
+  } else {
     errorDiv.innerText = msg;
-    errorDiv.style.display = 'block';
   }
+  errorDiv.style.display = 'block';
+}
 
 async function checkReceiptForClaim() {
   const receipt = document.getElementById('claimReceiptInput').value.trim();
@@ -4199,7 +4477,18 @@ async function checkReceiptForClaim() {
     if (result.success) {
       const data = result.data;
       if (data.claimed) {
-        showClaimError('This prize has already been claimed.');
+        let claimDate = '';
+        if (data.claimed_at) {
+          const dateObj = new Date(data.claimed_at);
+          claimDate = dateObj.toLocaleString();
+        }
+        let purchaseInfo = '';
+        const purchaseTotal = data.purchase_total || data.value;
+        if (purchaseTotal && !isNaN(parseFloat(purchaseTotal))) {
+          purchaseInfo = `<br>With purchase of: RM ${parseFloat(purchaseTotal).toFixed(2)}`;
+        }
+        const errorMsg = `This prize has already been claimed.${claimDate ? `<br><span style="color:red;">Claimed on: ${claimDate}${purchaseInfo}</span>` : ''}`;
+        showClaimError(errorMsg, true);
         return;
       }
       if (data.is_expired) {
@@ -4208,26 +4497,22 @@ async function checkReceiptForClaim() {
       }
       window.pendingClaimReceipt = data;
 
-      // Extract prize label and value
-      let prizeLabel = data.prize_label || data.prize || '';
-      let prizeValue = data.value;
-      if (!prizeValue && prizeLabel) {
+      // ✅ READ DISCOUNT_VALUE from backend
+      let prizeValue = Number(data.discount_value);
+      if (isNaN(prizeValue) || prizeValue <= 0) {
+        // Fallback: extract from prize label (should not happen)
+        let prizeLabel = data.prize_label || data.prize || '';
         const match = prizeLabel.match(/RM\s*(\d+(?:\.\d+)?)/);
         if (match) prizeValue = parseFloat(match[1]);
+        else prizeValue = 38;
       }
-      if (!prizeValue) {
-        prizeValue = 38;
-        prizeLabel = prizeLabel || `RM ${prizeValue} FREE GIFT`;
-      }
+      const prizeLabel = data.prize_label || data.prize || `RM ${prizeValue} FREE GIFT`;
 
-      // Store for later use
       window.pendingPrizeValue = prizeValue;
       window.pendingPrizeLabel = prizeLabel;
 
-      // ✅ Reset barcode buffer after successful fetch
       resetClaimBarcodeBuffer();
 
-      // Replace step2 content with prize info (no dropdown)
       const step2Div = document.getElementById('claimStep2');
       step2Div.innerHTML = `
         <p>Receipt: <strong id="validReceiptId">${escapeHtml(data.receipt)}</strong></p>
@@ -4242,11 +4527,10 @@ async function checkReceiptForClaim() {
       document.getElementById('claimStep1').style.display = 'none';
       step2Div.style.display = 'block';
 
-      // Re-attach event listeners
       document.getElementById('applyPrizeBtn').addEventListener('click', applyPrizeToCart);
       document.getElementById('cancelClaimStep2Btn').addEventListener('click', () => {
         document.getElementById('claimPrizeModal').style.display = 'none';
-        resetClaimBarcodeBuffer();   // Also reset on cancel
+        resetClaimBarcodeBuffer();
       });
     } else {
       showClaimError(result.error || 'Receipt not found.');
@@ -4302,17 +4586,17 @@ async function updateNonAdminStatsCards(from, to) {
 }
 
   async function claimPrizeAfterSale(receipt, prizeValue, finalTotal) {
-    try {
-      const formData = new URLSearchParams();
-      formData.append("action", "claim");
-      formData.append("receipt", receipt);
-      formData.append("value", prizeValue);
-      formData.append("finalTotal", finalTotal);
-      await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
-    } catch (err) {
-      console.error('Error claiming prize after sale:', err);
-    }
+  try {
+    const formData = new URLSearchParams();
+    formData.append("action", "claim");
+    formData.append("receipt", receipt);
+    formData.append("value", prizeValue);
+    formData.append("finalTotal", finalTotal);
+    await fetch(APPS_SCRIPT_URL, { method: "POST", body: formData });
+  } catch (err) {
+    console.error('Error claiming prize after sale:', err);
   }
+}
 
   // ==================== SPECIAL PROMO FUNCTIONS ====================
   function showSpecialPromoModal() {
@@ -4401,13 +4685,27 @@ function openLuckyDraw(transactionId, customerId) {
 }
 
 async function reprintReceipt(receipt) {
+  // Check printer connection – if not connected, try to connect automatically
+  if (!isPrinterConnected) {
+    showLoading('Printer not connected. Opening Bluetooth selection...');
+    try {
+      await connectPrinter();
+      hideLoading();
+    } catch (err) {
+      hideLoading();
+      await showAlertModal('Connection Failed', 'Could not connect to printer. Please try again.');
+      return;
+    }
+  }
+
   if (!window.printerAPI || !window.printerAPI.printReceipt) {
     await showAlertModal('Printer Error', 'Printer not connected or print function unavailable.');
     return;
   }
   const success = await window.printerAPI.printReceipt(receipt, 1);
   if (success) {
-    await showAlertModal('Reprint', 'Receipt reprinted successfully.');
+    // Silent success – no alert
+    // await showAlertModal('Reprint', 'Receipt reprinted successfully.');
   } else {
     await showAlertModal('Error', 'Failed to reprint. Check printer connection.');
   }
@@ -4688,8 +4986,7 @@ async function completeCheckout(paymentMethod, cashReceived) {
       openLuckyDraw(transactionId, customerIdForLuckyDraw);
       luckyModal.style.display = 'none';
     };
-    document.getElementById('closeLuckyDrawBtn').onclick = () => luckyModal.style.display = 'none';
-    document.getElementById('closeLuckyDrawModal').onclick = () => luckyModal.style.display = 'none';
+   
 
     clearCart();
   } else {
@@ -4737,20 +5034,31 @@ function getUTCDateString(date) {
   return `${year}-${month}-${day}`;
 }
 async function reprintLuckyDraw(txId) {
+  // Check printer connection – if not connected, try to connect automatically
+  if (!isPrinterConnected) {
+    showLoading('Printer not connected. Opening Bluetooth selection...');
+    try {
+      await connectPrinter();
+      hideLoading();
+    } catch (err) {
+      hideLoading();
+      await showAlertModal('Connection Failed', 'Could not connect to printer. Please try again.');
+      return;
+    }
+  }
+
   try {
     const url = `${APPS_SCRIPT_URL}?action=get&receipt=${encodeURIComponent(txId)}`;
     const response = await fetch(url);
     const result = await response.json();
     
     if (!result.success) {
-      // No lucky draw record found – open the spin page
       await showAlertModal('No Lucky Draw Record', 'This receipt has not been entered into the lucky draw. Opening the lucky draw page to spin now.');
       openLuckyDraw(txId, null);
       return;
     }
     
     const transaction = result.data;
-    // Check if the lucky draw has already been claimed
     if (transaction.claimed === true) {
       await showAlertModal('Already Claimed', 'This lucky draw prize has already been claimed and cannot be reprinted.');
       return;
@@ -4764,7 +5072,8 @@ async function reprintLuckyDraw(txId) {
     
     const success = await window.printerAPI.printPrizeVoucher(prizeLabel, txId);
     if (success) {
-      await showAlertModal('Reprinted', 'Lucky draw voucher reprinted successfully.');
+      // Silent success – no alert
+      // await showAlertModal('Reprinted', 'Lucky draw voucher reprinted successfully.');
     } else {
       await showAlertModal('Print Failed', 'Could not print voucher. Check printer connection.');
     }
@@ -6453,40 +6762,55 @@ async function printPrizeVoucher(prizeLabel, receiptNumber, spinDate = new Date(
     const validFrom = new Date(spinDate.getFullYear(), spinDate.getMonth(), spinDate.getDate());
     const validTill = new Date(validFrom);
     validTill.setDate(validTill.getDate() + 30);
+
+    // Determine if prize label starts with "FREE" (case insensitive)
+    const startsWithFree = prizeLabel.trim().toLowerCase().startsWith('free');
+
+    // Build the lines array conditionally
     const lines = [
       '',
       'LUCKY DRAW',
       'CONGRATULATIONS',
       'YOU ARE ENTITLED',
       '',
-      `FREE ${prizeLabel}`,
-      'WITH ANY PURCHASE',
-      '(EXCEPT OPENING PROMOTION)',
+      prizeLabel,          // ✅ REMOVED the word "FREE" – just the prize label
+    ];
+
+    if (startsWithFree) {
+      lines.push('WITH ANY PURCHASE');
+      lines.push('(EXCEPT OPENING PROMOTION)');
+    }
+
+    lines.push(
       '',
       `VALID FROM ${formatDate(validFrom)}`,
       `TILL ${formatDate(validTill)}`,
       `Receipt No: ${receiptNumber}`,
       ''
-    ];
+    );
+
     const text = lines.join('\n');
     const commands = [];
-    commands.push(0x1B, 0x40);
-    commands.push(0x1B, 0x52, 0x00);
-    commands.push(0x1B, 0x21, 0x00);
-    commands.push(0x1B, 0x61, 0x01);
-    for (let i = 0; i < text.length; i++) commands.push(text.charCodeAt(i));
+    commands.push(0x1B, 0x40);                 // init
+    commands.push(0x1B, 0x52, 0x00);          // select character code table (0 = standard)
+    commands.push(0x1B, 0x21, 0x00);          // normal size
+    commands.push(0x1B, 0x61, 0x01);          // center align
+    for (let i = 0; i < text.length; i++) {
+      commands.push(text.charCodeAt(i));
+    }
     commands.push(0x0A);
 
-    commands.push(0x1D, 0x68, 0x32);
-    commands.push(0x1D, 0x77, 0x01);
-    commands.push(0x1B, 0x61, 0x01);
+    // Barcode
+    commands.push(0x1D, 0x68, 0x32);          // barcode height = 50
+    commands.push(0x1D, 0x77, 0x01);          // barcode width = 2
+    commands.push(0x1B, 0x61, 0x01);          // center
     const barcodeData = encoder.encode(receiptNumber);
     const len = barcodeData.length;
-    commands.push(0x1D, 0x6B, 0x49, len);
+    commands.push(0x1D, 0x6B, 0x49, len);     // CODE 128
     for (let i = 0; i < len; i++) commands.push(barcodeData[i]);
     commands.push(0x0A, 0x0A);
-    commands.push(0x1B, 0x64, 0x03);
-    commands.push(0x1D, 0x56, 0x41, 0x00);
+    commands.push(0x1B, 0x64, 0x03);          // feed 3 lines
+    commands.push(0x1D, 0x56, 0x41, 0x00);    // partial cut
 
     await sendChunkedData(new Uint8Array(commands), 500);
     return true;
@@ -6497,35 +6821,39 @@ async function printPrizeVoucher(prizeLabel, receiptNumber, spinDate = new Date(
 }
 
 async function connectPrinter() {
-  try {
-    connectBtnModal.disabled = true;
-    printerStatusModal.innerText = '🔍 Scanning...';
-    const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] });
-    gattServer = await device.gatt.connect();
-    const services = await gattServer.getPrimaryServices();
-    let foundChar = null;
-    for (const service of services) {
-      const chars = await service.getCharacteristics();
-      for (const char of chars) {
-        if (char.properties.write || char.properties.writeWithoutResponse) {
-          foundChar = char;
-          break;
+  return new Promise(async (resolve, reject) => {
+    try {
+      connectBtnModal.disabled = true;
+      printerStatusModal.innerText = '🔍 Scanning...';
+      const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] });
+      gattServer = await device.gatt.connect();
+      const services = await gattServer.getPrimaryServices();
+      let foundChar = null;
+      for (const service of services) {
+        const chars = await service.getCharacteristics();
+        for (const char of chars) {
+          if (char.properties.write || char.properties.writeWithoutResponse) {
+            foundChar = char;
+            break;
+          }
         }
+        if (foundChar) break;
       }
-      if (foundChar) break;
+      if (!foundChar) throw new Error('No writable characteristic');
+      printerCharacteristic = foundChar;
+      isPrinterConnected = true;
+      window.printerAPI = { isConnected: true, printReceipt: printReceipt, openDrawer: openCashDrawer, printPrizeVoucher: printPrizeVoucher };
+      updatePrinterStatusUI();
+      closePrinterModalFunc(); // close the printer settings modal automatically
+      resolve(true);
+    } catch (err) {
+      printerStatusModal.innerText = `❌ ${err.message}`;
+      console.error(err);
+      reject(err);
+    } finally {
+      connectBtnModal.disabled = false;
     }
-    if (!foundChar) throw new Error('No writable characteristic');
-    printerCharacteristic = foundChar;
-    isPrinterConnected = true;
-    window.printerAPI = { isConnected: true, printReceipt: printReceipt, openDrawer: openCashDrawer, printPrizeVoucher: printPrizeVoucher };
-    updatePrinterStatusUI();
-   
-  } catch (err) {
-    printerStatusModal.innerText = `❌ ${err.message}`;
-    console.error(err);
-  } finally {
-    connectBtnModal.disabled = false;
-  }
+  });
 }
 
 function disconnectPrinter() {
@@ -6638,85 +6966,117 @@ function renderProductGrid() {
     return;
   }
 
-let html = '';
-filtered.forEach(prod => {
-  const isLowStock = prod.stock < LOW_STOCK_THRESHOLD;
-  const lowStockClass = (inventoryMode && isLowStock) ? 'low-stock-card' : '';
+  let html = '';
+  filtered.forEach(prod => {
+    const isLowStock = prod.stock < LOW_STOCK_THRESHOLD;
+    const lowStockClass = (inventoryMode && isLowStock) ? 'low-stock-card' : '';
 
-  if (inventoryMode) {
-    html += `<div class="product-card ${lowStockClass}">
-      <div class="product-name">${escapeHtml(prod.name)}</div>
-      <div class="product-category">${escapeHtml(prod.category)}</div>
-      <div class="product-price">RM ${prod.price.toFixed(2)}</div>
-      <div class="inventory-controls">
-        <button class="inventory-btn dec-stock" data-id="${prod.id}" data-current="${prod.stock}">−</button>
-        <span class="stock-display" data-id="${prod.id}">${prod.stock}</span>
-        <button class="inventory-btn inc-stock" data-id="${prod.id}" data-current="${prod.stock}">+</button>
-      </div>
-    </div>`;
-  } else {
-    const stockStatus = `📦 Stock: ${prod.stock}`;
-    html += `<div class="product-card ${lowStockClass}" data-id="${prod.id}">
+    if (inventoryMode) {
+      html += `<div class="product-card ${lowStockClass}">
+        <div class="product-name">${escapeHtml(prod.name)}</div>
+        <div class="product-category">${escapeHtml(prod.category)}</div>
+        <div class="product-price">RM ${prod.price.toFixed(2)}</div>
+        <div class="inventory-controls">
+          <button class="inventory-btn dec-stock" data-id="${prod.id}">−</button>
+          <input type="number" class="stock-input" data-id="${prod.id}" value="${prod.stock}" step="1" min="0" style="width:70px; text-align:center; border-radius:20px; border:1px solid #cbd5e1; padding:6px;">
+          <button class="inventory-btn inc-stock" data-id="${prod.id}">+</button>
+        </div>
+      </div>`;
+   } else {
+  // Determine the additional visual class:
+  let additionalClass = '';
+  if (!inventoryMode && prod.stock <= 0) {
+    additionalClass = 'out-of-stock-card';
+  } else if (inventoryMode && prod.stock < LOW_STOCK_THRESHOLD) {
+    additionalClass = 'low-stock-card';   // keep inventory low‑stock style
+  }
+  const stockStatus = `📦 Stock: ${prod.stock}`;
+  html += `<div class="product-card ${additionalClass}" data-id="${prod.id}">
       <div class="product-name">${escapeHtml(prod.name)}</div>
       <div class="product-category">${escapeHtml(prod.category)}</div>
       <div class="product-price">RM ${prod.price.toFixed(2)}</div>
       <div class="product-stock">${stockStatus}</div>
     </div>`;
-  }
-});
-
-productGridEl.innerHTML = html;
-productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
-
-if (inventoryMode) {
-  document.querySelectorAll('.dec-stock').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const id = btn.dataset.id;
-      const product = products.find(p => p.id == id);
-      if (product) {
-        const oldStock = product.stock;
-        const newStock = product.stock - 1;
-        product.stock = newStock;
-        const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
-        if (displaySpan) displaySpan.innerText = newStock;
-        scheduleStockUpdate(id, newStock);
-        logStockChange(product.id, product.name, product.category, oldStock, newStock, -1);
-        checkAndNotifyOutOfStock(product.id, product.name, newStock);
-        refreshCategoryHighlighting();
-      }
-      e.stopPropagation();
-    });
+}
   });
 
-  document.querySelectorAll('.inc-stock').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const id = btn.dataset.id;
-      const product = products.find(p => p.id == id);
-      if (product) {
-        const oldStock = product.stock;
-        const newStock = product.stock + 1;
-        product.stock = newStock;
-        const displaySpan = document.querySelector(`.stock-display[data-id="${id}"]`);
-        if (displaySpan) displaySpan.innerText = newStock;
-        scheduleStockUpdate(id, newStock);
-        logStockChange(product.id, product.name, product.category, oldStock, newStock, 1);
-        checkAndNotifyOutOfStock(product.id, product.name, newStock);
-        refreshCategoryHighlighting();
-      }
-      e.stopPropagation();
-    });
-  });
-} else {
-  document.querySelectorAll('.product-card').forEach(card => {
-    const productId = card.dataset.id;
-    const product = products.find(p => p.id == productId);
-    if (product) {
-      card.addEventListener('click', (e) => {
-        addToCart(product);
+  productGridEl.innerHTML = html;
+  productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
+
+  if (inventoryMode) {
+    // Helper to update stock from a new numeric value
+    const updateStockForProduct = (productId, newStock, delta) => {
+      const product = products.find(p => p.id == productId);
+      if (!product) return;
+      const oldStock = product.stock;
+      if (newStock === oldStock) return;
+      product.stock = newStock;
+      // Update input field if present
+      const inputField = document.querySelector(`.stock-input[data-id="${productId}"]`);
+      if (inputField) inputField.value = newStock;
+      scheduleStockUpdate(productId, newStock);
+      logStockChange(product.id, product.name, product.category, oldStock, newStock, delta);
+      checkAndNotifyOutOfStock(product.id, product.name, newStock);
+      refreshCategoryHighlighting();
+    };
+
+    // Dec button
+    document.querySelectorAll('.dec-stock').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = btn.dataset.id;
+        const input = document.querySelector(`.stock-input[data-id="${id}"]`);
+        if (input) {
+          let newVal = parseInt(input.value) - 1;
+          if (isNaN(newVal)) newVal = 0;
+          if (newVal < 0) newVal = 0;
+          updateStockForProduct(id, newVal, -1);
+        }
+        e.stopPropagation();
       });
-    }
-  });
-}}
+    });
+
+    // Inc button
+    document.querySelectorAll('.inc-stock').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = btn.dataset.id;
+        const input = document.querySelector(`.stock-input[data-id="${id}"]`);
+        if (input) {
+          let newVal = parseInt(input.value) + 1;
+          if (isNaN(newVal)) newVal = 0;
+          updateStockForProduct(id, newVal, 1);
+        }
+        e.stopPropagation();
+      });
+    });
+
+    // Editable input – listen for change (when user types and leaves field)
+    document.querySelectorAll('.stock-input').forEach(input => {
+      input.addEventListener('change', (e) => {
+        const id = input.dataset.id;
+        let newVal = parseInt(input.value);
+        if (isNaN(newVal)) newVal = 0;
+        if (newVal < 0) newVal = 0;
+        const product = products.find(p => p.id == id);
+        if (product) {
+          const delta = newVal - product.stock;
+          updateStockForProduct(id, newVal, delta);
+        }
+        e.stopPropagation();
+      });
+    });
+  } else {
+    // Normal mode: click on product card adds to cart
+    document.querySelectorAll('.product-card').forEach(card => {
+      const productId = card.dataset.id;
+      const product = products.find(p => p.id == productId);
+      if (product) {
+        card.addEventListener('click', (e) => {
+          addToCart(product);
+        });
+      }
+    });
+  }
+}
   // ==================== VIEW TOGGLE ====================
   function setViewMode(mode) {
     viewMode = mode;
@@ -7471,8 +7831,9 @@ document.getElementById('checkSettlementBtn')?.addEventListener('click', async (
   document.getElementById('recordSettlementBtn').style.display = 'block';
 });
 // Record Settlement button
+// Record Settlement button
 document.getElementById('recordSettlementBtn')?.addEventListener('click', async () => {
-showLoading('Recording settlement...');
+  showLoading('Recording settlement...');
   const store = document.getElementById('settlementStoreSelect').value;
   const pettyCash = parseFloat(document.getElementById('pettyCashFloat').value) || 0;
   const actualCash = parseFloat(document.getElementById('actualCash').value);
@@ -7484,10 +7845,9 @@ showLoading('Recording settlement...');
   const sysCard = parseFloat(document.getElementById('sysCard').innerText.replace('RM ', '')) || 0;
   const sysQR = parseFloat(document.getElementById('sysQR').innerText.replace('RM ', '')) || 0;
   const sysAlipay = parseFloat(document.getElementById('sysAlipay').innerText.replace('RM ', '')) || 0;
-const sysRefund = parseFloat(document.getElementById('sysRefund').innerText.replace('RM ', '')) || 0;
+  const sysRefund = parseFloat(document.getElementById('sysRefund').innerText.replace('RM ', '')) || 0;
   const todayStr = getLocalDateString(new Date());
 
-  
   try {
     const formData = new URLSearchParams();
     formData.append('action', 'recordSettlement');
@@ -7511,13 +7871,28 @@ const sysRefund = parseFloat(document.getElementById('sysRefund').innerText.repl
     if (result.success) {
       await showAlertModal('Settlement Recorded', `Settlement for ${store} on ${todayStr} has been saved.`);
 
-      // ✅ Print settlement report automatically
+      // ✅ Check printer connection before printing
+      if (!isPrinterConnected) {
+        showLoading('Printer not connected. Opening Bluetooth selection...');
+        try {
+          await connectPrinter();
+          hideLoading();
+        } catch (err) {
+          hideLoading();
+          await showAlertModal('Printer Connection Failed', 'Could not connect to printer. Settlement recorded but report not printed.');
+          document.getElementById('settlementModal').style.display = 'none';
+          await refreshSettlementTotals(store);
+          return;
+        }
+      }
+
+      // Print settlement report
       const totals = {
         cashSystem: sysCash,
         cardSystem: sysCard,
         qrSystem: sysQR,
         alipaySystem: sysAlipay,
-        refundSystem: sysRefund,   // ❌ ERROR: sysRefund is not defined!
+        refundSystem: sysRefund,
         cashActual: actualCash,
         cardActual: actualCard,
         qrActual: actualQR,
@@ -7541,7 +7916,38 @@ const sysRefund = parseFloat(document.getElementById('sysRefund').innerText.repl
   document.getElementById('collectionBtn')?.addEventListener('click', openCollectionModal);
   document.getElementById('closeCollectionModal')?.addEventListener('click', () => document.getElementById('collectionModal').style.display = 'none');
   document.getElementById('closeCollectionModalBtn')?.addEventListener('click', () => document.getElementById('collectionModal').style.display = 'none');
+// Inside the existing window load / DOMContentLoaded block (or wherever you attach listeners)
+const reprintSettlementBtn = document.getElementById('reprintSettlementBtn');
+if (reprintSettlementBtn) {
+  reprintSettlementBtn.addEventListener('click', () => {
+    // Close the settlement modal first
+    const settlementModal = document.getElementById('settlementModal');
+    if (settlementModal) settlementModal.style.display = 'none';
+    // Then open the reprint (settlement history) modal
+    showReprintSettlementModal();
+  });
+}
 
+// Close reprint modal and reopen settlement modal
+const closeReprintModal = document.getElementById('closeReprintModal');
+const cancelReprintBtn = document.getElementById('cancelReprintSettlementBtn');
+const confirmReprintBtn = document.getElementById('confirmReprintSettlementBtn');
+
+function closeReprintAndOpenSettlement() {
+  document.getElementById('reprintSettlementModal').style.display = 'none';
+  // Reopen the settlement modal (refresh totals, etc.)
+  openSettlementModal();  // this function already exists and properly shows the modal
+}
+
+if (closeReprintModal) {
+  closeReprintModal.addEventListener('click', closeReprintAndOpenSettlement);
+}
+if (cancelReprintBtn) {
+  cancelReprintBtn.addEventListener('click', closeReprintAndOpenSettlement);
+}
+if (confirmReprintBtn) {
+  confirmReprintBtn.addEventListener('click', reprintSelectedSettlement);
+}
   // ==================== CASH COLLECTION ====================
   let allUnsettledCash = [];
 
@@ -7776,6 +8182,12 @@ function updateStoreCashSummary() {
   document.getElementById('checkoutBtn')?.addEventListener('click', startCheckout);
   document.getElementById('claimPrizeBtn')?.addEventListener('click', showClaimPrizeModal);
   document.getElementById('specialPromoBtn')?.addEventListener('click', showSpecialPromoModal);
+  document.getElementById('addProductHeaderBtn')?.addEventListener('click', showAddProductModal);
+document.getElementById('confirmAddProductBtn')?.addEventListener('click', addNewProduct);
+document.getElementById('cancelAddProductBtn')?.addEventListener('click', closeAddProductModal);
+document.getElementById('closeAddProductModal')?.addEventListener('click', closeAddProductModal);
+
+document.getElementById('newProductCategorySelect')?.addEventListener('change', toggleNewCategoryInput);
   document.getElementById('clearCartBtn')?.addEventListener('click', clearCart);
   document.getElementById('refreshProductsPanelBtn')?.addEventListener('click', () => {
     localStorage.removeItem(`products_${currentStore}`);
@@ -8211,4 +8623,4 @@ document.getElementById('checkReceiptBtn').addEventListener('click', checkReceip
   }
 </script>
 </body>
-</html>
+</html> 
