@@ -6782,12 +6782,14 @@ async function printPrizeVoucher(prizeLabel, receiptNumber, spinDate = new Date(
     }
 
     lines.push(
-      '',
-      `VALID FROM ${formatDate(validFrom)}`,
-      `TILL ${formatDate(validTill)}`,
-      `Receipt No: ${receiptNumber}`,
-      ''
-    );
+  '',
+  `VALID FROM ${formatDate(validFrom)}`,
+  `TILL ${formatDate(validTill)}`,
+  `Receipt No: ${receiptNumber}`,
+  '',
+  'VOUCHER CANNOT BE STACKED',   // <-- ADD THIS LINE
+  ''
+);
 
     const text = lines.join('\n');
     const commands = [];
