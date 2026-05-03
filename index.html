@@ -6777,10 +6777,12 @@ async function printPrizeVoucher(prizeLabel, receiptNumber, spinDate = new Date(
     ];
 
     if (startsWithFree) {
-      lines.push('WITH ANY PURCHASE');
-      lines.push('(EXCEPT OPENING PROMOTION)');
-    }
-
+  lines.push('WITH ANY PURCHASE');
+  lines.push('(EXCEPT SPECIAL PROMOTION)');
+} else {
+  // 👇 ADD THIS BLOCK for non‑free prizes
+  lines.push('NO STACKING PROMO');
+}
     lines.push(
   '',
   `VALID FROM ${formatDate(validFrom)}`,
