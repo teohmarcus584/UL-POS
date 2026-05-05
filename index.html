@@ -2167,7 +2167,7 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
 <script>
 
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxqcCd-Ih5fjKsKfJLhrvQx4ZNBO9mfxuVFlkpwelZysoJG1EWfQ7XofFw40g2yVAqnGA/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZNijHVDusTBNLxo_3BBK_dhtoYtmZHeXbo82oirF8KXFUmUiJKDawwZvvJQESF7p4vw/exec"; // REPLACE WITH YOUR URL
 
 // Haversine distance in km
 function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
@@ -8341,14 +8341,25 @@ async function getNextTransactionNumber(store) {
       return result.transaction_id;
     } else {
       console.error('Backend error:', result.error);
-      const prefix = store.substring(0, 3).toUpperCase();
+      // Fallback: use custom prefix mapping
+      const prefixMap = {
+        queens: 'TXN38',
+        sunshine: 'TXN39',
+        gurney_paragon: 'TXN40'
+      };
+      const prefix = prefixMap[store] || store.substring(0, 3).toUpperCase();
       const timestamp = Date.now();
       const random = Math.floor(Math.random() * 1000);
       return `${prefix}-${timestamp}-${random}`;
     }
   } catch (err) {
     console.error('Failed to fetch transaction number:', err);
-    const prefix = store.substring(0, 3).toUpperCase();
+    const prefixMap = {
+      queens: 'TXN38',
+      sunshine: 'TXN39',
+      gurney_paragon: 'TXN40'
+    };
+    const prefix = prefixMap[store] || store.substring(0, 3).toUpperCase();
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 1000);
     return `${prefix}-${timestamp}-${random}`;
