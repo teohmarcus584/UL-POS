@@ -1641,7 +1641,8 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
-  
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icon-192.png">
 <body>
 <!-- Store Select Modal -->
 <div id="storeSelectModal" class="modal-overlay" style="display: flex;">
@@ -4197,35 +4198,42 @@ function loadPendingSales() {
   if (stored) pendingSales = JSON.parse(stored);
 }
 
-// Save a sale to the queue
 function queueSale(transaction) {
   pendingSales.push(transaction);
   localStorage.setItem('pendingSales', JSON.stringify(pendingSales));
-  // Try to sync immediately (if online)
-  syncPendingSales();
+  // Don't call syncPendingSales here – let it run on its own interval or after checkout.
+  // But we can keep a lightweight schedule.
+  if (!isSyncing) syncPendingSales(); // still safe with lock
 }
 
-// Attempt to send all pending sales
+let isSyncing = false;
+
 async function syncPendingSales() {
+  if (isSyncing) return;        // already syncing, skip
   if (!navigator.onLine) return;
   if (pendingSales.length === 0) return;
 
-  
-  const failed = [];
-  for (const sale of pendingSales) {
-    const success = await saveTransactionToSheet(sale);
-    if (!success) failed.push(sale);
+  isSyncing = true;
+  try {
+    const failed = [];
+    for (const sale of pendingSales) {
+      // Attempt to save
+      const success = await saveTransactionToSheet(sale);
+      if (!success) failed.push(sale);
+    }
+    if (failed.length === 0) {
+      pendingSales = [];
+      localStorage.removeItem('pendingSales');
+    } else {
+      pendingSales = failed;
+      localStorage.setItem('pendingSales', JSON.stringify(pendingSales));
+      showAlertModal('Sync Partial', `${failed.length} sale(s) failed. Will retry later.`);
+    }
+  } catch (err) {
+    console.error('syncPendingSales error:', err);
+  } finally {
+    isSyncing = false;
   }
-  if (failed.length === 0) {
-    pendingSales = [];
-    localStorage.removeItem('pendingSales');
-   
-  } else {
-    pendingSales = failed;
-    localStorage.setItem('pendingSales', JSON.stringify(pendingSales));
-    showAlertModal('Sync Partial', `${failed.length} sale(s) failed. Will retry later.`);
-  }
-  hideLoading();
 }
 
 // Listen for online events
@@ -4777,23 +4785,20 @@ async function reprintReceipt(receipt) {
       });
     });
 
-    document.getElementById('confirmCashBtn').onclick = async () => {
-      const cashVal = parseFloat(document.getElementById('customCashInput').value);
-      if (isNaN(cashVal) || cashVal < totalAmount) {
-        await showAlertModal('Invalid', `Cash amount must be at least RM ${totalAmount.toFixed(2)}`);
-        return;
-      }
-      await showAlertModal('Change', `Change: RM ${(cashVal - totalAmount).toFixed(2)}`);
-      completeCheckout('Cash', cashVal);
-    };
-    document.getElementById('confirmOtherBtn').onclick = () => {
-      const selected = document.querySelector('.payment-btn.selected');
-      if (!selected) {
-        showAlertModal('Error', 'Please select a payment method.');
-        return;
-      }
-      completeCheckout(selected.dataset.method, null);
-    };
+   document.getElementById('confirmCashBtn').onclick = async () => {
+  const cashVal = parseFloat(document.getElementById('customCashInput').value);
+  if (isNaN(cashVal) || cashVal < totalAmount) {
+    await showAlertModal('Invalid', `Cash amount must be at least RM ${totalAmount.toFixed(2)}`);
+    return;
+  }
+  const change = (cashVal - totalAmount).toFixed(2);
+  await showAlertModal('Change', `
+    <div style="text-align: center; font-size: 1.8rem;">
+      Change: RM <strong style="font-size: 2.2rem;">${change}</strong>
+    </div>
+  `);
+  completeCheckout('Cash', cashVal);
+};
     const confirmCashBtn = document.getElementById('confirmCashBtn');
 const confirmOtherBtn = document.getElementById('confirmOtherBtn');
 
@@ -4938,7 +4943,14 @@ async function completeCheckout(paymentMethod, cashReceived) {
 
     // --- 2. Queue the sale (does not block, syncs in background) ---
     queueSale(transaction);   // <-- this is fire‑and‑forget
-
+ // --- 5. 🎲 SHOW LUCKY DRAW MODAL IMMEDIATELY ---
+    document.getElementById('luckyTxId').innerText = transactionId;
+    const luckyModal = document.getElementById('luckyDrawModal');
+    luckyModal.style.display = 'flex';
+    document.getElementById('openLuckyDrawBtn').onclick = () => {
+      openLuckyDraw(transactionId, selectedCustomer?.id);
+      luckyModal.style.display = 'none';
+    };
     // --- 3. Update local stock and UI synchronously (fast) ---
     for (let item of saleItems) {
       const product = products.find(p => p.id == item.id);
@@ -4998,14 +5010,7 @@ async function completeCheckout(paymentMethod, cashReceived) {
       renderReceiptsList(cachedReceipts);
     }
 
-    // --- 5. 🎲 SHOW LUCKY DRAW MODAL IMMEDIATELY ---
-    document.getElementById('luckyTxId').innerText = transactionId;
-    const luckyModal = document.getElementById('luckyDrawModal');
-    luckyModal.style.display = 'flex';
-    document.getElementById('openLuckyDrawBtn').onclick = () => {
-      openLuckyDraw(transactionId, selectedCustomer?.id);
-      luckyModal.style.display = 'none';
-    };
+    
 
     // --- 6. Clear the cart ---
     clearCart();
@@ -8665,7 +8670,15 @@ document.getElementById('checkReceiptBtn').addEventListener('click', checkReceip
     categorySelect.value = 'all';
     renderProductGrid();
   });
-
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js')
+        .then(reg => console.log('SW registered:', reg))
+        .catch(err => console.error('SW registration failed:', err));
+    });
+  }
 </script>
 </body>
 </html> 
