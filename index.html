@@ -2318,6 +2318,7 @@ if (!telegramAccounts) {
   const customerInfoDisplay = document.getElementById('customerInfoDisplay');
   const LOW_STOCK_THRESHOLD = 5;
   let alertedLowStockProducts = new Set();
+  let checkoutLock = false;
   // ==================== INDEXEDDB CACHE FOR REPORTS ====================
 const DB_NAME = 'POS_ReportCache';
 const DB_VERSION = 1;
@@ -4712,6 +4713,10 @@ async function reprintReceipt(receipt) {
 }
   // ==================== CHECKOUT ====================
  async function startCheckout() {
+  if (checkoutLock) {
+    await showAlertModal('Processing', 'A checkout is already in progress. Please wait.');
+    return;
+  }
   if (cart.length === 0) {
     await showAlertModal('Empty Cart', 'No items to checkout.');
     return;
@@ -4723,13 +4728,11 @@ async function reprintReceipt(receipt) {
     subtotal += paidQty * item.product.price;
   }
 
- // Inside completeCheckout(), after recalculating subtotal
-// Inside completeCheckout(), after recalculating subtotal
-let effectiveStaffDiscount = 0;
-if (staffDiscountActive) {
-  effectiveStaffDiscount = subtotal * 0.10;
-}
-const totalAmount = subtotal - discountAmount - (buy2Free1Discount + buy3Free1Discount + customDiscount + effectiveStaffDiscount);
+  let effectiveStaffDiscount = 0;
+  if (staffDiscountActive) {
+    effectiveStaffDiscount = subtotal * 0.10;
+  }
+  const totalAmount = subtotal - discountAmount - (buy2Free1Discount + buy3Free1Discount + customDiscount + effectiveStaffDiscount);
   pendingTransaction = { totalAmount };
   showPaymentModal(totalAmount);
 }
@@ -4792,9 +4795,29 @@ const totalAmount = subtotal - discountAmount - (buy2Free1Discount + buy3Free1Di
       }
       completeCheckout(selected.dataset.method, null);
     };
-    document.getElementById('cancelPaymentBtn').onclick = () => modal.style.display = 'none';
-    document.getElementById('cancelOtherBtn').onclick = () => modal.style.display = 'none';
-    document.getElementById('closePaymentModal').onclick = () => modal.style.display = 'none';
+    const confirmCashBtn = document.getElementById('confirmCashBtn');
+const confirmOtherBtn = document.getElementById('confirmOtherBtn');
+
+document.getElementById('cancelPaymentBtn').onclick = () => {
+  modal.style.display = 'none';
+  confirmCashBtn.disabled = false;
+  confirmOtherBtn.disabled = false;
+  checkoutLock = false;
+};
+
+document.getElementById('cancelOtherBtn').onclick = () => {
+  modal.style.display = 'none';
+  confirmCashBtn.disabled = false;
+  confirmOtherBtn.disabled = false;
+  checkoutLock = false;
+};
+
+document.getElementById('closePaymentModal').onclick = () => {
+  modal.style.display = 'none';
+  confirmCashBtn.disabled = false;
+  confirmOtherBtn.disabled = false;
+  checkoutLock = false;
+};
   }
 async function loadCollectionHistory(fromDate = null, toDate = null) {
   const historyContainer = document.getElementById('collectionHistoryList');
@@ -4860,137 +4883,148 @@ async function loadCollectionHistory(fromDate = null, toDate = null) {
   }
 }
 async function completeCheckout(paymentMethod, cashReceived) {
-  document.getElementById('paymentModal').style.display = 'none';
-  const totalAmount = pendingTransaction.totalAmount;
+  if (checkoutLock) {
+    console.warn('Checkout already in progress, ignoring duplicate call.');
+    return;
+  }
+  checkoutLock = true;
 
-  const transactionId = await getNextTransactionNumber(currentStore);
+  // Disable confirm buttons to prevent further clicks
+  const confirmCashBtn = document.getElementById('confirmCashBtn');
+  const confirmOtherBtn = document.getElementById('confirmOtherBtn');
+  if (confirmCashBtn) confirmCashBtn.disabled = true;
+  if (confirmOtherBtn) confirmOtherBtn.disabled = true;
 
-  // ✅ NEW: Get selected sales person from dropdown
-  const salesPersonSelect = document.getElementById('soldBySelectCart');
-  const selectedOption = salesPersonSelect.options[salesPersonSelect.selectedIndex];
-  const salesPersonName = selectedOption ? selectedOption.text.split(' (ID:')[0] : '';
-  const salesPersonId = salesPersonSelect.value;
+  try {
+    document.getElementById('paymentModal').style.display = 'none';
+    const totalAmount = pendingTransaction.totalAmount;
 
-  const saleItems = cart.map(item => ({
-    id: item.product.id,
-    category: item.product.category,
-    name: item.product.name,
-    price: item.product.price,
-    quantity: item.quantity,
-    free_quantity: item.freeQuantity,
-    total: (item.quantity - item.freeQuantity) * item.product.price
-  }));
+    const transactionId = await getNextTransactionNumber(currentStore);
+    const salesPersonSelect = document.getElementById('soldBySelectCart');
+    const selectedOption = salesPersonSelect.options[salesPersonSelect.selectedIndex];
+    const salesPersonName = selectedOption ? selectedOption.text.split(' (ID:')[0] : '';
+    const salesPersonId = salesPersonSelect.value;
 
-  const transaction = {
-    transaction_id: transactionId,
-    items: saleItems,
-    total: totalAmount,
-    payment_method: paymentMethod,
-    cash_received: cashReceived,
-    timestamp: new Date().toISOString(),
-    discount: discountAmount,
-    buy2_free1_discount: buy2Free1Discount,
-    buy3_free1_discount: buy3Free1Discount,
-    custom_discount: customDiscount,
-    staff_discount: staffDiscount,
-    prize_claimed: claimedReceiptInfo,
-    customer_id: selectedCustomer ? selectedCustomer.id : null,
-    store: currentStore,
-    employee_name: currentEmployee.name,           // Cashier (logged‑in)
-    employee_id: currentEmployee.id,              // Cashier ID
-    // ✅ NEW: Sales Person fields
-    sales_person_name: salesPersonName,
-    sales_person_id: salesPersonId,
-  };
-
-  queueSale(transaction);
-  const success = true; // assume success, will sync later
-  const customerIdForLuckyDraw = selectedCustomer ? selectedCustomer.id : null;
-
-  if (success) {
-    // Update local stock and trigger notifications for each sold item
-    for (let item of saleItems) {
-      const product = products.find(p => p.id == item.id);
-      if (product) {
-        const oldStock = product.stock;
-        const newStock = oldStock - item.quantity;
-        product.stock = newStock;
-        checkAndNotifyOutOfStock(product.id, product.name, newStock);
-      }
-    }
-
-    localStorage.setItem(`products_${currentStore}`, JSON.stringify({
-      timestamp: Date.now(),
-      products: products
+    const saleItems = cart.map(item => ({
+      id: item.product.id,
+      category: item.product.category,
+      name: item.product.name,
+      price: item.product.price,
+      quantity: item.quantity,
+      free_quantity: item.freeQuantity,
+      total: (item.quantity - item.freeQuantity) * item.product.price
     }));
-    renderProductGrid();
 
-    if (selectedCustomer && selectedCustomer.id) {
-      const POINTS_PER_RM = 1;
-      const pointsEarned = Math.floor(totalAmount * POINTS_PER_RM);
-      if (pointsEarned > 0) {
-        selectedCustomer.points = (selectedCustomer.points || 0) + pointsEarned;
-        updateCustomerDisplay();
-      }
-    }
-
-    if (pendingPrize) {
-      await claimPrizeAfterSale(pendingPrize.receipt, pendingPrize.value, totalAmount);
-      pendingPrize = null;
-    }
-
-    invalidateAllReportCaches();
-
-    const fakeReceipt = {
-      transaction_id: transaction.transaction_id,
-      timestamp: transaction.timestamp,
-      items: transaction.items,
-      total: transaction.total,
-      payment_method: transaction.payment_method,
-      store: currentStore,
-      employee_id: currentEmployee.id,
-      refunded: false,
+    const transaction = {
+      transaction_id: transactionId,
+      items: saleItems,
+      total: totalAmount,
+      payment_method: paymentMethod,
+      cash_received: cashReceived,
+      timestamp: new Date().toISOString(),
       discount: discountAmount,
       buy2_free1_discount: buy2Free1Discount,
       buy3_free1_discount: buy3Free1Discount,
       custom_discount: customDiscount,
       staff_discount: staffDiscount,
-      // ✅ NEW: Also store sales person in local receipt cache (optional)
+      prize_claimed: claimedReceiptInfo,
+      customer_id: selectedCustomer ? selectedCustomer.id : null,
+      store: currentStore,
+      employee_name: currentEmployee.name,
+      employee_id: currentEmployee.id,
       sales_person_name: salesPersonName,
       sales_person_id: salesPersonId,
     };
-    if (!cachedReceipts) cachedReceipts = [];
-    cachedReceipts.unshift(fakeReceipt);
 
-    const receiptsModal = document.getElementById('receiptsModal');
-    if (receiptsModal && receiptsModal.style.display === 'flex') {
-      renderReceiptsList(cachedReceipts);
-    }
+    queueSale(transaction);
+    const success = true; // optimistic
 
-    fetchAndCacheReceipts();
+    if (success) {
+      // Update local stock
+      for (let item of saleItems) {
+        const product = products.find(p => p.id == item.id);
+        if (product) {
+          const oldStock = product.stock;
+          const newStock = oldStock - item.quantity;
+          product.stock = newStock;
+          checkAndNotifyOutOfStock(product.id, product.name, newStock);
+        }
+      }
 
-    if (window.printerAPI?.isConnected && window.printerAPI.printReceipt) {
-      const transactionWithName = { ...transaction, employee_name: currentEmployee.name };
-       await window.printerAPI.printReceipt(transactionWithName, 2);   // ✅ print 2 copies
+      localStorage.setItem(`products_${currentStore}`, JSON.stringify({
+        timestamp: Date.now(),
+        products: products
+      }));
+      renderProductGrid();
+
+      if (selectedCustomer && selectedCustomer.id) {
+        const POINTS_PER_RM = 1;
+        const pointsEarned = Math.floor(totalAmount * POINTS_PER_RM);
+        if (pointsEarned > 0) {
+          selectedCustomer.points = (selectedCustomer.points || 0) + pointsEarned;
+          updateCustomerDisplay();
+        }
+      }
+
+      if (pendingPrize) {
+        await claimPrizeAfterSale(pendingPrize.receipt, pendingPrize.value, totalAmount);
+        pendingPrize = null;
+      }
+
+      invalidateAllReportCaches();
+
+      const fakeReceipt = {
+  transaction_id: transaction.transaction_id,
+  timestamp: transaction.timestamp,
+  items: transaction.items,
+  total: transaction.total,
+  payment_method: transaction.payment_method,
+  store: transaction.store,
+  employee_id: transaction.employee_id,
+  employee_name: transaction.employee_name,
+  refunded: false,
+  discount: transaction.discount,
+  buy2_free1_discount: transaction.buy2_free1_discount,
+  buy3_free1_discount: transaction.buy3_free1_discount,
+  custom_discount: transaction.custom_discount,
+  staff_discount: transaction.staff_discount,
+  sales_person_name: transaction.sales_person_name,
+  sales_person_id: transaction.sales_person_id
+};
+      if (!cachedReceipts) cachedReceipts = [];
+      cachedReceipts.unshift(fakeReceipt);
+
+      const receiptsModal = document.getElementById('receiptsModal');
+      if (receiptsModal && receiptsModal.style.display === 'flex') {
+        renderReceiptsList(cachedReceipts);
+      }
+
+      fetchAndCacheReceipts();
+
+      if (window.printerAPI?.isConnected && window.printerAPI.printReceipt) {
+        const transactionWithName = { ...transaction, employee_name: currentEmployee.name };
+        await window.printerAPI.printReceipt(transactionWithName, 2);
+      }
+
+      document.getElementById('luckyTxId').innerText = transactionId;
+      const luckyModal = document.getElementById('luckyDrawModal');
+      luckyModal.style.display = 'flex';
+      document.getElementById('openLuckyDrawBtn').onclick = () => {
+        openLuckyDraw(transactionId, selectedCustomer?.id);
+        luckyModal.style.display = 'none';
+      };
+
+      clearCart();
     } else {
-      await showAlertModal('Receipt', 'Sale recorded. Printer not connected, no receipt printed.');
+      await showAlertModal('Error', 'Failed to record sale. Check network / Apps Script.');
     }
-
-    // ✅ Success alert removed as requested earlier
-    // await showAlertModal('✅ Success', `Sale #${transactionId} completed.\nTotal: RM ${totalAmount.toFixed(2)}`);
-
-    document.getElementById('luckyTxId').innerText = transactionId;
-    const luckyModal = document.getElementById('luckyDrawModal');
-    luckyModal.style.display = 'flex';
-    document.getElementById('openLuckyDrawBtn').onclick = () => {
-      openLuckyDraw(transactionId, customerIdForLuckyDraw);
-      luckyModal.style.display = 'none';
-    };
-   
-
-    clearCart();
-  } else {
-    await showAlertModal('Error', 'Failed to record sale. Check network / Apps Script.');
+  } catch (err) {
+    console.error('Checkout error:', err);
+    await showAlertModal('Error', 'An error occurred during checkout. Please try again.');
+  } finally {
+    checkoutLock = false;
+    if (confirmCashBtn) confirmCashBtn.disabled = false;
+    if (confirmOtherBtn) confirmOtherBtn.disabled = false;
   }
 }
   async function saveTransactionToSheet(transaction) {
