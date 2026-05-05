@@ -1641,8 +1641,7 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
-  <link rel="manifest" href="./manifest.json">
-  <link rel="apple-touch-icon" href="./icon-192.png">
+  
 <body>
 <!-- Store Select Modal -->
 <div id="storeSelectModal" class="modal-overlay" style="display: flex;">
@@ -4899,6 +4898,7 @@ async function completeCheckout(paymentMethod, cashReceived) {
     document.getElementById('paymentModal').style.display = 'none';
     const totalAmount = pendingTransaction.totalAmount;
 
+    // --- 1. Prepare transaction (this may still take a short network call) ---
     const transactionId = await getNextTransactionNumber(currentStore);
     const salesPersonSelect = document.getElementById('soldBySelectCart');
     const selectedOption = salesPersonSelect.options[salesPersonSelect.selectedIndex];
@@ -4936,93 +4936,98 @@ async function completeCheckout(paymentMethod, cashReceived) {
       sales_person_id: salesPersonId,
     };
 
-    queueSale(transaction);
-    const success = true; // optimistic
+    // --- 2. Queue the sale (does not block, syncs in background) ---
+    queueSale(transaction);   // <-- this is fire‑and‑forget
 
-    if (success) {
-      // Update local stock
-      for (let item of saleItems) {
-        const product = products.find(p => p.id == item.id);
-        if (product) {
-          const oldStock = product.stock;
-          const newStock = oldStock - item.quantity;
-          product.stock = newStock;
-          checkAndNotifyOutOfStock(product.id, product.name, newStock);
-        }
+    // --- 3. Update local stock and UI synchronously (fast) ---
+    for (let item of saleItems) {
+      const product = products.find(p => p.id == item.id);
+      if (product) {
+        const oldStock = product.stock;
+        const newStock = oldStock - item.quantity;
+        product.stock = newStock;
+        checkAndNotifyOutOfStock(product.id, product.name, newStock);
       }
-
-      localStorage.setItem(`products_${currentStore}`, JSON.stringify({
-        timestamp: Date.now(),
-        products: products
-      }));
-      renderProductGrid();
-
-      if (selectedCustomer && selectedCustomer.id) {
-        const POINTS_PER_RM = 1;
-        const pointsEarned = Math.floor(totalAmount * POINTS_PER_RM);
-        if (pointsEarned > 0) {
-          selectedCustomer.points = (selectedCustomer.points || 0) + pointsEarned;
-          updateCustomerDisplay();
-        }
-      }
-
-      if (pendingPrize) {
-        await claimPrizeAfterSale(pendingPrize.receipt, pendingPrize.value, totalAmount);
-        pendingPrize = null;
-      }
-
-      invalidateAllReportCaches();
-
-      const fakeReceipt = {
-  transaction_id: transaction.transaction_id,
-  timestamp: transaction.timestamp,
-  items: transaction.items,
-  total: transaction.total,
-  payment_method: transaction.payment_method,
-  store: transaction.store,
-  employee_id: transaction.employee_id,
-  employee_name: transaction.employee_name,
-  refunded: false,
-  discount: transaction.discount,
-  buy2_free1_discount: transaction.buy2_free1_discount,
-  buy3_free1_discount: transaction.buy3_free1_discount,
-  custom_discount: transaction.custom_discount,
-  staff_discount: transaction.staff_discount,
-  sales_person_name: transaction.sales_person_name,
-  sales_person_id: transaction.sales_person_id
-};
-      if (!cachedReceipts) cachedReceipts = [];
-      cachedReceipts.unshift(fakeReceipt);
-
-      const receiptsModal = document.getElementById('receiptsModal');
-      if (receiptsModal && receiptsModal.style.display === 'flex') {
-        renderReceiptsList(cachedReceipts);
-      }
-
-      fetchAndCacheReceipts();
-
-      if (window.printerAPI?.isConnected && window.printerAPI.printReceipt) {
-        const transactionWithName = { ...transaction, employee_name: currentEmployee.name };
-        await window.printerAPI.printReceipt(transactionWithName, 2);
-      }
-
-      document.getElementById('luckyTxId').innerText = transactionId;
-      const luckyModal = document.getElementById('luckyDrawModal');
-      luckyModal.style.display = 'flex';
-      document.getElementById('openLuckyDrawBtn').onclick = () => {
-        openLuckyDraw(transactionId, selectedCustomer?.id);
-        luckyModal.style.display = 'none';
-      };
-
-      clearCart();
-    } else {
-      await showAlertModal('Error', 'Failed to record sale. Check network / Apps Script.');
     }
+    localStorage.setItem(`products_${currentStore}`, JSON.stringify({
+      timestamp: Date.now(),
+      products: products
+    }));
+    renderProductGrid();
+
+    if (selectedCustomer && selectedCustomer.id) {
+      const pointsEarned = Math.floor(totalAmount * 1); // 1 point per RM
+      if (pointsEarned > 0) {
+        selectedCustomer.points = (selectedCustomer.points || 0) + pointsEarned;
+        updateCustomerDisplay();
+      }
+    }
+
+    if (pendingPrize) {
+      // Do not await – fire background claim
+      claimPrizeAfterSale(pendingPrize.receipt, pendingPrize.value, totalAmount).catch(console.error);
+      pendingPrize = null;
+    }
+
+    invalidateAllReportCaches(); // fire‑and‑forget
+
+    // --- 4. Update local receipt cache (fast) ---
+    const fakeReceipt = {
+      transaction_id: transaction.transaction_id,
+      timestamp: transaction.timestamp,
+      items: transaction.items,
+      total: transaction.total,
+      payment_method: transaction.payment_method,
+      store: transaction.store,
+      employee_id: transaction.employee_id,
+      employee_name: transaction.employee_name,
+      refunded: false,
+      discount: transaction.discount,
+      buy2_free1_discount: transaction.buy2_free1_discount,
+      buy3_free1_discount: transaction.buy3_free1_discount,
+      custom_discount: transaction.custom_discount,
+      staff_discount: transaction.staff_discount,
+      sales_person_name: transaction.sales_person_name,
+      sales_person_id: transaction.sales_person_id
+    };
+    if (!cachedReceipts) cachedReceipts = [];
+    cachedReceipts.unshift(fakeReceipt);
+    // Refresh receipt list if modal is open
+    const receiptsModal = document.getElementById('receiptsModal');
+    if (receiptsModal && receiptsModal.style.display === 'flex') {
+      renderReceiptsList(cachedReceipts);
+    }
+
+    // --- 5. 🎲 SHOW LUCKY DRAW MODAL IMMEDIATELY ---
+    document.getElementById('luckyTxId').innerText = transactionId;
+    const luckyModal = document.getElementById('luckyDrawModal');
+    luckyModal.style.display = 'flex';
+    document.getElementById('openLuckyDrawBtn').onclick = () => {
+      openLuckyDraw(transactionId, selectedCustomer?.id);
+      luckyModal.style.display = 'none';
+    };
+
+    // --- 6. Clear the cart ---
+    clearCart();
+
+    // --- 7. Background tasks (do NOT await – run in background) ---
+    // Printer (can be slow)
+    if (window.printerAPI?.isConnected && window.printerAPI.printReceipt) {
+      const transactionWithName = { ...transaction, employee_name: currentEmployee.name };
+      window.printerAPI.printReceipt(transactionWithName, 2).catch(err => console.error('Print error:', err));
+    }
+    // Refresh receipts from server
+    fetchAndCacheReceipts().catch(err => console.error('Receipt fetch error:', err));
+    // Sync pending sales (already called inside queueSale, but ensure it runs)
+    syncPendingSales().catch(err => console.error('Sync error:', err));
+
   } catch (err) {
     console.error('Checkout error:', err);
     await showAlertModal('Error', 'An error occurred during checkout. Please try again.');
   } finally {
     checkoutLock = false;
+    const confirmCashBtn = document.getElementById('confirmCashBtn');
+    const confirmOtherBtn = document.getElementById('confirmOtherBtn');
     if (confirmCashBtn) confirmCashBtn.disabled = false;
     if (confirmOtherBtn) confirmOtherBtn.disabled = false;
   }
@@ -8660,15 +8665,7 @@ document.getElementById('checkReceiptBtn').addEventListener('click', checkReceip
     categorySelect.value = 'all';
     renderProductGrid();
   });
-</script>
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./service-worker.js')
-        .then(reg => console.log('SW registered:', reg))
-        .catch(err => console.error('SW registration failed:', err));
-    });
-  }
+
 </script>
 </body>
 </html> 
