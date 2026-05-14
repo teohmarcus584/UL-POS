@@ -2181,7 +2181,7 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
 <script>
 
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBORuT3r6db5UxbC7WcTxlVL7DKrvRP15N_3co4DvasBfEI4BRJvOLOwHbpyPkApAP_g/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzYjAIoek-5cWl8vkFYf4Q0Yuec72LjeDDZnpGTkVfy75gYgeXY18IGDSAFmkNKceMfgA/exec"; // REPLACE WITH YOUR URL
 
 // Haversine distance in km
 function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
@@ -2377,6 +2377,57 @@ async function getCachedStoreReport(store, from, to) {
   return null;
 }
 
+// --- Debounced stock change aggregation ---
+let pendingStockDeltas = {};      // { productId: netDelta }
+let pendingStockTimers = {};      // { productId: timerId }
+let pendingStockInitialStock = {}; // { productId: initialStockBeforeChanges }
+
+function commitStockChange(productId) {
+    const netDelta = pendingStockDeltas[productId];
+    if (!netDelta || netDelta === 0) {
+        delete pendingStockDeltas[productId];
+        delete pendingStockTimers[productId];
+        delete pendingStockInitialStock[productId];
+        return;
+    }
+
+    const product = products.find(p => p.id == productId);
+    if (!product) return;
+
+    const oldStock = pendingStockInitialStock[productId];
+    const newStock = oldStock + netDelta;
+
+    // Update local product stock (already done, but ensure consistency)
+    product.stock = newStock;
+
+    // Log ONE aggregated history entry
+    logStockChange(product.id, product.name, product.category, oldStock, newStock, netDelta);
+
+    // Clear buffer
+    delete pendingStockDeltas[productId];
+    delete pendingStockTimers[productId];
+    delete pendingStockInitialStock[productId];
+}
+
+function debouncedStockChange(productId, product, delta, currentFinalStock) {
+    // If this is the first change for this product, store the initial stock
+    if (!pendingStockInitialStock.hasOwnProperty(productId)) {
+        pendingStockInitialStock[productId] = product.stock - delta;
+    }
+
+    // Accumulate net delta
+    pendingStockDeltas[productId] = (pendingStockDeltas[productId] || 0) + delta;
+
+    // Clear previous timer for this product
+    if (pendingStockTimers[productId]) {
+        clearTimeout(pendingStockTimers[productId]);
+    }
+
+    // Set a new timer – commit after 800ms idle
+    pendingStockTimers[productId] = setTimeout(() => {
+        commitStockChange(productId);
+    }, 3000);
+}
 function setCachedStoreReport(store, from, to, data) {
   const key = getCacheKey(store, from, to);
   storeReportCache[key] = {
@@ -3644,6 +3695,7 @@ async function saveTelegramSettings() {
 
   // ==================== INVENTORY MODE TOGGLE ====================
 function toggleInventoryMode() {
+flushPendingStockChanges();
   inventoryMode = !inventoryMode;
   const lowStockBtn = document.getElementById('lowStockToggleBtn');
   const addProductBtn = document.getElementById('addProductHeaderBtn');
@@ -7083,34 +7135,42 @@ function renderProductGrid() {
 
   if (inventoryMode) {
     // Helper to update stock from a new numeric value
-    const updateStockForProduct = (productId, newStock, delta) => {
-      const product = products.find(p => p.id == productId);
-      if (!product) return;
-      const oldStock = product.stock;
-      if (newStock === oldStock) return;
-      product.stock = newStock;
-      // Update input field if present
-      const inputField = document.querySelector(`.stock-input[data-id="${productId}"]`);
-      if (inputField) inputField.value = newStock;
-      scheduleStockUpdate(productId, newStock);
-      logStockChange(product.id, product.name, product.category, oldStock, newStock, delta);
-      checkAndNotifyOutOfStock(product.id, product.name, newStock);
-      refreshCategoryHighlighting();
-    };
+const updateStockForProduct = (productId, newStock, delta) => {
+    const product = products.find(p => p.id == productId);
+    if (!product) return;
+    const oldStock = product.stock;
+    if (newStock === oldStock) return;
+
+    // Apply immediate local update
+    product.stock = newStock;
+
+    // Update input field if present
+    const inputField = document.querySelector(`.stock-input[data-id="${productId}"]`);
+    if (inputField) inputField.value = newStock;
+
+    // Debounce the history logging and server sync
+    debouncedStockChange(productId, product, delta, newStock);
+
+    // Schedule server update (still debounced – we keep it separate)
+    scheduleStockUpdate(productId, newStock);
+
+    // Refresh low‑stock category highlighting
+    refreshCategoryHighlighting();
+};
 
     // Dec button
     document.querySelectorAll('.dec-stock').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const id = btn.dataset.id;
-        const input = document.querySelector(`.stock-input[data-id="${id}"]`);
-        if (input) {
-          let newVal = parseInt(input.value) - 1;
-          if (isNaN(newVal)) newVal = 0;
-          if (newVal < 0) newVal = 0;
-          updateStockForProduct(id, newVal, -1);
-        }
-        e.stopPropagation();
-      });
+     btn.addEventListener('click', (e) => {
+    const id = btn.dataset.id;
+    const input = document.querySelector(`.stock-input[data-id="${id}"]`);
+    if (input) {
+        let newVal = parseInt(input.value) - 1;
+        if (isNaN(newVal)) newVal = 0;
+        if (newVal < 0) newVal = 0;
+        updateStockForProduct(id, newVal, -1);
+    }
+    e.stopPropagation();
+});
     });
 
     // Inc button
@@ -7154,6 +7214,14 @@ function renderProductGrid() {
       }
     });
   }
+}
+function flushPendingStockChanges() {
+    for (let productId in pendingStockTimers) {
+        if (pendingStockTimers[productId]) {
+            clearTimeout(pendingStockTimers[productId]);
+            commitStockChange(productId);
+        }
+    }
 }
   // ==================== VIEW TOGGLE ====================
   function setViewMode(mode) {
@@ -7388,6 +7456,7 @@ if (applyHistoryBtn) {
   const closeSideMenuBtn = document.getElementById('closeSideMenuBtn');
 
   function openSideMenu() {
+    flushPendingStockChanges();
     if (inventoryMode) toggleInventoryMode();
     sideMenuOverlay.style.display = 'flex';
     setTimeout(() => { sideMenuDiv.classList.add('open'); }, 10);
