@@ -6842,9 +6842,11 @@ function buildReceiptContent(copyLabel) {
       // barcode
       const barcodeData = encoder.encode(transaction.transaction_id);
       const barcodeLen = barcodeData.length;
-      commands.push(0x1D, 0x68, 0x32);
-      commands.push(0x1D, 0x77, 0x01);
-      commands.push(0x1B, 0x61, 0x01);
+      // Inside printReceipt, after generating receipt text:
+commands.push(0x1D, 0x68, 0x64);    // height = 100 dots
+commands.push(0x1D, 0x77, 0x03);    // width = 3
+commands.push(0x1B, 0x61, 0x01);    // center alignment
+// ... rest of barcode data
       commands.push(0x1D, 0x6B, 0x49, barcodeLen);
       for (let j = 0; j < barcodeLen; j++) commands.push(barcodeData[j]);
       commands.push(0x0A, 0x0A);
@@ -6931,9 +6933,11 @@ async function printPrizeVoucher(prizeLabel, receiptNumber, spinDate = new Date(
     commands.push(0x0A);
 
     // Barcode
-    commands.push(0x1D, 0x68, 0x32);          // barcode height = 50
-    commands.push(0x1D, 0x77, 0x01);          // barcode width = 2
-    commands.push(0x1B, 0x61, 0x01);          // center
+    // Inside printReceipt, after generating receipt text:
+commands.push(0x1D, 0x68, 0x64);    // height = 100 dots
+commands.push(0x1D, 0x77, 0x03);    // width = 3
+commands.push(0x1B, 0x61, 0x01);    // center alignment
+// ... rest of barcode data
     const barcodeData = encoder.encode(receiptNumber);
     const len = barcodeData.length;
     commands.push(0x1D, 0x6B, 0x49, len);     // CODE 128
