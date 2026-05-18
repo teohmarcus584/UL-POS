@@ -2564,7 +2564,7 @@ async function updateNonAdminReport(from, to) {
   }
 
   // 2. Staff's own sales (using sales_person_id)
-  const staffAgg = await fetchEmployeeSalesAggregate(store, from, to);
+  const staffAgg = await fetchEmployeeSalesAggregate('all', from, to);
   if (staffAgg && staffAgg.labels.length) {
     const staffIndex = staffAgg.labels.findIndex(name =>
       name === currentEmployee.name || name.includes(currentEmployee.id)
@@ -4625,7 +4625,7 @@ async function updateNonAdminStatsCards(from, to) {
   }
 
   // Staff's own sales (sales_person_id)
-  const staffAgg = await fetchEmployeeSalesAggregate(store, from, to);
+  const staffAgg = await fetchEmployeeSalesAggregate('all', from, to);
   let mySales = 0;
   if (staffAgg && staffAgg.labels.length) {
     const idx = staffAgg.labels.findIndex(name =>
@@ -6843,8 +6843,8 @@ function buildReceiptContent(copyLabel) {
       const barcodeData = encoder.encode(transaction.transaction_id);
       const barcodeLen = barcodeData.length;
       // Inside printReceipt, after generating receipt text:
-commands.push(0x1D, 0x68, 0x64);    // height = 100 dots
-commands.push(0x1D, 0x77, 0x03);    // width = 3
+commands.push(0x1D, 0x68, 0x40);   // height = 64 dots
+commands.push(0x1D, 0x77, 0x02);   // width = 2 (still thicker than original 1)
 commands.push(0x1B, 0x61, 0x01);    // center alignment
 // ... rest of barcode data
       commands.push(0x1D, 0x6B, 0x49, barcodeLen);
@@ -6934,8 +6934,8 @@ async function printPrizeVoucher(prizeLabel, receiptNumber, spinDate = new Date(
 
     // Barcode
     // Inside printReceipt, after generating receipt text:
-commands.push(0x1D, 0x68, 0x64);    // height = 100 dots
-commands.push(0x1D, 0x77, 0x03);    // width = 3
+commands.push(0x1D, 0x68, 0x40);   // height = 64 dots
+commands.push(0x1D, 0x77, 0x02);   // width = 2 (still thicker than original 1)
 commands.push(0x1B, 0x61, 0x01);    // center alignment
 // ... rest of barcode data
     const barcodeData = encoder.encode(receiptNumber);
