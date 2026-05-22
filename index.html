@@ -6826,13 +6826,19 @@ function buildReceiptContent(copyLabel) {
       let commands = [];
       commands.push(0x1B, 0x40); // init
       commands.push(0x1B, 0x61, 0x01); // center align
-      commands.push(0x1B, 0x45, 0x01);
-      commands.push(0x1D, 0x21, 0x11);
-      const titleText = "UL PERFUMERY";
-      for (let c of titleText) commands.push(c.charCodeAt(0));
-      commands.push(0x0A);
-      commands.push(0x1B, 0x45, 0x00);
-      commands.push(0x1D, 0x21, 0x00);
+      // --- Header: Store name (bold, enlarged)
+commands.push(0x1B, 0x45, 0x01);
+commands.push(0x1D, 0x21, 0x11);
+const titleText = "UL PERFUMERIE";
+for (let c of titleText) commands.push(c.charCodeAt(0));
+commands.push(0x0A);
+commands.push(0x1B, 0x45, 0x00);
+commands.push(0x1D, 0x21, 0x00);
+
+// --- Registration number (normal font, not bold)
+const regText = "PG0492353-A";
+for (let c of regText) commands.push(c.charCodeAt(0));
+commands.push(0x0A);
       commands.push(0x1B, 0x61, 0x00);
       commands.push(0x0A);
 
