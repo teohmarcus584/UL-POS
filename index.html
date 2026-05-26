@@ -1688,6 +1688,7 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
     <div class="pos-header-right">
 	 <button id="addProductHeaderBtn" class="cart-header-btn" style="display: none;">➕ Add Product</button>
       <span class="cashier-info" id="employeeNameHeader"></span>
+	   <button id="promoVoucherBtn" class="cart-header-btn" title="Print Promo Voucher">🎟️ Promo Voucher</button>
       <span id="barcodeStatus" class="cashier-info" style="background:#e8f5e9; color:#2c7a4b;">📷 Barcode ready</span>
       <button id="logoutHeaderBtn" class="logout-header-btn">🚪 Logout</button>
       <button id="printerIconBtn" class="printer-icon-btn">🖨️</button>
@@ -2177,11 +2178,25 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
   </div>
 </div>
 <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Processing...</div></div>
-
+<!-- Promo Voucher Modal -->
+<div id="promoVoucherModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 500px;">
+    <span class="close-modal" id="closePromoVoucherModal">×</span>
+    <div class="modal-title">🎟️ Scan Promo Barcode</div>
+    <div class="filter-group">
+      <label>Scan or type promo code (A1 … A12)</label>
+      <input type="text" id="promoCodeInput" class="modal-input" placeholder="e.g. A1" autofocus>
+    </div>
+    <div class="modal-buttons">
+      <button id="cancelPromoVoucherBtn" class="modal-btn modal-btn-secondary">Cancel</button>
+    </div>
+    <div id="promoVoucherError" style="color:#ef4444; margin-top:12px; display:none;"></div>
+  </div>
+</div>
 <script>
 
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxhESQYYHia_7OlvADcOxxPz_V9NrGl4JHw-f0PIIc3aK_Rl3yVf0OeZKw87grKMdWqaQ/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzEktp0ZaDvBoVjUKbmcTJHBc2Rjiv2nnBJDiMXOubWLzME_K6K1vLln6i-Xy1lYbJn0Q/exec"; // REPLACE WITH YOUR URL
 
 // Haversine distance in km
 function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
@@ -2367,7 +2382,37 @@ let storeReportCache = {};
 function getCacheKey(store, from, to) {
   return `store_${store}_${from}_${to}`;
 }
+// --- Promo Voucher Feature ---
+const promoVoucherBtn = document.getElementById('promoVoucherBtn');
+const promoVoucherModal = document.getElementById('promoVoucherModal');
+const promoCodeInput = document.getElementById('promoCodeInput');
+const closePromoVoucherModal = document.getElementById('closePromoVoucherModal');
+const cancelPromoVoucherBtn = document.getElementById('cancelPromoVoucherBtn');
+const promoVoucherError = document.getElementById('promoVoucherError');
 
+let promoModalActive = false;
+
+function openPromoVoucherModal() {
+  promoModalActive = true;
+  promoVoucherModal.style.display = 'flex';
+  promoCodeInput.value = '';
+  promoVoucherError.style.display = 'none';
+  promoCodeInput.focus();
+}
+
+function closePromoVoucherModalFunc() {
+  promoModalActive = false;
+  promoVoucherModal.style.display = 'none';
+}
+
+if (promoVoucherBtn) promoVoucherBtn.addEventListener('click', openPromoVoucherModal);
+if (closePromoVoucherModal) closePromoVoucherModal.addEventListener('click', closePromoVoucherModalFunc);
+if (cancelPromoVoucherBtn) cancelPromoVoucherBtn.addEventListener('click', closePromoVoucherModalFunc);
+
+// Also close when clicking on overlay background
+promoVoucherModal?.addEventListener('click', (e) => {
+  if (e.target === promoVoucherModal) closePromoVoucherModalFunc();
+});
 async function getCachedStoreReport(store, from, to) {
   const key = getCacheKey(store, from, to);
   const cached = storeReportCache[key];
@@ -4530,13 +4575,59 @@ function applyStaffDiscount() {
   errorDiv.style.display = 'block';
 }
 
+async function usePromoVoucherAfterSale(code) {
+  try {
+    const formData = new URLSearchParams();
+    formData.append('action', 'usePromoVoucher');
+    formData.append('code', code);
+    await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
+  } catch (err) {
+    console.error('Failed to mark promo voucher as used:', err);
+  }
+}
 async function checkReceiptForClaim() {
   const receipt = document.getElementById('claimReceiptInput').value.trim();
   if (!receipt) {
-    showClaimError('Please enter a receipt number.');
+    showClaimError('Please enter a receipt number or promo code.');
     return;
   }
-  showLoading('Checking receipt...');
+
+  // First, try to redeem as a promo voucher (checks PromoVouchers sheet)
+  showLoading('Checking promo voucher...');
+  try {
+    const promoUrl = `${APPS_SCRIPT_URL}?action=getPromoVoucher&code=${encodeURIComponent(receipt)}`;
+    const promoResponse = await fetch(promoUrl);
+    const promoResult = await promoResponse.json();
+
+    if (promoResult.success) {
+      // It's a valid promo voucher – apply discount
+      const discountValue = promoResult.discount_value;
+      const promoText = promoResult.promo_text;
+
+      pendingPrize = {
+  receipt: receipt,
+  value: discountValue,
+  name: promoText,
+  isPromo: true,
+  code: receipt   // ✅ this is critical
+};
+      discountAmount = discountValue;
+      claimedReceiptInfo = pendingPrize;
+      updateCartUI();
+
+      showAlertModal('Promo Applied', `Promo voucher "${promoText}" applied. Discount: RM ${discountValue.toFixed(2)}`);
+      document.getElementById('claimPrizeModal').style.display = 'none';
+      resetClaimBarcodeBuffer();
+      hideLoading();
+      return;
+    }
+  } catch (err) {
+    console.warn('Promo voucher check failed:', err);
+    // Continue to Lucky Draw check
+  }
+
+  // If not a promo voucher (or lookup failed), try Lucky Draw receipt
+  showLoading('Checking Lucky Draw receipt...');
   try {
     const url = `${APPS_SCRIPT_URL}?action=get&receipt=${encodeURIComponent(receipt)}`;
     const response = await fetch(url);
@@ -4564,10 +4655,8 @@ async function checkReceiptForClaim() {
       }
       window.pendingClaimReceipt = data;
 
-      // ✅ READ DISCOUNT_VALUE from backend
       let prizeValue = Number(data.discount_value);
       if (isNaN(prizeValue) || prizeValue <= 0) {
-        // Fallback: extract from prize label (should not happen)
         let prizeLabel = data.prize_label || data.prize || '';
         const match = prizeLabel.match(/RM\s*(\d+(?:\.\d+)?)/);
         if (match) prizeValue = parseFloat(match[1]);
@@ -5105,7 +5194,9 @@ async function completeCheckout(paymentMethod, cashReceived) {
         openLuckyDraw(transactionId, selectedCustomer?.id);
         luckyModal.style.display = 'none';
       };
-
+if (pendingPrize && pendingPrize.isPromo && pendingPrize.code) {
+  await usePromoVoucherAfterSale(pendingPrize.code);
+}
       clearCart();
     } else {
       await showAlertModal('Error', 'Failed to record sale. Check network / Apps Script.');
@@ -6317,7 +6408,52 @@ document.addEventListener('keydown', (e) => {
     }
     return;
   }
+// INSIDE the keydown listener, after the login‑modal handling, add:
+// --- Promo modal barcode handling (buffer + timeout) ---
+if (promoModalActive) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    // Process whatever is currently in the input field
+    const code = promoCodeInput.value.trim();
+    if (code) processPromoBarcode(code);
+    return;
+  }
 
+  // Only accept alphanumeric and dash characters
+  if (e.key.length === 1 && /[a-zA-Z0-9-]/.test(e.key)) {
+    e.preventDefault();  // prevent double‑typing
+
+    // Append to a separate buffer (not directly to the input)
+    if (!window.promoBarcodeBuffer) window.promoBarcodeBuffer = '';
+    if (window.promoBarcodeTimer) clearTimeout(window.promoBarcodeTimer);
+
+    window.promoBarcodeBuffer += e.key;
+
+    // Update the input field for visual feedback (optional)
+    promoCodeInput.value = window.promoBarcodeBuffer;
+
+    // Set timer to process the buffer after a short pause (e.g., 150ms)
+    window.promoBarcodeTimer = setTimeout(() => {
+      const raw = window.promoBarcodeBuffer || '';
+      window.promoBarcodeBuffer = '';
+      promoCodeInput.value = '';
+
+      // Extract the first occurrence of A1..A12 (case‑insensitive)
+      const match = raw.match(/\b(A[1-9]|A1[0-2])\b/i);
+      if (match) {
+        processPromoBarcode(match[1].toUpperCase());
+      } else if (raw.length > 0) {
+        promoVoucherError.innerText = `❌ Invalid promo code: ${raw}. Use A1 .. A12.`;
+        promoVoucherError.style.display = 'block';
+        // Clear error after 3 seconds
+        setTimeout(() => {
+          if (promoVoucherError) promoVoucherError.style.display = 'none';
+        }, 3000);
+      }
+    }, 150);
+  }
+  return; // do not process product barcode while modal is open
+}
   // --- CLAIM PRIZE MODAL (step1) BARCODE HANDLING ---
   const claimModal = document.getElementById('claimPrizeModal');
   const claimStep1 = document.getElementById('claimStep1');
@@ -6376,6 +6512,147 @@ async function getCachedMultiStoreReport(from, to) {
     return cached.data;
   }
   return null;
+}
+// Mapping of promo codes to voucher description
+const PROMO_MAP = {
+  "A1":  { text: "RM 36 CAR AROMATIC",           value: 36,  kind: "discount_price" },
+  "A2":  { text: "RM 67 PERFUME 15ML",           value: 67,  kind: "discount_price" },
+  "A3":  { text: "BUY 1 FREE 2 PERFUME",         value: 360, kind: "bogo" },
+  "A4":  { text: "BUY 1 FREE 1 SIG PERFUME",     value: 180, kind: "bogo" },
+  "A5":  { text: "BUY 1 FREE 1 EXCLUSIFS PERFUME", value: 280, kind: "bogo" },
+  "A6":  { text: "LOTION BUY 1 FREE 1",          value: 109, kind: "bogo" },
+  "A7":  { text: "ROOM SPRAY BUY 1 FREE 1",      value: 89,  kind: "bogo" },
+  "A8":  { text: "PILLOW MIST BUY 1 FREE 1",     value: 75,  kind: "bogo" },
+  "A9":  { text: "CAR AROMATIC BUY 1 FREE 1",    value: 38,  kind: "bogo" },
+  "A10": { text: "15 ML PERFUME BUY 1 FREE 1",   value: 75,  kind: "bogo" },
+  "A11": { text: "CANDLE BUY 1 FREE 1",          value: 109, kind: "bogo" },
+  "A12": { text: "BODY WASH BUY 2 FREE 2",       value: 134, kind: "bogo" }
+};
+
+async function processPromoBarcode(code) {
+  const upperCode = code.trim().toUpperCase();
+  const promo = PROMO_MAP[upperCode];
+  if (!promo) {
+    promoVoucherError.innerText = `❌ Invalid promo code: ${code}. Use A1 .. A12.`;
+    promoVoucherError.style.display = 'block';
+    return;
+  }
+  const discountValue = promo.value;
+
+  // ✅ Generate short unique ID instead of using the code directly
+  const voucherId = 'PRO' + 
+                    Date.now().toString(36).slice(-5).toUpperCase() + 
+                    Math.random().toString(36).substring(2,5).toUpperCase();
+
+ const issueDate = new Date();
+// Fixed expiry date: June 7, 2026 (month is 0-indexed, so 5 = June)
+const expiryDate = new Date(2026, 5, 7);
+
+  const validFromStr = issueDate.toLocaleDateString();
+  const validTillStr = expiryDate.toLocaleDateString();
+
+  // 1. Print the voucher using the printer
+  if (!window.printerAPI || !window.printerAPI.isConnected) {
+    showLoading('Printer not connected. Opening Bluetooth...');
+    try {
+      await connectPrinter();
+      hideLoading();
+    } catch (err) {
+      hideLoading();
+      promoVoucherError.innerText = 'Printer not connected. Please connect first.';
+      promoVoucherError.style.display = 'block';
+      return;
+    }
+  }
+
+  const printed = await printPromoVoucher(promo.text, voucherId, validFromStr, validTillStr);
+  if (printed) {
+    // Optionally save to Google Sheet (optional – you can call a backend action)
+    await savePromoVoucherToSheet(voucherId, promo.text, discountValue, currentEmployee?.name, issueDate, expiryDate);
+    showAlertModal('Voucher Printed', `Promo voucher "${promo.text}" printed successfully.\nValid until ${validTillStr}.`);
+    closePromoVoucherModalFunc();
+  } else {
+    promoVoucherError.innerText = 'Print failed. Check printer connection.';
+    promoVoucherError.style.display = 'block';
+  }
+}
+
+// Printer function for promo vouchers (similar to prize voucher)
+// Printer function for promo vouchers (QR code version)
+async function printPromoVoucher(description, voucherId, validFrom, validTill) {
+  if (!isPrinterConnected || !printerCharacteristic) return false;
+
+  const encoder = new TextEncoder();
+  const maxChars = paperSizeSelectModal.value === '58' ? 32 : 48;
+  const separator = '='.repeat(maxChars);
+  const dash = '-'.repeat(maxChars);
+
+  // Build lines exactly like Lucky Draw voucher
+  const lines = [
+    '',
+    'PROMOTIONAL VOUCHER',
+    separator,
+    `OFFER: ${description}`,
+    `CODE: ${voucherId}`,
+    dash,
+    `VALID FROM: ${validFrom}`,
+    `VALID TILL: ${validTill}`,
+    separator,
+    'TERMS & CONDITIONS',
+    '- Present this QR code at checkout',
+    '- Not combinable with other promotions',
+    '- One time use only',
+    separator,
+    ''
+  ];
+
+  const text = lines.join('\n');
+
+  const commands = [];
+  commands.push(0x1B, 0x40);                 // init
+  commands.push(0x1B, 0x61, 0x01);           // center align
+
+  // Print text lines
+  for (let ch of text) commands.push(ch.charCodeAt(0));
+
+  // ---- QR Code (instead of barcode) ----
+  const qrData = voucherId;  // encode the voucher ID
+  const qrDataLen = qrData.length;
+
+  // ESC/POS QR Code commands (Model 2, size 8, error correction M)
+  commands.push(0x1D, 0x28, 0x6B, 0x04, 0x00, 0x31, 0x41, 0x32, 0x00); // Select model 2
+  commands.push(0x1D, 0x28, 0x6B, 0x03, 0x00, 0x31, 0x43, 0x08);       // Set size = 8 (adjust if needed)
+  commands.push(0x1D, 0x28, 0x6B, 0x03, 0x00, 0x31, 0x45, 0x30);       // Error correction level M (48)
+  commands.push(0x1D, 0x28, 0x6B, 0x00, 0x00, 0x31, 0x50, 0x30);       // Store QR data – placeholder length
+  // Store the actual QR data
+  const qrDataCommand = [0x1D, 0x28, 0x6B, (qrDataLen + 3) & 0xFF, ((qrDataLen + 3) >> 8) & 0xFF, 0x31, 0x50, 0x30];
+  for (let i = 0; i < qrDataLen; i++) qrDataCommand.push(qrData.charCodeAt(i));
+  commands.push(...qrDataCommand);
+  commands.push(0x1D, 0x28, 0x6B, 0x03, 0x00, 0x31, 0x51, 0x30);         // Print QR code
+
+  commands.push(0x0A, 0x0A);
+  commands.push(0x1B, 0x64, 0x03);           // feed 3 lines
+  commands.push(0x1D, 0x56, 0x41, 0x00);     // partial cut
+
+  return await sendChunkedData(new Uint8Array(commands), 500);
+}
+
+// Optional: save issued promo voucher to Google Sheet (reuse existing save mechanism)
+async function savePromoVoucherToSheet(voucherId, promoText, discountValue, employeeName, issueDate, expiryDate) {
+  try {
+    const formData = new URLSearchParams();
+    formData.append('action', 'savePromoVoucher');
+    formData.append('voucher_id', voucherId);
+    formData.append('promo_text', promoText);
+    formData.append('discount_value', discountValue);   // NEW
+    formData.append('employee_name', employeeName || currentEmployee?.name || '');
+    formData.append('issue_date', issueDate.toISOString());
+    formData.append('expiry_date', expiryDate.toISOString());
+    formData.append('store', currentStore);
+    await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
+  } catch (err) {
+    console.warn('Failed to save promo voucher to sheet:', err);
+  }
 }
 function hidePaymentRowsForNonAdmin() {
   if (!currentEmployee || currentEmployee.isAdmin) return;
