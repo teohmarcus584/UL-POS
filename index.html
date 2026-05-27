@@ -4605,12 +4605,12 @@ async function checkReceiptForClaim() {
       const promoText = promoResult.promo_text;
 
       pendingPrize = {
-  receipt: receipt,
-  value: discountValue,
-  name: promoText,
-  isPromo: true,
-  code: receipt   // ✅ this is critical
-};
+        receipt: receipt,
+        value: discountValue,
+        name: promoText,
+        isPromo: true,
+		 code: receipt
+      };
       discountAmount = discountValue;
       claimedReceiptInfo = pendingPrize;
       updateCartUI();
