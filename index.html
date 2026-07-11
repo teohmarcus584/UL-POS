@@ -1695,20 +1695,32 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
     </div>
   </div>
   <div class="pos-dashboard">
-    <div class="products-panel">
-      <div class="filter-bar">
-        <select id="categorySelect"><option value="all">📂 All Categories</option></select>
-        <input type="text" id="searchInput" class="search-bar" placeholder="🔍 Search product...">
-        <button id="refreshProductsPanelBtn" class="refresh-btn" title="Force sync now">🔄 Sync now</button>
-        <button id="lowStockToggleBtn" class="low-stock-toggle">⚠️ Low Stock</button>
-        <div class="view-toggle">
-          <button id="backToCategoriesBtn" style="display:none;" class="refresh-btn">← Categories</button>
-         <button id="gridViewBtn" title="Grid view">⊞</button>
-<button id="listViewBtn" class="active" title="List view">≡</button>
-        </div>
-      </div>
-      <div id="productGrid" class="product-grid">Loading products...</div>
+   <div class="products-panel">
+  <div class="filter-bar">
+    <select id="categorySelect">...</select>
+    <input type="text" id="searchInput" class="search-bar" placeholder="🔍 Search product...">
+    <button id="refreshProductsPanelBtn" class="refresh-btn">🔄 Sync now</button>
+    <button id="lowStockToggleBtn" class="low-stock-toggle">⚠️ Low Stock</button>
+    <div class="view-toggle">
+      <button id="backToCategoriesBtn" style="display:none;" class="refresh-btn">← Categories</button>
+      <button id="gridViewBtn" title="Grid view">⊞</button>
+      <button id="listViewBtn" class="active" title="List view">≡</button>
     </div>
+  </div>
+  
+  <!-- ✅ ADD STOCK TAKE MODE INDICATOR HERE (BEFORE productGrid) -->
+  <div id="stockTakeModeIndicator" style="display:none; background:#f0fdf4; border:2px solid #10b981; border-radius:12px; padding:12px; margin:8px 0; text-align:center;">
+    <strong>📋 Stock Take Mode</strong>
+    <span style="display:block; font-size:0.9rem; color:#64748b;">Count: <span id="stockTakeCount">0</span> products</span>
+  </div>
+  
+  <!-- ✅ ADD SUBMIT BUTTON HERE (BEFORE productGrid) -->
+  <button id="submitStockTakeBtn" style="display:none; background:#10b981; color:white; border:none; border-radius:40px; padding:12px 24px; font-weight:600; cursor:pointer; width:100%; margin-top:12px;">
+    📤 Submit Stock Take
+  </button>
+  
+  <div id="productGrid" class="product-grid">Loading products...</div>
+</div>
     <div class="cart-panel">
       <div id="cartHandle" class="cart-handle"><span class="cart-handle-icon">▶</span></div>
       <div class="cart-header">
@@ -1749,8 +1761,27 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
 </div>
 
 <!-- Side Menu -->
-<div id="sideMenuOverlay" class="side-menu-overlay"><div id="sideMenu" class="side-menu"><div class="menu-header"><h3>Menu</h3><button class="close-menu" id="closeSideMenuBtn">✕</button></div><div class="menu-buttons"><button id="sideReportBtn" class="menu-btn">📊 Report</button><button id="sideSettlementBtn" class="menu-btn">💰 Settlement</button><button id="sideCollectionBtn" class="menu-btn" style="display: none;">💵 Cash Collection</button><button id="sideInventoryBtn" class="menu-btn" style="display: none;">📦 Inventory</button><button id="sideReceiptsBtn" class="menu-btn">📜 Receipts</button><button id="sideDrawerBtn" class="menu-btn">💰 Open Drawer</button><button id="sideChangePinBtn" class="menu-btn">🔑 Change PIN</button><button id="sideStockAlertBtn" class="menu-btn">🔔 Stock Alerts: OFF</button><button id="sideTelegramBtn" class="menu-btn">📱 Telegram Alerts</button></div></div></div>
-
+<div id="sideMenuOverlay" class="side-menu-overlay"><div id="sideMenu" class="side-menu">
+  <div class="menu-header">
+    <h3>Menu</h3>
+    <button class="close-menu" id="closeSideMenuBtn">✕</button>
+  </div>
+  <div class="menu-buttons">
+    <button id="sideReportBtn" class="menu-btn">📊 Report</button>
+    <button id="sideSettlementBtn" class="menu-btn">💰 Settlement</button>
+    <button id="sideCollectionBtn" class="menu-btn" style="display: none;">💵 Cash Collection</button>
+    <button id="sideInventoryBtn" class="menu-btn" style="display: none;">📦 Inventory</button>
+    <!-- ✅ ADD STOCK TAKE BUTTONS HERE -->
+    <button id="sideStockTakeBtn" class="menu-btn">📋 Stock Take</button>
+    <button id="sideStockTakeApprovalBtn" class="menu-btn" style="display: none;">✅ Approve Stock Take</button>
+    <button id="sideReceiptsBtn" class="menu-btn">📜 Receipts</button>
+    <button id="sideDrawerBtn" class="menu-btn">💰 Open Drawer</button>
+    <button id="sideChangePinBtn" class="menu-btn">🔑 Change PIN</button>
+    <button id="sideStockAlertBtn" class="menu-btn">🔔 Stock Alerts: OFF</button>
+    <button id="sideTelegramBtn" class="menu-btn">📱 Telegram Alerts</button>
+  </div>
+</div>
+</div> 
 <!-- All Required Modals (fully defined) -->
 <div id="changePinModal" class="modal-overlay">
   <div class="modal-container" style="max-width: 400px;">
@@ -2196,7 +2227,7 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
 <script>
 
   // ==================== CONFIGURATION ====================
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzEktp0ZaDvBoVjUKbmcTJHBc2Rjiv2nnBJDiMXOubWLzME_K6K1vLln6i-Xy1lYbJn0Q/exec"; // REPLACE WITH YOUR URL
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw-lWG-HGpB1VdI4aShO0oosKwk8fDVXb9te_twqLt6s_FwmTwwssnFTrFXIcReejHlTw/exec"; // REPLACE WITH YOUR URL
 
 // Haversine distance in km
 function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
@@ -2798,7 +2829,10 @@ function applyRoleBasedUI() {
     if (sideCollection) sideCollection.style.display = 'none';
     storeSelect.disabled = true;
   }
-
+ const approvalBtn = document.getElementById('sideStockTakeApprovalBtn');
+  if (approvalBtn) {
+    approvalBtn.style.display = currentEmployee?.isAdmin ? 'flex' : 'none';
+  }
   // --- Report modal filter groups & charts ---
   const reportStoreFilter = document.getElementById('reportStoreFilterGroup');
   const employeeFilterGroup = document.getElementById('employeeFilterGroup');
@@ -3038,6 +3072,23 @@ function resetLoginBarcodeBuffer() {
     clearTimeout(loginBarcodeTimer);
     loginBarcodeTimer = null;
   }
+}
+// Place this at the VERY TOP of your script, before anything else
+function setSettlementFieldsEnabled(enabled) {
+  const fields = ['settlementStoreSelect', 'pettyCashFloat', 'actualCash', 'actualCard', 'actualQR', 'actualAlipay'];
+  const isNonAdmin = !currentEmployee?.isAdmin;
+  fields.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      if (id === 'settlementStoreSelect' && isNonAdmin) {
+        el.disabled = true;
+      } else {
+        el.disabled = !enabled;
+      }
+    }
+  });
+  const checkBtn = document.getElementById('checkSettlementBtn');
+  if (checkBtn) checkBtn.disabled = !enabled;
 }
 // Fetch all settlement records for a specific store
 async function fetchSettlementsForStore(store) {
@@ -4020,9 +4071,16 @@ async function fetchProductsFromSheet(force = false) {
         localStorage.setItem('lastSyncTimestamps', JSON.stringify(lastSyncTimestamps));
 
         updateCategoryDropdown();
-        renderProductGrid();
         refreshCategoryHighlighting();
         updateSyncStatus(true, now);
+        
+        // ✅ Check stock take mode before rendering
+        if (stockTakeMode) {
+          renderStockTakeProductGrid();
+        } else {
+          renderProductGrid();
+        }
+        
         hideLoading();
         return true;
       }
@@ -4037,9 +4095,16 @@ async function fetchProductsFromSheet(force = false) {
           // ✅ Ensure sorted order
           products = [...cachedProducts].sort((a, b) => a.name.localeCompare(b.name));
           updateCategoryDropdown();
-          renderProductGrid();
           refreshCategoryHighlighting();
           updateSyncStatus(true, timestamp);
+          
+          // ✅ Check stock take mode before rendering
+          if (stockTakeMode) {
+            renderStockTakeProductGrid();
+          } else {
+            renderProductGrid();
+          }
+          
           hideLoading();
           return true;
         }
@@ -4051,9 +4116,16 @@ async function fetchProductsFromSheet(force = false) {
           localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, products: cachedProducts, hash: cachedHash }));
           products = [...cachedProducts].sort((a, b) => a.name.localeCompare(b.name));
           updateCategoryDropdown();
-          renderProductGrid();
           refreshCategoryHighlighting();
           updateSyncStatus(true, now);
+          
+          // ✅ Check stock take mode before rendering
+          if (stockTakeMode) {
+            renderStockTakeProductGrid();
+          } else {
+            renderProductGrid();
+          }
+          
           hideLoading();
           return true;
         }
@@ -4083,9 +4155,16 @@ async function fetchProductsFromSheet(force = false) {
       localStorage.setItem('lastSyncTimestamps', JSON.stringify(lastSyncTimestamps));
 
       updateCategoryDropdown();
-      renderProductGrid();
       refreshCategoryHighlighting();
       updateSyncStatus(true, now);
+      
+      // ✅ Check stock take mode before rendering
+      if (stockTakeMode) {
+        renderStockTakeProductGrid();
+      } else {
+        renderProductGrid();
+      }
+      
       hideLoading();
       return true;
 
@@ -4105,46 +4184,62 @@ async function fetchProductsFromSheet(force = false) {
   return false;
 }
 
-  // Background sync: check for changes without showing loading
   async function backgroundSync() {
-    if (syncInProgress) return;
-    syncInProgress = true;
-    try {
-      const store = currentStore;
-      const cacheKey = `products_${store}`;
-      const hashKey = `products_hash_${store}`;
-      const cached = localStorage.getItem(cacheKey);
-      if (!cached) {
-        // No cache, do a full sync
-        await fetchProductsFromSheet(false);
-        return;
+  if (syncInProgress) return;
+  syncInProgress = true;
+  try {
+    const store = currentStore;
+    const cacheKey = `products_${store}`;
+    const hashKey = `products_hash_${store}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (!cached) {
+      // ✅ Store the current mode
+      const wasInStockTakeMode = stockTakeMode;
+      await fetchProductsFromSheet(false);
+      // ✅ If we were in stock take mode and got kicked out, restore it
+      if (wasInStockTakeMode && !stockTakeMode) {
+        stockTakeMode = true;
+        renderStockTakeProductGrid();
       }
-      const { hash: cachedHash } = JSON.parse(cached);
-      // Fetch only hash from server (lightweight endpoint)
-      const url = `${APPS_SCRIPT_URL}?action=getProductsHash&store=${store}&_=${Date.now()}`;
-      const response = await fetch(url);
-      const result = await response.json();
-      if (result.success && result.hash) {
-        if (result.hash !== cachedHash) {
-          console.log("Hash mismatch, updating products...");
-          await fetchProductsFromSheet(true);
-        } else {
-          // Update timestamp only
-          const { products: cachedProducts, hash } = JSON.parse(cached);
-          localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), products: cachedProducts, hash }));
-          updateSyncStatus(true, Date.now());
+      return;
+    }
+    const { hash: cachedHash } = JSON.parse(cached);
+    const url = `${APPS_SCRIPT_URL}?action=getProductsHash&store=${store}&_=${Date.now()}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    if (result.success && result.hash) {
+      if (result.hash !== cachedHash) {
+        console.log("Hash mismatch, updating products...");
+        const wasInStockTakeMode = stockTakeMode;
+        await fetchProductsFromSheet(true);
+        if (wasInStockTakeMode && !stockTakeMode) {
+          stockTakeMode = true;
+          renderStockTakeProductGrid();
         }
       } else {
-        // Fallback: full sync
-        await fetchProductsFromSheet(true);
+        const { products: cachedProducts, hash } = JSON.parse(cached);
+        localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), products: cachedProducts, hash }));
+        updateSyncStatus(true, Date.now());
+        // ✅ Don't re-render if in stock take mode, or use refreshProductDisplay
+        if (!stockTakeMode) {
+          renderProductGrid();
+        }
       }
-    } catch (err) {
-      console.warn("Background sync failed:", err);
-      updateSyncStatus(false);
-    } finally {
-      syncInProgress = false;
+    } else {
+      const wasInStockTakeMode = stockTakeMode;
+      await fetchProductsFromSheet(true);
+      if (wasInStockTakeMode && !stockTakeMode) {
+        stockTakeMode = true;
+        renderStockTakeProductGrid();
+      }
     }
+  } catch (err) {
+    console.warn("Background sync failed:", err);
+    updateSyncStatus(false);
+  } finally {
+    syncInProgress = false;
   }
+}
 
   function updateSyncStatus(success, timestampMs) {
     const statusDiv = document.getElementById('syncStatus');
@@ -4166,7 +4261,6 @@ async function fetchProductsFromSheet(force = false) {
       statusDiv.className = 'sync-status error';
     }
   }
-
 async function printSettlementReport(store, date, totals) {
   if (!isPrinterConnected || !printerCharacteristic) {
     await showAlertModal('Printer not connected', 'Settlement recorded but could not print report. Please connect printer.');
@@ -4192,36 +4286,38 @@ async function printSettlementReport(store, date, totals) {
     lines.push(separator);
     lines.push('SYSTEM TOTALS');
     lines.push(dash);
-    lines.push(`Cash      : RM ${totals.cashSystem.toFixed(2)}`);
-    lines.push(`Card      : RM ${totals.cardSystem.toFixed(2)}`);
-    lines.push(`QR Pay    : RM ${totals.qrSystem.toFixed(2)}`);
-    lines.push(`Alipay    : RM ${totals.alipaySystem.toFixed(2)}`);
-    lines.push(`Refunds   : RM ${totals.refundSystem.toFixed(2)}`);
+    lines.push(`Cash      : RM ${(totals.cashSystem || 0).toFixed(2)}`);
+    lines.push(`Card      : RM ${(totals.cardSystem || 0).toFixed(2)}`);
+    lines.push(`QR Pay    : RM ${(totals.qrSystem || 0).toFixed(2)}`);
+    lines.push(`Alipay    : RM ${(totals.alipaySystem || 0).toFixed(2)}`);
+    lines.push(`Refunds   : RM ${(totals.refundSystem || 0).toFixed(2)}`);
     lines.push(separator);
     lines.push('ACTUAL COUNTS');
     lines.push(dash);
-    lines.push(`Cash      : RM ${totals.cashActual.toFixed(2)}`);
-    lines.push(`Card      : RM ${totals.cardActual.toFixed(2)}`);
-    lines.push(`QR Pay    : RM ${totals.qrActual.toFixed(2)}`);
-    lines.push(`Alipay    : RM ${totals.alipayActual.toFixed(2)}`);
+    lines.push(`Cash      : RM ${(totals.cashActual || 0).toFixed(2)}`);
+    lines.push(`Card      : RM ${(totals.cardActual || 0).toFixed(2)}`);
+    lines.push(`QR Pay    : RM ${(totals.qrActual || 0).toFixed(2)}`);
+    lines.push(`Alipay    : RM ${(totals.alipayActual || 0).toFixed(2)}`);
     lines.push(separator);
     lines.push('DISCREPANCIES');
     lines.push(dash);
-    const cashDiff = totals.cashActual - totals.cashSystem;
-    const cardDiff = totals.cardActual - totals.cardSystem;
-    const qrDiff = totals.qrActual - totals.qrSystem;
-    const alipayDiff = totals.alipayActual - totals.alipaySystem;
+    const cashDiff = (totals.cashActual || 0) - (totals.cashSystem || 0);
+    const cardDiff = (totals.cardActual || 0) - (totals.cardSystem || 0);
+    const qrDiff = (totals.qrActual || 0) - (totals.qrSystem || 0);
+    const alipayDiff = (totals.alipayActual || 0) - (totals.alipaySystem || 0);
     lines.push(`Cash   : ${cashDiff >= 0 ? '+' : ''}RM ${cashDiff.toFixed(2)}`);
     lines.push(`Card   : ${cardDiff >= 0 ? '+' : ''}RM ${cardDiff.toFixed(2)}`);
     lines.push(`QR Pay : ${qrDiff >= 0 ? '+' : ''}RM ${qrDiff.toFixed(2)}`);
     lines.push(`Alipay : ${alipayDiff >= 0 ? '+' : ''}RM ${alipayDiff.toFixed(2)}`);
     lines.push(separator);
-    lines.push(`Petty Cash Float : RM ${totals.pettyCash.toFixed(2)}`);
+    // ✅ FIX: Safely display petty cash
+    const pettyCashValue = parseFloat(totals.pettyCash) || 0;
+    lines.push(`Petty Cash Float : RM ${pettyCashValue.toFixed(2)}`);
     lines.push(separator);
     lines.push('COLLECTED AMOUNT');
     lines.push(dash);
-    const totalActual = totals.cashActual + totals.cardActual + totals.qrActual + totals.alipayActual;
-   lines.push(`TOTAL SALES : RM ${totalActual.toFixed(2)}`);
+    const totalActual = (totals.cashActual || 0) + (totals.cardActual || 0) + (totals.qrActual || 0) + (totals.alipayActual || 0);
+    lines.push(`TOTAL SALES : RM ${totalActual.toFixed(2)}`);
     lines.push(separator);
     lines.push('SIGNATURE');
     lines.push('_________________');
@@ -4312,10 +4408,20 @@ function loadPendingSales() {
 
 // Save a sale to the queue
 function queueSale(transaction) {
-  pendingSales.push(transaction);
-  localStorage.setItem('pendingSales', JSON.stringify(pendingSales));
-  // Try to sync immediately (if online)
-  syncPendingSales();
+  // Only queue if we're offline or save fails
+  if (!navigator.onLine) {
+    pendingSales.push(transaction);
+    localStorage.setItem('pendingSales', JSON.stringify(pendingSales));
+    showAlertModal('Offline', 'You are offline. Sale has been queued and will sync when online.');
+  } else {
+    // Try to save directly, fallback to queue
+    saveTransactionToSheet(transaction).then(success => {
+      if (!success) {
+        pendingSales.push(transaction);
+        localStorage.setItem('pendingSales', JSON.stringify(pendingSales));
+      }
+    });
+  }
 }
 
 // Attempt to send all pending sales
@@ -5118,8 +5224,10 @@ async function completeCheckout(paymentMethod, cashReceived) {
       sales_person_id: salesPersonId,
     };
 
-    queueSale(transaction);
-    const success = true; // optimistic
+    // ✅ FIX: Save directly, NO QUEUE
+    showLoading('Processing transaction...');
+    const success = await saveTransactionToSheet(transaction);
+    hideLoading();
 
     if (success) {
       // Update local stock
@@ -5156,23 +5264,23 @@ async function completeCheckout(paymentMethod, cashReceived) {
       invalidateAllReportCaches();
 
       const fakeReceipt = {
-  transaction_id: transaction.transaction_id,
-  timestamp: transaction.timestamp,
-  items: transaction.items,
-  total: transaction.total,
-  payment_method: transaction.payment_method,
-  store: transaction.store,
-  employee_id: transaction.employee_id,
-  employee_name: transaction.employee_name,
-  refunded: false,
-  discount: transaction.discount,
-  buy2_free1_discount: transaction.buy2_free1_discount,
-  buy3_free1_discount: transaction.buy3_free1_discount,
-  custom_discount: transaction.custom_discount,
-  staff_discount: transaction.staff_discount,
-  sales_person_name: transaction.sales_person_name,
-  sales_person_id: transaction.sales_person_id
-};
+        transaction_id: transaction.transaction_id,
+        timestamp: transaction.timestamp,
+        items: transaction.items,
+        total: transaction.total,
+        payment_method: transaction.payment_method,
+        store: transaction.store,
+        employee_id: transaction.employee_id,
+        employee_name: transaction.employee_name,
+        refunded: false,
+        discount: transaction.discount,
+        buy2_free1_discount: transaction.buy2_free1_discount,
+        buy3_free1_discount: transaction.buy3_free1_discount,
+        custom_discount: transaction.custom_discount,
+        staff_discount: transaction.staff_discount,
+        sales_person_name: transaction.sales_person_name,
+        sales_person_id: transaction.sales_person_id
+      };
       if (!cachedReceipts) cachedReceipts = [];
       cachedReceipts.unshift(fakeReceipt);
 
@@ -5195,12 +5303,17 @@ async function completeCheckout(paymentMethod, cashReceived) {
         openLuckyDraw(transactionId, selectedCustomer?.id);
         luckyModal.style.display = 'none';
       };
-if (pendingPrize && pendingPrize.isPromo && pendingPrize.code) {
-  await usePromoVoucherAfterSale(pendingPrize.code);
-}
+      
+      if (pendingPrize && pendingPrize.isPromo && pendingPrize.code) {
+        await usePromoVoucherAfterSale(pendingPrize.code);
+      }
+      
       clearCart();
     } else {
-      await showAlertModal('Error', 'Failed to record sale. Check network / Apps Script.');
+      // ✅ Only queue if save failed (offline fallback)
+      pendingSales.push(transaction);
+      localStorage.setItem('pendingSales', JSON.stringify(pendingSales));
+      await showAlertModal('Error', 'Failed to record sale. It has been queued for retry.');
     }
   } catch (err) {
     console.error('Checkout error:', err);
@@ -5222,7 +5335,6 @@ if (pendingPrize && pendingPrize.isPromo && pendingPrize.code) {
     formData.append("cash_received", transaction.cash_received || '');
     formData.append("timestamp", transaction.timestamp);
     formData.append("store", currentStore);
-    // ✅ Use the logged‑in cashier's ID (from transaction)
     formData.append("employee_id", transaction.employee_id);
     formData.append("discount", transaction.discount || 0);
     formData.append("buy2_free1_discount", transaction.buy2_free1_discount || 0);
@@ -5231,7 +5343,6 @@ if (pendingPrize && pendingPrize.isPromo && pendingPrize.code) {
     formData.append("staff_discount", transaction.staff_discount || 0);
     formData.append("prize_claimed", transaction.prize_claimed ? JSON.stringify(transaction.prize_claimed) : '');
     if (transaction.customer_id) formData.append("customer_id", transaction.customer_id);
-    // ✅ Send sales person fields separately
     formData.append("sales_person_name", transaction.sales_person_name || '');
     formData.append("sales_person_id", transaction.sales_person_id || '');
 
@@ -5239,10 +5350,8 @@ if (pendingPrize && pendingPrize.isPromo && pendingPrize.code) {
     const result = await response.json();
     return result.success === true;
   } catch (err) {
-    console.error(err);
+    console.error('saveTransactionToSheet error:', err);
     return false;
-  } finally {
-    hideLoading();
   }
 }
 function getUTCDateString(date) {
@@ -5441,6 +5550,1873 @@ async function fetchReceipts(store, employeeId, from, to, search) {
   } finally {
     hideLoading();
   }
+}
+
+// ==================== STOCK TAKE FEATURE ====================
+// ==================== STOCK TAKE FEATURE - FIXED ====================
+let stockTakeMode = false;
+let stockTakeData = {};
+
+function toggleStockTakeMode() {
+  stockTakeMode = !stockTakeMode;
+  if (stockTakeMode) {
+    stockTakeData = {};
+    document.getElementById('stockTakeModeIndicator').style.display = 'block';
+    document.getElementById('submitStockTakeBtn').style.display = 'block';
+    renderStockTakeProductGrid();
+  } else {
+    document.getElementById('stockTakeModeIndicator').style.display = 'none';
+    document.getElementById('submitStockTakeBtn').style.display = 'none';
+    renderProductGrid();
+  }
+}
+
+function renderStockTakeProductGrid() {
+  const searchTerm = searchInput.value.toLowerCase();
+  const selectedCategory = categorySelect.value;
+  
+  let filtered = products.slice();
+  if (selectedCategory !== 'all') {
+    filtered = filtered.filter(p => p.category === selectedCategory);
+  }
+  if (searchTerm) {
+    filtered = filtered.filter(p => p.name.toLowerCase().includes(searchTerm));
+  }
+  
+  if (filtered.length === 0) {
+    productGridEl.innerHTML = '<div style="text-align:center; padding:20px;">No products to count.</div>';
+    return;
+  }
+  
+  // Build HTML (same as before)
+  const countedCount = Object.keys(stockTakeData).length;
+  let diffCount = 0, positiveDiff = 0, negativeDiff = 0;
+  Object.values(stockTakeData).forEach(data => {
+    if (data.difference !== 0) {
+      diffCount++;
+      if (data.difference > 0) positiveDiff++;
+      else if (data.difference < 0) negativeDiff++;
+    }
+  });
+  
+  let html = `
+    <div id="stockTakeHeader" style="margin-bottom:16px; padding:12px 16px; background:#f0fdf4; border-radius:16px; border:1px solid #10b981; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+      <div>
+        <strong style="font-size:1.1rem;">📋 Stock Take Mode</strong>
+        <span style="font-size:0.9rem; color:#64748b; margin-left:12px;">Products: ${filtered.length} | ✅ Counted: ${countedCount}</span>
+      </div>
+      <div style="display:flex; gap:16px; font-size:0.85rem;">
+        ${diffCount > 0 ? `
+          <span style="color:#2c7a4b;">✅ ${positiveDiff} higher</span>
+          <span style="color:#dc2626;">❌ ${negativeDiff} lower</span>
+          <span style="color:#f59e0b;">📊 ${diffCount} total differences</span>
+        ` : `
+          <span style="color:#94a3b8;">📊 No differences yet</span>
+        `}
+      </div>
+    </div>
+  `;
+  
+  const containerClass = viewMode === 'grid' ? 'product-grid' : 'product-list';
+  html += `<div class="${containerClass}" id="stockTakeGrid">`;
+  
+  filtered.forEach(prod => {
+    const existing = stockTakeData[prod.id];
+    const countedValue = existing ? existing.counted_stock : '';
+    const difference = existing ? existing.difference : 0;
+    
+    let diffColor = '', diffText = '', diffBg = '', borderColor = '';
+    if (difference > 0) {
+      diffColor = '#2c7a4b'; diffBg = '#f0fdf4'; borderColor = '2px solid #2c7a4b'; diffText = `+${difference} higher`;
+    } else if (difference < 0) {
+      diffColor = '#dc2626'; diffBg = '#fef2f2'; borderColor = '2px solid #dc2626'; diffText = `${difference} lower`;
+    } else if (existing && difference === 0) {
+      diffColor = '#64748b'; diffBg = '#f8fafc'; borderColor = '1px solid #e2e8f0'; diffText = '✓ Matches';
+    } else {
+      diffColor = '#94a3b8'; diffBg = '#ffffff'; borderColor = '1px solid #e2e8f0'; diffText = 'Not counted';
+    }
+    
+    const cardClass = viewMode === 'grid' ? 'product-card' : 'product-card product-list-card';
+    
+    html += `
+      <div class="${cardClass} stock-take-card" data-id="${prod.id}" style="border: ${borderColor}; background: ${diffBg};">
+        <div class="product-name">${escapeHtml(prod.name)}</div>
+        <div class="product-category">${escapeHtml(prod.category)}</div>
+        <!-- ✅ PRICE HIDDEN IN STOCK TAKE MODE -->
+        <div class="product-stock" style="font-weight:600; color:#0f172a;">📊 System: ${prod.stock}</div>
+        <div class="diff-badge" style="margin: 4px 0 8px 0; font-weight:700; color:${diffColor}; font-size:0.9rem; background:${diffBg}; padding:2px 12px; border-radius:12px; display:inline-block; border:1px solid ${diffColor};">
+          ${diffText}
+        </div>
+        <div style="margin-top:8px; display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap;">
+          <button type="button" class="stock-take-btn" data-action="dec" data-id="${prod.id}" style="background:#f1f5f9; border:none; width:32px; height:32px; border-radius:30px; font-weight:bold; font-size:1.2rem; cursor:pointer;">−</button>
+          <input type="number" class="stock-take-input" data-id="${prod.id}" value="${countedValue}" placeholder="${prod.stock}" style="width:80px; padding:8px; border-radius:20px; border:2px solid ${existing ? (difference !== 0 ? (difference > 0 ? '#2c7a4b' : '#dc2626') : '#10b981') : '#cbd5e1'}; text-align:center; font-weight:600; background:${existing ? (difference !== 0 ? (difference > 0 ? '#f0fdf4' : '#fef2f2') : '#f0fdf4') : 'white'};">
+          <button type="button" class="stock-take-btn" data-action="inc" data-id="${prod.id}" style="background:#f1f5f9; border:none; width:32px; height:32px; border-radius:30px; font-weight:bold; font-size:1.2rem; cursor:pointer;">+</button>
+        </div>
+        <div class="stock-hint" style="margin-top:6px; font-size:0.7rem; color:${diffColor};">
+          ${existing && difference !== 0 ? (difference > 0 ? `📈 Counted ${difference} more than system` : `📉 Counted ${Math.abs(difference)} less than system`) : existing && difference === 0 ? '✅ Count matches system' : '⏳ Enter count above'}
+        </div>
+      </div>
+    `;
+  });
+  
+  html += '</div>';
+  
+  // SAVE SCROLL POSITION
+  const scrollContainer = productGridEl.parentElement;
+  const savedScroll = scrollContainer ? scrollContainer.scrollTop : 0;
+  
+  // REPLACE HTML
+  productGridEl.innerHTML = html;
+  productGridEl.className = viewMode === 'grid' ? 'product-grid' : 'product-list';
+  
+  // RESTORE SCROLL POSITION
+  if (scrollContainer) {
+    scrollContainer.scrollTop = savedScroll;
+  }
+  
+  // ATTACH EVENT LISTENERS
+  attachStockTakeEvents();
+}
+
+// ✅ SEPARATE FUNCTION for event listeners (like normal checkout)
+function attachStockTakeEvents() {
+  // --- PLUS/MINUS buttons using event delegation ---
+  const grid = document.getElementById('stockTakeGrid');
+  if (!grid) return;
+  
+  // Remove old listener if exists
+  if (grid._clickHandler) {
+    grid.removeEventListener('click', grid._clickHandler);
+  }
+  
+  grid._clickHandler = function(e) {
+    const btn = e.target.closest('.stock-take-btn');
+    if (!btn) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const productId = btn.dataset.id;
+    const action = btn.dataset.action;
+    const input = document.querySelector(`.stock-take-input[data-id="${productId}"]`);
+    if (!input) return;
+    
+    let currentVal = parseInt(input.value);
+    if (isNaN(currentVal)) {
+      const product = products.find(p => p.id == productId);
+      currentVal = product ? product.stock : 0;
+    }
+    
+    let newVal = action === 'inc' ? currentVal + 1 : Math.max(0, currentVal - 1);
+    input.value = newVal;
+    
+    // Update data and UI - NO RE-RENDER!
+    const product = products.find(p => p.id == productId);
+    if (product) {
+      stockTakeData[productId] = {
+        product_id: product.id,
+        product_name: product.name,
+        category: product.category,
+        current_stock: product.stock,
+        counted_stock: newVal,
+        difference: newVal - product.stock
+      };
+      updateSingleCard(productId);
+    }
+  };
+  
+  grid.addEventListener('click', grid._clickHandler);
+  
+  // --- INPUT change listeners ---
+  document.querySelectorAll('.stock-take-input').forEach(input => {
+    if (input._changeHandler) {
+      input.removeEventListener('change', input._changeHandler);
+      input.removeEventListener('input', input._inputHandler);
+    }
+    
+    input._changeHandler = function(e) {
+      const productId = this.dataset.id;
+      let value = parseInt(this.value);
+      if (isNaN(value) || value < 0) {
+        const product = products.find(p => p.id == productId);
+        value = product ? product.stock : 0;
+        this.value = value;
+      }
+      
+      const product = products.find(p => p.id == productId);
+      if (product) {
+        stockTakeData[productId] = {
+          product_id: product.id,
+          product_name: product.name,
+          category: product.category,
+          current_stock: product.stock,
+          counted_stock: value,
+          difference: value - product.stock
+        };
+        updateSingleCard(productId);
+      }
+    };
+    
+    input._inputHandler = function(e) {
+      const productId = this.dataset.id;
+      const value = parseInt(this.value);
+      if (!isNaN(value) && value >= 0) {
+        const product = products.find(p => p.id == productId);
+        if (product) {
+          stockTakeData[productId] = {
+            product_id: product.id,
+            product_name: product.name,
+            category: product.category,
+            current_stock: product.stock,
+            counted_stock: value,
+            difference: value - product.stock
+          };
+          updateSingleCard(productId);
+        }
+      }
+    };
+    
+    input.addEventListener('change', input._changeHandler);
+    input.addEventListener('input', input._inputHandler);
+  });
+}
+
+// ✅ UPDATE ONLY ONE CARD - NO RE-RENDER!
+function updateSingleCard(productId) {
+  const data = stockTakeData[productId];
+  if (!data) return;
+  
+  const card = document.querySelector(`.stock-take-card[data-id="${productId}"]`);
+  if (!card) return;
+  
+  const diffColor = data.difference > 0 ? '#2c7a4b' : data.difference < 0 ? '#dc2626' : '#64748b';
+  const diffText = data.difference > 0 ? `+${data.difference} higher` : data.difference < 0 ? `${data.difference} lower` : '✓ Matches';
+  const diffBg = data.difference > 0 ? '#f0fdf4' : data.difference < 0 ? '#fef2f2' : '#f8fafc';
+  
+  // Update badge
+  const badge = card.querySelector('.diff-badge');
+  if (badge) {
+    badge.textContent = diffText;
+    badge.style.color = diffColor;
+    badge.style.background = diffBg;
+    badge.style.borderColor = diffColor;
+  }
+  
+  // Update input
+  const input = card.querySelector('.stock-take-input');
+  if (input) {
+    input.value = data.counted_stock;
+    const borderColor = data.difference !== 0 ? (data.difference > 0 ? '#2c7a4b' : '#dc2626') : '#10b981';
+    const bgColor = data.difference !== 0 ? (data.difference > 0 ? '#f0fdf4' : '#fef2f2') : '#f0fdf4';
+    input.style.borderColor = borderColor;
+    input.style.background = bgColor;
+  }
+  
+  // Update hint
+  const hint = card.querySelector('.stock-hint');
+  if (hint) {
+    if (data.difference > 0) {
+      hint.textContent = `📈 Counted ${data.difference} more than system`;
+      hint.style.color = '#2c7a4b';
+    } else if (data.difference < 0) {
+      hint.textContent = `📉 Counted ${Math.abs(data.difference)} less than system`;
+      hint.style.color = '#dc2626';
+    } else {
+      hint.textContent = '✅ Count matches system';
+      hint.style.color = '#2c7a4b';
+    }
+  }
+  
+  // Update card
+  card.style.border = data.difference !== 0 ? (data.difference > 0 ? '2px solid #2c7a4b' : '2px solid #dc2626') : '1px solid #e2e8f0';
+  card.style.background = data.difference !== 0 ? (data.difference > 0 ? '#f0fdf4' : '#fef2f2') : '#f8fafc';
+  
+  // Update header
+  updateStockTakeSummary();
+}
+
+function updateStockTakeSummary() {
+  const totalCounted = Object.keys(stockTakeData).length;
+  const diffCount = Object.values(stockTakeData).filter(d => d.difference !== 0).length;
+  const positiveDiff = Object.values(stockTakeData).filter(d => d.difference > 0).length;
+  const negativeDiff = Object.values(stockTakeData).filter(d => d.difference < 0).length;
+  
+  const indicator = document.querySelector('#stockTakeModeIndicator');
+  if (indicator) {
+    let statsHtml = `<strong>📋 Stock Take Mode</strong>`;
+    statsHtml += `<span style="display:block; font-size:0.9rem; color:#64748b;">Counted: ${totalCounted} products`;
+    if (diffCount > 0) {
+      statsHtml += ` | <span style="color:#2c7a4b;">✅ ${positiveDiff} higher</span>`;
+      statsHtml += ` | <span style="color:#dc2626;">❌ ${negativeDiff} lower</span>`;
+      statsHtml += ` | <span style="color:#f59e0b;">📊 ${diffCount} differences</span>`;
+    }
+    statsHtml += `</span>`;
+    indicator.innerHTML = statsHtml;
+  }
+}
+
+async function submitStockTake() {
+  // Convert object to array for processing
+  const dataArray = Object.values(stockTakeData);
+  
+  if (dataArray.length === 0) {
+    await showAlertModal('Empty Stock Take', 'Please count at least one product before submitting.');
+    return;
+  }
+  
+  // Filter out items with no change or invalid values
+  const itemsToSubmit = dataArray.filter(d => {
+    // Re-fetch the product to ensure we have the latest current stock
+    const product = products.find(p => p.id == d.product_id);
+    if (!product) return false;
+    
+    // Update the current_stock to match the product's actual stock
+    d.current_stock = product.stock;
+    d.difference = d.counted_stock - d.current_stock;
+    
+    return !isNaN(d.counted_stock) && 
+           d.counted_stock >= 0 && 
+           d.counted_stock !== d.current_stock;
+  });
+  
+  if (itemsToSubmit.length === 0) {
+    await showAlertModal('No Changes', 'No stock changes detected. Please update quantities.');
+    return;
+  }
+  
+  const confirmed = await showConfirmModal(
+    'Submit Stock Take',
+    `Submit stock take for ${itemsToSubmit.length} product(s) with changes?`
+  );
+  
+  if (!confirmed) return;
+  
+  showLoading('Submitting stock take request...');
+  
+  try {
+    const formData = new URLSearchParams();
+    formData.append('action', 'createStockTakeRequest');
+    formData.append('store', currentStore);
+    formData.append('employee_id', currentEmployee.id);
+    formData.append('employee_name', currentEmployee.name);
+    formData.append('items', JSON.stringify(itemsToSubmit));
+    
+    const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
+    const result = await response.json();
+    
+    if (result.success) {
+      await showAlertModal('Stock Take Submitted', 
+        `Stock take request submitted successfully!\n\n` +
+        `Request ID: ${result.request_id}\n` +
+        `Items: ${itemsToSubmit.length} products\n` +
+        `Awaiting manager approval.`
+      );
+      // Exit stock take mode
+      toggleStockTakeMode();
+    } else {
+      throw new Error(result.error || 'Unknown error');
+    }
+  } catch (err) {
+    console.error(err);
+    await showAlertModal('Error', 'Failed to submit stock take: ' + err.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+// ==================== MANAGER STOCK TAKE APPROVAL ====================
+async function openStockTakeApprovalModal() {
+  if (!currentEmployee || !currentEmployee.isAdmin) {
+    await showAlertModal('Access Denied', 'Only managers can approve stock take requests.');
+    return;
+  }
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.style.display = 'flex';
+  modal.innerHTML = `
+    <div class="modal-container" style="max-width: 800px;">
+      <span class="close-modal" id="closeStockTakeApproval">×</span>
+      <div class="modal-title">📋 Stock Take Approvals</div>
+      <div id="stockTakeRequestsList" style="max-height: 60vh; overflow-y: auto; margin: 16px 0;">
+        <div style="text-align:center; padding:20px;">Loading requests...</div>
+      </div>
+      <div class="modal-buttons">
+        <button id="refreshStockTakeBtn" class="modal-btn modal-btn-secondary">🔄 Refresh</button>
+        <button id="closeStockTakeApprovalBtn" class="modal-btn modal-btn-secondary">Close</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  
+  // Load pending requests
+  await loadPendingStockTakeRequests(modal);
+  
+  // Event listeners
+  modal.querySelector('#closeStockTakeApproval').addEventListener('click', () => modal.remove());
+  modal.querySelector('#closeStockTakeApprovalBtn').addEventListener('click', () => modal.remove());
+  modal.querySelector('#refreshStockTakeBtn').addEventListener('click', () => loadPendingStockTakeRequests(modal));
+}
+
+async function loadPendingStockTakeRequests(modal) {
+  const list = modal.querySelector('#stockTakeRequestsList');
+  if (!list) return;
+  
+  // ✅ Clear the list first to show loading state
+  list.innerHTML = '<div style="text-align:center; padding:20px;">Loading requests...</div>';
+  
+  try {
+    // ✅ Add cache-busting parameter to force fresh data
+    const url = `${APPS_SCRIPT_URL}?action=getPendingStockTakeRequests&store=all&_=${Date.now()}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    
+    if (!result.success || !result.requests || result.requests.length === 0) {
+      list.innerHTML = '<div style="text-align:center; padding:20px; color:#94a3b8;">✅ No pending stock take requests.</div>';
+      return;
+    }
+    
+    // ✅ Filter out requests that have no items
+    const validRequests = result.requests.filter(req => {
+      let items = req.items;
+      if (typeof items === 'string') {
+        try { items = JSON.parse(items); } catch(e) { items = []; }
+      }
+      return items && items.length > 0;
+    });
+    
+    if (validRequests.length === 0) {
+      list.innerHTML = '<div style="text-align:center; padding:20px; color:#94a3b8;">✅ No pending stock take requests.</div>';
+      return;
+    }
+    
+    // ✅ GROUP REQUESTS BY STORE
+    const groupedByStore = {};
+    validRequests.forEach(req => {
+      const storeKey = req.store;
+      if (!groupedByStore[storeKey]) {
+        groupedByStore[storeKey] = [];
+      }
+      groupedByStore[storeKey].push(req);
+    });
+    
+    let mainHtml = '';
+    
+    // Process each store group
+    for (const [storeName, requests] of Object.entries(groupedByStore)) {
+      const storeDisplay = storeName.charAt(0).toUpperCase() + storeName.slice(1).replace('_', ' ');
+      
+      // Generate a unique group ID for this store
+      const groupId = `store_${storeName}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      
+      // ✅ STEP 1: Group ALL items by category across ALL requests for this store
+      const categoryMap = {};
+      let totalStoreItems = 0;
+      
+      // Store request info for each category
+      const requestInfoMap = {};
+      
+      for (const req of requests) {
+        let items = req.items;
+        if (typeof items === 'string') {
+          try { items = JSON.parse(items); } catch(e) { items = []; }
+        }
+        
+        if (!items || items.length === 0) continue;
+        
+        // Group items by category within this request
+        for (const item of items) {
+          const category = item.category || 'Uncategorized';
+          if (!categoryMap[category]) {
+            categoryMap[category] = [];
+            requestInfoMap[category] = {
+              requestId: req.request_id,
+              timestamp: req.timestamp,
+              employee_name: req.employee_name || 'Unknown'
+            };
+          }
+          categoryMap[category].push(item);
+          totalStoreItems++;
+        }
+      }
+      
+      // Skip if no items
+      if (totalStoreItems === 0) continue;
+      
+      // ✅ STEP 2: Build category sections
+      let categorySectionsHtml = '';
+      
+      // Sort categories alphabetically
+      const sortedCategories = Object.keys(categoryMap).sort();
+      
+      for (const category of sortedCategories) {
+        const items = categoryMap[category];
+        const info = requestInfoMap[category];
+        const date = info.timestamp ? new Date(info.timestamp).toLocaleString() : 'Unknown';
+        const employeeName = info.employee_name || 'Unknown';
+        const requestId = info.requestId || 'unknown';
+        
+        // ✅ Build table rows for this category
+        let tableRowsHtml = '';
+        for (const item of items) {
+          const diff = item.counted_stock - item.current_stock;
+          const diffColor = diff > 0 ? '#2c7a4b' : diff < 0 ? '#ef4444' : '#64748b';
+          const diffSymbol = diff > 0 ? '+' : '';
+          tableRowsHtml += `
+            <tr style="border-bottom:1px solid #f1f5f9;" data-category="${escapeHtml(category)}">
+              <td style="text-align:center; padding:4px 6px;">
+                <input type="checkbox" class="item-checkbox" 
+                       data-request="${requestId}" 
+                       data-product="${item.product_id}" 
+                       data-group="${groupId}" 
+                       data-category="${escapeHtml(category)}" 
+                       checked>
+              </td>
+              <td style="padding:4px 6px; font-weight:500;">${escapeHtml(item.product_name || 'Unknown')}</td>
+              <td style="text-align:right; padding:4px 6px;">${item.current_stock || 0}</td>
+              <td style="text-align:right; padding:4px 6px; font-weight:600;">${item.counted_stock || 0}</td>
+              <td style="text-align:right; padding:4px 6px; color:${diffColor}; font-weight:600;">${diffSymbol}${diff}</td>
+            </tr>
+          `;
+        }
+        
+        // ✅ Build the category section
+        categorySectionsHtml += `
+          <div style="background:white; border-radius:12px; padding:12px 16px; border:1px solid #e2e8f0; border-left:4px solid #8b5cf6;" data-category="${escapeHtml(category)}">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-weight:600; color:#0f172a;">📂 ${escapeHtml(category)}</span>
+                <span style="font-size:0.75rem; color:#64748b;">${date}</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:0.8rem; color:#64748b;">👤 ${escapeHtml(employeeName)}</span>
+                <span style="background:#fef3c7; color:#92400e; padding:2px 10px; border-radius:20px; font-size:0.7rem;">${items.length} items</span>
+              </div>
+            </div>
+            
+            <div style="background:#f8fafc; border-radius:8px; padding:8px; max-height:150px; overflow-y:auto; border:1px solid #f1f5f9;">
+              <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+                <thead>
+                  <tr style="border-bottom:1px solid #e2e8f0;">
+                    <th style="text-align:center; padding:4px 6px; width:36px;">
+                      <input type="checkbox" class="select-all-category-items" 
+                             data-category="${escapeHtml(category)}" 
+                             data-group="${groupId}" checked>
+                    </th>
+                    <th style="text-align:left; padding:4px 6px;">Product</th>
+                    <th style="text-align:right; padding:4px 6px;">Current</th>
+                    <th style="text-align:right; padding:4px 6px;">Counted</th>
+                    <th style="text-align:right; padding:4px 6px;">Diff</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${tableRowsHtml}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+      
+      // Build the complete store card
+      mainHtml += `
+        <div style="background:#f8fafc; border-radius:16px; padding:16px; margin-bottom:20px; border-left:4px solid #3b82f6; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:12px; padding-bottom:8px; border-bottom:2px solid #e2e8f0;">
+            <div>
+              <strong style="font-size:1.3rem;">🏪 ${storeDisplay}</strong>
+              <span style="margin-left:12px; font-size:0.9rem; color:#64748b;">${Object.keys(categoryMap).length} category(s)</span>
+              <span style="margin-left:12px; font-size:0.9rem; color:#2c7a4b; font-weight:600;">${totalStoreItems} items</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span style="background:#dbeafe; color:#1e40af; padding:4px 12px; border-radius:20px; font-size:0.8rem;">📋 ${requests.length} submissions</span>
+            </div>
+          </div>
+          
+          <!-- Select All for this store group -->
+          <div style="margin:8px 0 12px 0; display:flex; align-items:center; gap:12px; padding:8px 12px; background:#f1f5f9; border-radius:8px;">
+            <label style="display:flex; align-items:center; gap:8px; font-weight:500; font-size:0.9rem; cursor:pointer;">
+              <input type="checkbox" class="select-all-store-items" data-group="${groupId}" checked>
+              <span>✅ Select All (${totalStoreItems} items)</span>
+            </label>
+          </div>
+          
+          <!-- CATEGORY SEPARATORS -->
+          <div style="margin: 8px 0 12px 0; display: flex; flex-direction: column; gap: 12px;">
+            ${categorySectionsHtml}
+          </div>
+          
+          <!-- ACTION BUTTONS FOR THE STORE GROUP -->
+          <div style="display:flex; gap:12px; margin-top:16px; justify-content:flex-end; flex-wrap:wrap; border-top:1px solid #e2e8f0; padding-top:12px;">
+            <button class="approve-store-group-btn" data-group="${groupId}" 
+                    style="background:#2c7a4b; color:white; border:none; border-radius:40px; padding:10px 24px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px;">
+              ✅ Approve Selected (${totalStoreItems}/${totalStoreItems})
+            </button>
+            <button class="reject-store-group-btn" data-group="${groupId}"
+                    style="background:#ef4444; color:white; border:none; border-radius:40px; padding:10px 24px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px;">
+              ❌ Reject Selected (${totalStoreItems}/${totalStoreItems})
+            </button>
+          </div>
+        </div>
+      `;
+    }
+    
+    // If no HTML was generated
+    if (!mainHtml) {
+      list.innerHTML = '<div style="text-align:center; padding:20px; color:#94a3b8;">✅ No pending stock take requests with items.</div>';
+      return;
+    }
+    
+    list.innerHTML = mainHtml;
+    
+    // --- ATTACH EVENT LISTENERS ---
+    
+    // 1. "Select All Store Items" checkbox
+    document.querySelectorAll('.select-all-store-items').forEach(selectAll => {
+      selectAll.addEventListener('change', function() {
+        const groupId = this.dataset.group;
+        const isChecked = this.checked;
+        document.querySelectorAll(`.item-checkbox[data-group="${groupId}"]`).forEach(cb => {
+          cb.checked = isChecked;
+        });
+        document.querySelectorAll(`.select-all-category-items[data-group="${groupId}"]`).forEach(cb => {
+          cb.checked = isChecked;
+        });
+        updateStoreGroupCounts(groupId);
+      });
+    });
+    
+    // 2. "Select All Category Items" checkbox
+    document.querySelectorAll('.select-all-category-items').forEach(selectAll => {
+      selectAll.addEventListener('change', function() {
+        const groupId = this.dataset.group;
+        const category = this.dataset.category;
+        const isChecked = this.checked;
+        
+        const categorySection = this.closest('div[data-category]');
+        if (categorySection) {
+          const checkboxes = categorySection.querySelectorAll('.item-checkbox');
+          checkboxes.forEach(cb => {
+            cb.checked = isChecked;
+          });
+        }
+        updateStoreGroupCounts(groupId);
+      });
+    });
+    
+    // 3. Individual item checkboxes
+    document.querySelectorAll('.item-checkbox').forEach(cb => {
+      cb.addEventListener('change', function() {
+        const groupId = this.dataset.group;
+        const categorySection = this.closest('div[data-category]');
+        
+        if (categorySection) {
+          const allCategoryItems = categorySection.querySelectorAll('.item-checkbox');
+          const checkedCategoryItems = categorySection.querySelectorAll('.item-checkbox:checked');
+          const selectAllCategory = categorySection.querySelector('.select-all-category-items');
+          if (selectAllCategory) {
+            selectAllCategory.checked = allCategoryItems.length === checkedCategoryItems.length;
+          }
+        }
+        
+        const allStoreItems = document.querySelectorAll(`.item-checkbox[data-group="${groupId}"]`);
+        const checkedStoreItems = document.querySelectorAll(`.item-checkbox[data-group="${groupId}"]:checked`);
+        const selectAllStore = document.querySelector(`.select-all-store-items[data-group="${groupId}"]`);
+        if (selectAllStore) {
+          selectAllStore.checked = allStoreItems.length === checkedStoreItems.length;
+        }
+        
+        updateStoreGroupCounts(groupId);
+      });
+    });
+    
+    // 4. Approve Store Group button
+    document.querySelectorAll('.approve-store-group-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const groupId = this.dataset.group;
+        approveStoreGroup(groupId, modal);
+      });
+    });
+    
+    // 5. Reject Store Group button
+    document.querySelectorAll('.reject-store-group-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const groupId = this.dataset.group;
+        rejectStoreGroup(groupId, modal);
+      });
+    });
+    
+    // Initialize counts
+    document.querySelectorAll('.approve-store-group-btn, .reject-store-group-btn').forEach(btn => {
+      const groupId = btn.dataset.group;
+      updateStoreGroupCounts(groupId);
+    });
+    
+  } catch (err) {
+    console.error(err);
+    list.innerHTML = '<div style="text-align:center; padding:20px; color:#ef4444;">Failed to load requests.</div>';
+  }
+}
+// --- Helper: Update counts for a store group ---
+function updateStoreGroupCounts(groupId) {
+  const checkedItems = document.querySelectorAll(`.item-checkbox[data-group="${groupId}"]:checked`);
+  const totalItems = document.querySelectorAll(`.item-checkbox[data-group="${groupId}"]`);
+  const count = checkedItems.length;
+  const total = totalItems.length;
+  
+  const approveBtn = document.querySelector(`.approve-store-group-btn[data-group="${groupId}"]`);
+  const rejectBtn = document.querySelector(`.reject-store-group-btn[data-group="${groupId}"]`);
+  
+  if (approveBtn) {
+    approveBtn.innerHTML = `✅ Approve Selected (${count}/${total})`;
+    approveBtn.disabled = count === 0;
+    approveBtn.style.opacity = count === 0 ? '0.5' : '1';
+  }
+  if (rejectBtn) {
+    rejectBtn.innerHTML = `❌ Reject Selected (${count}/${total})`;
+    rejectBtn.disabled = count === 0;
+    rejectBtn.style.opacity = count === 0 ? '0.5' : '1';
+  }
+}
+
+// --- Helper: Get all selected items for a store group ---
+function getSelectedItemsForGroup(groupId) {
+  const selectedCheckboxes = document.querySelectorAll(`.item-checkbox[data-group="${groupId}"]:checked`);
+  const selectedItems = [];
+  
+  selectedCheckboxes.forEach(cb => {
+    // Get the closest category section (the div with border-left)
+    const categorySection = cb.closest('div[style*="border-left: 4px solid"]');
+    let category = 'Unknown';
+    let productName = '';
+    let currentStock = 0;
+    let countedStock = 0;
+    
+    // Try to get category from the section header
+    if (categorySection) {
+      const headerSpan = categorySection.querySelector('span[style*="font-weight:600"]');
+      if (headerSpan) {
+        // Extract category name from "📂 Category Name" format
+        const text = headerSpan.textContent || '';
+        const match = text.match(/📂\s*(.+)/);
+        if (match) {
+          category = match[1].trim();
+        }
+      }
+    }
+    
+    // Get the row (tr) that contains this checkbox
+    const row = cb.closest('tr');
+    if (row) {
+      const cells = row.querySelectorAll('td');
+      if (cells.length >= 4) {
+        // Product name is in the second cell (index 1)
+        productName = cells[1]?.textContent?.trim() || '';
+        // Current stock is in the third cell (index 2)
+        currentStock = parseInt(cells[2]?.textContent?.trim()) || 0;
+        // Counted stock is in the fourth cell (index 3)
+        countedStock = parseInt(cells[3]?.textContent?.trim()) || 0;
+      }
+    }
+    
+    // If we couldn't get the category from the header, try to get it from the product list
+    if (category === 'Unknown' && productName) {
+      // Try to find the product in the products array
+      const product = products.find(p => p.name === productName);
+      if (product && product.category) {
+        category = product.category;
+      }
+    }
+    
+    const productId = cb.dataset.product;
+    const requestId = cb.dataset.request;
+    
+    selectedItems.push({
+      product_id: productId,
+      product_name: productName || 'Unknown Product',
+      category: category,
+      current_stock: currentStock,
+      counted_stock: countedStock,
+      request_id: requestId
+    });
+  });
+  
+  console.log('Selected items with categories:', selectedItems);
+  return selectedItems;
+}
+// --- Approve Store Group ---
+async function approveStoreGroup(groupId, modal) {
+  const selectedItems = getSelectedItemsForGroup(groupId);
+  
+  if (selectedItems.length === 0) {
+    await showAlertModal('No Items Selected', 'Please select at least one item to approve.');
+    return;
+  }
+  
+  // Group by request ID for approval
+  const groupedByRequest = {};
+  selectedItems.forEach(item => {
+    if (!groupedByRequest[item.request_id]) {
+      groupedByRequest[item.request_id] = [];
+    }
+    groupedByRequest[item.request_id].push(item);
+  });
+  
+  const totalItems = Object.values(groupedByRequest).reduce((sum, items) => sum + items.length, 0);
+  const categoryCount = Object.keys(groupedByRequest).length;
+  
+  // Show confirmation modal
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.style.display = 'flex';
+    overlay.style.zIndex = '9999';
+    overlay.style.background = 'rgba(0,0,0,0.7)';
+    overlay.style.backdropFilter = 'blur(4px)';
+    overlay.innerHTML = `
+      <div class="modal-container" style="max-width: 600px; border-radius: 24px; padding: 0; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #059669 0%, #047857 100%); padding: 24px 28px; display: flex; align-items: center; gap: 16px;">
+          <div style="background: rgba(255,255,255,0.2); border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; font-size: 2rem; flex-shrink: 0;">
+            ✅
+          </div>
+          <div>
+            <div style="color: white; font-size: 1.5rem; font-weight: 700;">Approve Stock Take</div>
+            <div style="color: rgba(255,255,255,0.8); font-size: 0.9rem; margin-top: 2px;">${totalItems} items across ${categoryCount} categories</div>
+          </div>
+          <button id="closeApproveModalBtn" style="margin-left: auto; background: rgba(255,255,255,0.15); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; font-size: 1.5rem; cursor: pointer;">✕</button>
+        </div>
+        
+        <!-- Body -->
+        <div style="padding: 28px 28px 20px 28px; background: #f8fafc;">
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
+            <div style="background: white; border-radius: 12px; padding: 16px; text-align: center;">
+              <div style="font-size: 1.8rem; font-weight: 700; color: #059669;">${totalItems}</div>
+              <div style="font-size: 0.75rem; color: #64748b;">Total Items</div>
+            </div>
+            <div style="background: white; border-radius: 12px; padding: 16px; text-align: center;">
+              <div style="font-size: 1.8rem; font-weight: 700; color: #3b82f6;">${categoryCount}</div>
+              <div style="font-size: 0.75rem; color: #64748b;">Categories</div>
+            </div>
+            <div style="background: white; border-radius: 12px; padding: 16px; text-align: center;">
+              <div style="font-size: 1.8rem; font-weight: 700; color: #8b5cf6;">${Object.keys(groupedByRequest).length}</div>
+              <div style="font-size: 0.75rem; color: #64748b;">Submissions</div>
+            </div>
+          </div>
+          
+          <div style="background: #fefce8; border-radius: 12px; padding: 12px 16px; border-left: 4px solid #f59e0b; display: flex; align-items: flex-start; gap: 8px;">
+            <span style="font-size: 1.2rem;">⚠️</span>
+            <div>
+              <div style="font-weight: 500; color: #92400e; font-size: 0.85rem;">Important</div>
+              <div style="color: #78350f; font-size: 0.8rem;">Approving will update stock levels for ${totalItems} item(s). This action cannot be undone.</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Footer -->
+        <div style="padding: 16px 28px 24px 28px; background: white; border-top: 1px solid #e2e8f0; display: flex; gap: 12px; justify-content: flex-end;">
+          <button id="cancelApproveBtn" class="modal-btn modal-btn-secondary" style="padding: 12px 28px; font-size: 1rem; border-radius: 40px; background: #f1f5f9; color: #475569; border: none; cursor: pointer; font-weight: 500;">Cancel</button>
+          <button id="confirmApproveBtn" class="modal-btn" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; padding: 12px 32px; font-size: 1rem; border-radius: 40px; border: none; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(5,150,105,0.3);">
+            <span>✅</span> Confirm Approval
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    
+    const confirmBtn = overlay.querySelector('#confirmApproveBtn');
+    const cancelBtn = overlay.querySelector('#cancelApproveBtn');
+    const closeBtn = overlay.querySelector('#closeApproveModalBtn');
+    
+    const cleanup = () => {
+      overlay.remove();
+      resolve();
+    };
+    
+    const handleConfirm = async () => {
+      cleanup();
+      
+      showLoading('Approving selected items...');
+      
+      try {
+        let successCount = 0;
+        let failCount = 0;
+        let errors = [];
+        let updatedCategories = [];
+        
+        for (const [requestId, items] of Object.entries(groupedByRequest)) {
+          const category = items[0]?.category || 'Unknown';
+          const formData = new URLSearchParams();
+          formData.append('action', 'approveStockTake');
+          formData.append('request_id', requestId);
+          formData.append('approved_by', currentEmployee.id);
+          formData.append('approved_by_name', currentEmployee.name);
+          formData.append('items', JSON.stringify(items));
+          formData.append('partial_approval', 'true');
+          formData.append('total_items', items.length.toString());
+          formData.append('approved_count', items.length.toString());
+          
+          try {
+            const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
+            const result = await response.json();
+            
+            if (result.success) {
+              successCount += items.length;
+              updatedCategories.push(category);
+            } else {
+              failCount += items.length;
+              errors.push(`Category "${category}": ${result.error || 'Unknown error'}`);
+            }
+          } catch (err) {
+            failCount += items.length;
+            errors.push(`Category "${category}": Network error`);
+          }
+        }
+        
+        await showAlertModal('✅ Approval Complete', 
+          `<div style="text-align:left; padding:4px 0;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+              <span style="font-size:2.5rem;">📋</span>
+              <div>
+                <div style="font-weight:600; color:#0f172a; font-size:1.2rem;">Stock Take ${failCount === 0 ? 'Approved' : 'Partially Approved'}</div>
+                <div style="font-size:0.9rem; color:#64748b;">${updatedCategories.length} category(s) processed</div>
+              </div>
+            </div>
+            <div style="background:#f0fdf4; border-radius:12px; padding:16px 20px; border-left:4px solid #059669;">
+              <div style="display:flex; justify-content:space-between; padding:4px 0;">
+                <span style="color:#64748b;">✅ Approved Items</span>
+                <span style="font-weight:700; color:#059669;">${successCount}</span>
+              </div>
+              ${failCount > 0 ? `
+                <div style="display:flex; justify-content:space-between; padding:4px 0; border-top:1px solid #e2e8f0; margin-top:4px; padding-top:8px;">
+                  <span style="color:#64748b;">❌ Failed Items</span>
+                  <span style="font-weight:700; color:#ef4444;">${failCount}</span>
+                </div>
+              ` : ''}
+            </div>
+            ${errors.length > 0 ? `
+              <div style="background:#fef2f2; border-radius:8px; padding:12px 16px; margin-top:12px; border:1px solid #fecaca;">
+                <div style="font-weight:500; color:#dc2626; font-size:0.85rem;">⚠️ Errors:</div>
+                ${errors.map(err => `<div style="color:#475569; font-size:0.85rem; padding:2px 0;">• ${escapeHtml(err)}</div>`).join('')}
+              </div>
+            ` : ''}
+          </div>`
+        );
+        
+        // ✅ FORCE REFRESH: Clear cache and reload
+        hideLoading();
+        showLoading('Refreshing stock take list...');
+        
+        // Close the approval modal first
+        const approvalModal = document.querySelector('.modal-overlay[style*="z-index: 9999"]');
+        if (approvalModal) approvalModal.remove();
+        
+        // ✅ CRITICAL: Force refresh by calling the function with the modal reference
+        // Wait a moment for the backend to process
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // ✅ Reload the pending requests with a fresh fetch
+        await loadPendingStockTakeRequests(modal);
+        
+        // Refresh product display
+        await fetchProductsFromSheet(true);
+        renderProductGrid();
+        
+        hideLoading();
+        
+      } catch (err) {
+        console.error(err);
+        await showAlertModal('Error', 'Failed to approve selected items: ' + err.message);
+        hideLoading();
+      }
+    };
+    
+    confirmBtn.addEventListener('click', handleConfirm);
+    cancelBtn.addEventListener('click', cleanup);
+    closeBtn.addEventListener('click', cleanup);
+    
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) cleanup();
+    });
+  });
+}
+
+// --- Reject Store Group ---
+async function rejectStoreGroup(groupId, modal) {
+  const selectedItems = getSelectedItemsForGroup(groupId);
+  
+  if (selectedItems.length === 0) {
+    await showAlertModal('No Items Selected', 'Please select at least one item to reject.');
+    return;
+  }
+  
+  // Group by request ID for rejection
+  const groupedByRequest = {};
+  selectedItems.forEach(item => {
+    if (!groupedByRequest[item.request_id]) {
+      groupedByRequest[item.request_id] = [];
+    }
+    groupedByRequest[item.request_id].push(item);
+  });
+  
+  const totalItems = Object.values(groupedByRequest).reduce((sum, items) => sum + items.length, 0);
+  const categoryCount = Object.keys(groupedByRequest).length;
+  
+  // Show rejection reason modal
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.style.display = 'flex';
+    overlay.style.zIndex = '9999';
+    overlay.style.background = 'rgba(0,0,0,0.7)';
+    overlay.style.backdropFilter = 'blur(4px)';
+    overlay.innerHTML = `
+      <div class="modal-container" style="max-width: 600px; border-radius: 24px; padding: 0; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); padding: 24px 28px; display: flex; align-items: center; gap: 16px;">
+          <div style="background: rgba(255,255,255,0.2); border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; font-size: 2rem; flex-shrink: 0;">
+            ❌
+          </div>
+          <div>
+            <div style="color: white; font-size: 1.5rem; font-weight: 700;">Reject Stock Take</div>
+            <div style="color: rgba(255,255,255,0.8); font-size: 0.9rem; margin-top: 2px;">${totalItems} items across ${categoryCount} categories</div>
+          </div>
+          <button id="closeRejectModalBtn2" style="margin-left: auto; background: rgba(255,255,255,0.15); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; font-size: 1.5rem; cursor: pointer;">✕</button>
+        </div>
+        
+        <!-- Body -->
+        <div style="padding: 28px 28px 20px 28px; background: #f8fafc;">
+          <!-- Category breakdown -->
+          <div style="background: white; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #e2e8f0;">
+            <div style="font-weight: 600; color: #1e293b; font-size: 0.9rem; margin-bottom: 12px;">📂 Categories to Reject</div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              ${Object.entries(groupedByRequest).map(([requestId, items]) => {
+                const category = items[0]?.category || 'Unknown';
+                const count = items.length;
+                return `
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: #f8fafc; border-radius: 8px;">
+                    <span style="font-weight: 500; font-size: 0.9rem;">📂 ${escapeHtml(category)}</span>
+                    <span style="background: #fee2e2; color: #991b1b; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">${count} items</span>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+          
+          <!-- Rejection Reason -->
+          <div style="margin-bottom: 8px;">
+            <label style="display: block; font-weight: 600; color: #1e293b; font-size: 0.95rem; margin-bottom: 8px;">
+              📝 Rejection Reason <span style="color: #ef4444;">*</span>
+            </label>
+            <textarea id="rejectionReasonInput2" rows="4" 
+              placeholder="e.g., Please recount the items as the quantities seem incorrect."
+              style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 2px solid #e2e8f0; font-size: 1rem; resize: vertical; min-height: 100px; font-family: inherit; background: white;"
+              onfocus="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 0 0 4px rgba(59,130,246,0.15)';"
+              onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';"></textarea>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
+              <button class="quick-reason-btn2" style="background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 16px; padding: 4px 12px; font-size: 0.75rem; cursor: pointer;">Count mismatch</button>
+              <button class="quick-reason-btn2" style="background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 16px; padding: 4px 12px; font-size: 0.75rem; cursor: pointer;">Missing items</button>
+              <button class="quick-reason-btn2" style="background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 16px; padding: 4px 12px; font-size: 0.75rem; cursor: pointer;">Incorrect count</button>
+              <button class="quick-reason-btn2" style="background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 16px; padding: 4px 12px; font-size: 0.75rem; cursor: pointer;">Please recount</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Footer -->
+        <div style="padding: 16px 28px 24px 28px; background: white; border-top: 1px solid #e2e8f0; display: flex; gap: 12px; justify-content: flex-end;">
+          <button id="cancelRejectBtn2" class="modal-btn modal-btn-secondary" style="padding: 12px 28px; font-size: 1rem; border-radius: 40px; background: #f1f5f9; color: #475569; border: none; cursor: pointer; font-weight: 500;">Cancel</button>
+          <button id="confirmRejectBtn2" class="modal-btn" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 12px 32px; font-size: 1rem; border-radius: 40px; border: none; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(239,68,68,0.3);">
+            <span>🗑️</span> Confirm Reject
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    
+    const textarea = overlay.querySelector('#rejectionReasonInput2');
+    const confirmBtn = overlay.querySelector('#confirmRejectBtn2');
+    const cancelBtn = overlay.querySelector('#cancelRejectBtn2');
+    const closeBtn = overlay.querySelector('#closeRejectModalBtn2');
+    
+    // Quick reason buttons
+    document.querySelectorAll('.quick-reason-btn2').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const reasonText = this.textContent;
+        const currentText = textarea.value.trim();
+        if (currentText) {
+          textarea.value = `${currentText}\n\n${reasonText}: Please verify the count and resubmit.`;
+        } else {
+          textarea.value = `${reasonText}: Please verify the count and resubmit.`;
+        }
+        textarea.focus();
+        textarea.dispatchEvent(new Event('focus'));
+      });
+    });
+    
+    setTimeout(() => textarea.focus(), 300);
+    
+    const cleanup = () => {
+      overlay.remove();
+      resolve();
+    };
+    
+    const handleConfirm = async () => {
+      const reason = textarea.value.trim() || 'No reason provided';
+      cleanup();
+      
+      showLoading('Rejecting selected items...');
+      
+      try {
+        let successCount = 0;
+        let failCount = 0;
+        let errors = [];
+        let rejectedCategories = [];
+        
+        for (const [requestId, items] of Object.entries(groupedByRequest)) {
+          const category = items[0]?.category || 'Unknown';
+          const formData = new URLSearchParams();
+          formData.append('action', 'rejectStockTake');
+          formData.append('request_id', requestId);
+          formData.append('rejected_by', currentEmployee.id);
+          formData.append('rejected_by_name', currentEmployee.name);
+          formData.append('reason', reason || 'No reason provided');
+          formData.append('items', JSON.stringify(items));
+          formData.append('partial_rejection', 'true');
+          formData.append('total_items', items.length.toString());
+          formData.append('rejected_count', items.length.toString());
+          
+          try {
+            const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
+            const result = await response.json();
+            
+            if (result.success) {
+              successCount += items.length;
+              rejectedCategories.push(category);
+            } else {
+              failCount += items.length;
+              errors.push(`Category "${category}": ${result.error || 'Unknown error'}`);
+            }
+          } catch (err) {
+            failCount += items.length;
+            errors.push(`Category "${category}": Network error`);
+          }
+        }
+        
+        await showAlertModal('✅ Rejection Complete', 
+          `<div style="text-align:left; padding:4px 0;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+              <span style="font-size:2.5rem;">📋</span>
+              <div>
+                <div style="font-weight:600; color:#0f172a; font-size:1.2rem;">Stock Take ${failCount === 0 ? 'Rejected' : 'Partially Rejected'}</div>
+                <div style="font-size:0.9rem; color:#64748b;">${rejectedCategories.length} category(s) processed</div>
+              </div>
+            </div>
+            <div style="background:#fef2f2; border-radius:12px; padding:16px 20px; border-left:4px solid #ef4444;">
+              <div style="display:flex; justify-content:space-between; padding:4px 0;">
+                <span style="color:#64748b;">❌ Rejected Items</span>
+                <span style="font-weight:700; color:#dc2626;">${successCount}</span>
+              </div>
+              ${failCount > 0 ? `
+                <div style="display:flex; justify-content:space-between; padding:4px 0; border-top:1px solid #e2e8f0; margin-top:4px; padding-top:8px;">
+                  <span style="color:#64748b;">❌ Failed Items</span>
+                  <span style="font-weight:700; color:#ef4444;">${failCount}</span>
+                </div>
+              ` : ''}
+            </div>
+            <div style="background:#f8fafc; border-radius:8px; padding:12px 16px; margin-top:12px; border:1px solid #e2e8f0;">
+              <div style="font-weight:500; color:#1e293b; font-size:0.85rem;">📝 Rejection Reason:</div>
+              <div style="color:#475569; font-size:0.9rem; margin-top:4px;">${escapeHtml(reason)}</div>
+            </div>
+            ${errors.length > 0 ? `
+              <div style="background:#fef2f2; border-radius:8px; padding:12px 16px; margin-top:12px; border:1px solid #fecaca;">
+                <div style="font-weight:500; color:#dc2626; font-size:0.85rem;">⚠️ Errors:</div>
+                ${errors.map(err => `<div style="color:#475569; font-size:0.85rem; padding:2px 0;">• ${escapeHtml(err)}</div>`).join('')}
+              </div>
+            ` : ''}
+          </div>`
+        );
+        
+        // ✅ FORCE REFRESH: Clear cache and reload
+        hideLoading();
+        showLoading('Refreshing stock take list...');
+        
+        // Close the rejection modal first
+        const rejectModal = document.querySelector('.modal-overlay[style*="z-index: 9999"]');
+        if (rejectModal) rejectModal.remove();
+        
+        // ✅ CRITICAL: Wait for backend to process
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // ✅ RELOAD the pending requests with fresh data
+        await loadPendingStockTakeRequests(modal);
+        
+        hideLoading();
+        
+      } catch (err) {
+        console.error(err);
+        await showAlertModal('Error', 'Failed to reject selected items: ' + err.message);
+        hideLoading();
+      }
+    };
+    
+    confirmBtn.addEventListener('click', handleConfirm);
+    cancelBtn.addEventListener('click', cleanup);
+    closeBtn.addEventListener('click', cleanup);
+    
+    textarea.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleConfirm();
+      }
+    });
+    
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) cleanup();
+    });
+  });
+}
+
+// --- Reject Store Group ---
+async function rejectStoreGroup(groupId, modal) {
+  const selectedItems = getSelectedItemsForGroup(groupId);
+  
+  if (selectedItems.length === 0) {
+    await showAlertModal('No Items Selected', 'Please select at least one item to reject.');
+    return;
+  }
+  
+  // Group by request ID for rejection
+  const groupedByRequest = {};
+  selectedItems.forEach(item => {
+    if (!groupedByRequest[item.request_id]) {
+      groupedByRequest[item.request_id] = [];
+    }
+    groupedByRequest[item.request_id].push(item);
+  });
+  
+  const totalItems = Object.values(groupedByRequest).reduce((sum, items) => sum + items.length, 0);
+  const categoryCount = Object.keys(groupedByRequest).length;
+  
+  // Show rejection reason modal first
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.style.display = 'flex';
+    overlay.style.zIndex = '9999';
+    overlay.style.background = 'rgba(0,0,0,0.7)';
+    overlay.style.backdropFilter = 'blur(4px)';
+    overlay.innerHTML = `
+      <div class="modal-container" style="max-width: 600px; border-radius: 24px; padding: 0; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+        <!-- Header - Red gradient -->
+        <div style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); padding: 24px 28px; display: flex; align-items: center; gap: 16px;">
+          <div style="background: rgba(255,255,255,0.2); border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; font-size: 2rem; flex-shrink: 0;">
+            ❌
+          </div>
+          <div>
+            <div style="color: white; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px;">Reject Stock Take</div>
+            <div style="color: rgba(255,255,255,0.8); font-size: 0.9rem; margin-top: 2px;">${totalItems} items across ${categoryCount} categories</div>
+          </div>
+          <button id="closeRejectModalBtn2" style="margin-left: auto; background: rgba(255,255,255,0.15); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; font-size: 1.5rem; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">✕</button>
+        </div>
+        
+        <!-- Body -->
+        <div style="padding: 28px 28px 20px 28px; background: #f8fafc;">
+          <!-- Summary Cards -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
+            <div style="background: white; border-radius: 12px; padding: 16px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+              <div style="font-size: 1.8rem; font-weight: 700; color: #ef4444;">${totalItems}</div>
+              <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">Total Items</div>
+            </div>
+            <div style="background: white; border-radius: 12px; padding: 16px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+              <div style="font-size: 1.8rem; font-weight: 700; color: #3b82f6;">${categoryCount}</div>
+              <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">Categories</div>
+            </div>
+            <div style="background: white; border-radius: 12px; padding: 16px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+              <div style="font-size: 1.8rem; font-weight: 700; color: #8b5cf6;">${Object.keys(groupedByRequest).length}</div>
+              <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">Submissions</div>
+            </div>
+          </div>
+          
+          <!-- Category breakdown -->
+          <div style="background: white; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #e2e8f0;">
+            <div style="font-weight: 600; color: #1e293b; font-size: 0.9rem; margin-bottom: 12px;">📂 Categories to Reject</div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              ${Object.entries(groupedByRequest).map(([requestId, items]) => {
+                const category = items[0]?.category || 'Unknown';
+                const count = items.length;
+                return `
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: #f8fafc; border-radius: 8px;">
+                    <span style="font-weight: 500; font-size: 0.9rem;">📂 ${escapeHtml(category)}</span>
+                    <span style="background: #fee2e2; color: #991b1b; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">${count} items</span>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+          
+          <!-- Rejection Reason -->
+          <div style="margin-bottom: 8px;">
+            <label style="display: block; font-weight: 600; color: #1e293b; font-size: 0.95rem; margin-bottom: 8px;">
+              📝 Rejection Reason <span style="color: #ef4444;">*</span>
+            </label>
+            <textarea id="rejectionReasonInput2" rows="4" 
+              placeholder="e.g., Please recount the items as the quantities seem incorrect. Make sure to count all stock in the back room and display shelves."
+              style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 2px solid #e2e8f0; font-size: 1rem; resize: vertical; min-height: 100px; font-family: inherit; transition: all 0.3s ease; background: white;"
+              onfocus="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 0 0 4px rgba(59,130,246,0.15)';"
+              onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';"></textarea>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
+              <button class="quick-reason-btn2" style="background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 16px; padding: 4px 12px; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; color: #334155;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">Count mismatch</button>
+              <button class="quick-reason-btn2" style="background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 16px; padding: 4px 12px; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; color: #334155;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">Missing items</button>
+              <button class="quick-reason-btn2" style="background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 16px; padding: 4px 12px; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; color: #334155;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">Incorrect count</button>
+              <button class="quick-reason-btn2" style="background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 16px; padding: 4px 12px; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; color: #334155;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">Please recount</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Footer -->
+        <div style="padding: 16px 28px 24px 28px; background: white; border-top: 1px solid #e2e8f0; display: flex; gap: 12px; justify-content: flex-end;">
+          <button id="cancelRejectBtn2" class="modal-btn modal-btn-secondary" style="padding: 12px 28px; font-size: 1rem; border-radius: 40px; background: #f1f5f9; color: #475569; border: none; cursor: pointer; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">Cancel</button>
+          <button id="confirmRejectBtn2" class="modal-btn" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 12px 32px; font-size: 1rem; border-radius: 40px; border: none; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(239,68,68,0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(239,68,68,0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(239,68,68,0.3)'">
+            <span>🗑️</span> Confirm Reject
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    
+    const textarea = overlay.querySelector('#rejectionReasonInput2');
+    const confirmBtn = overlay.querySelector('#confirmRejectBtn2');
+    const cancelBtn = overlay.querySelector('#cancelRejectBtn2');
+    const closeBtn = overlay.querySelector('#closeRejectModalBtn2');
+    
+    // Quick reason buttons
+    document.querySelectorAll('.quick-reason-btn2').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const reasonText = this.textContent;
+        const currentText = textarea.value.trim();
+        if (currentText) {
+          textarea.value = `${currentText}\n\n${reasonText}: Please verify the count and resubmit.`;
+        } else {
+          textarea.value = `${reasonText}: Please verify the count and resubmit.`;
+        }
+        textarea.focus();
+        textarea.dispatchEvent(new Event('focus'));
+      });
+    });
+    
+    setTimeout(() => textarea.focus(), 300);
+    
+    const cleanup = () => {
+      overlay.remove();
+      resolve();
+    };
+    
+    const handleConfirm = async () => {
+      const reason = textarea.value.trim() || 'No reason provided';
+      cleanup();
+      
+      showLoading('Rejecting selected items...');
+      
+      try {
+        let successCount = 0;
+        let failCount = 0;
+        let rejectedCategories = [];
+        let errors = [];
+        
+        // Log what we're sending
+        console.log('Grouped by request:', groupedByRequest);
+        
+        for (const [requestId, items] of Object.entries(groupedByRequest)) {
+          const category = items[0]?.category || 'Unknown';
+          
+          // Log the items being sent
+          console.log(`Sending request ${requestId} with ${items.length} items:`, items);
+          
+          const formData = new URLSearchParams();
+          formData.append('action', 'rejectStockTake');
+          formData.append('request_id', requestId);
+          formData.append('rejected_by', currentEmployee.id);
+          formData.append('rejected_by_name', currentEmployee.name);
+          formData.append('reason', reason || 'No reason provided');
+          formData.append('items', JSON.stringify(items));
+          formData.append('partial_rejection', 'true');
+          formData.append('rejected_count', items.length);
+          
+          // Log the form data
+          console.log('Form data being sent:', formData.toString());
+          
+          try {
+            const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
+            const result = await response.json();
+            
+            console.log(`Response for request ${requestId}:`, result);
+            
+            if (result.success) {
+              successCount += items.length;
+              rejectedCategories.push(category);
+            } else {
+              failCount += items.length;
+              errors.push(`Category "${category}": ${result.error || 'Unknown error'}`);
+              console.error(`Failed to reject request ${requestId}:`, result.error);
+            }
+          } catch (fetchError) {
+            failCount += items.length;
+            errors.push(`Category "${category}": Network error - ${fetchError.message}`);
+            console.error(`Network error for request ${requestId}:`, fetchError);
+          }
+        }
+        
+        // Show detailed results
+        let resultMessage = `
+          <div style="text-align:left; padding:4px 0;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+              <span style="font-size:2.5rem;">📋</span>
+              <div>
+                <div style="font-weight:600; color:#0f172a; font-size:1.2rem;">${failCount === 0 ? '✅ Rejection Complete' : '⚠️ Partial Rejection'}</div>
+                <div style="font-size:0.9rem; color:#64748b;">${rejectedCategories.length} category(s) processed</div>
+              </div>
+            </div>
+            <div style="background:${failCount === 0 ? '#f0fdf4' : '#fefce8'}; border-radius:12px; padding:16px 20px; border-left:4px solid ${failCount === 0 ? '#059669' : '#f59e0b'};">
+              <div style="display:flex; justify-content:space-between; padding:4px 0;">
+                <span style="color:#64748b;">❌ Rejected Items</span>
+                <span style="font-weight:700; color:${failCount === 0 ? '#059669' : '#dc2626'};">${successCount}</span>
+              </div>
+              ${failCount > 0 ? `
+                <div style="display:flex; justify-content:space-between; padding:4px 0; border-top:1px solid #e2e8f0; margin-top:4px; padding-top:8px;">
+                  <span style="color:#64748b;">❌ Failed Items</span>
+                  <span style="font-weight:700; color:#ef4444;">${failCount}</span>
+                </div>
+              ` : ''}
+            </div>
+        `;
+        
+        // Add error details if any
+        if (errors.length > 0) {
+          resultMessage += `
+            <div style="background:#fef2f2; border-radius:8px; padding:12px 16px; margin-top:12px; border:1px solid #fecaca;">
+              <div style="font-weight:500; color:#dc2626; font-size:0.85rem; margin-bottom:8px;">⚠️ Errors:</div>
+              ${errors.map(err => `<div style="color:#475569; font-size:0.85rem; padding:2px 0;">• ${escapeHtml(err)}</div>`).join('')}
+            </div>
+          `;
+        }
+        
+        // Add reason if any were successful
+        if (successCount > 0) {
+          resultMessage += `
+            <div style="background:#f8fafc; border-radius:8px; padding:12px 16px; margin-top:12px; border:1px solid #e2e8f0;">
+              <div style="font-weight:500; color:#1e293b; font-size:0.85rem;">📝 Rejection Reason:</div>
+              <div style="color:#475569; font-size:0.9rem; margin-top:4px;">${escapeHtml(reason)}</div>
+            </div>
+          `;
+        }
+        
+        if (rejectedCategories.length > 0) {
+          resultMessage += `
+            <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:6px;">
+              ${rejectedCategories.map(cat => `<span style="background:#fee2e2; color:#991b1b; padding:2px 10px; border-radius:12px; font-size:0.75rem;">📂 ${escapeHtml(cat)}</span>`).join('')}
+            </div>
+          `;
+        }
+        
+        resultMessage += `</div>`;
+        
+        await showAlertModal(
+          failCount === 0 ? '✅ Rejection Complete' : '⚠️ Partial Rejection', 
+          resultMessage
+        );
+        
+        // Refresh the list
+        await loadPendingStockTakeRequests(modal);
+        
+      } catch (err) {
+        console.error('Rejection error:', err);
+        await showAlertModal('Error', 'Failed to reject selected items: ' + err.message);
+      } finally {
+        hideLoading();
+      }
+    };
+    
+    confirmBtn.addEventListener('click', handleConfirm);
+    cancelBtn.addEventListener('click', cleanup);
+    closeBtn.addEventListener('click', cleanup);
+    
+    textarea.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleConfirm();
+      }
+    });
+    
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) cleanup();
+    });
+  });
+}
+
+// --- Reject Selected Items ---
+async function rejectSelectedItems(requestId, modal) {
+  // Get ALL checkboxes for this request first
+  const allCheckboxes = document.querySelectorAll(`.item-checkbox[data-request="${requestId}"]`);
+  const selectedCheckboxes = document.querySelectorAll(`.item-checkbox[data-request="${requestId}"]:checked`);
+  
+  // Debug: log the counts
+  console.log(`Total checkboxes: ${allCheckboxes.length}, Selected: ${selectedCheckboxes.length}`);
+  
+  if (selectedCheckboxes.length === 0) {
+    await showAlertModal('No Items Selected', 'Please select at least one item to reject.');
+    return;
+  }
+  
+  // Get the full request data
+  const requestData = await fetchRequestData(requestId);
+  if (!requestData) {
+    await showAlertModal('Error', 'Could not load request data.');
+    return;
+  }
+  
+  // ✅ FIX: Ensure items is an array (parse if it's a string)
+  let itemsArray = requestData.items;
+  if (typeof itemsArray === 'string') {
+    try {
+      itemsArray = JSON.parse(itemsArray);
+    } catch (e) {
+      console.error('Failed to parse items:', e);
+      itemsArray = [];
+    }
+  }
+  
+  // ✅ FIX: Ensure items is always an array
+  if (!Array.isArray(itemsArray)) {
+    itemsArray = [];
+  }
+  
+  // Debug: log the structure
+  console.log('Items array:', itemsArray);
+  console.log('First item product_id:', itemsArray[0]?.product_id);
+  
+  // Get the selected product IDs from checkboxes
+  const selectedProductIds = Array.from(selectedCheckboxes).map(cb => {
+    const productId = cb.dataset.product;
+    // ✅ FIX: Convert to string for comparison
+    return String(productId);
+  });
+  
+  console.log('Selected product IDs:', selectedProductIds);
+  
+  // ✅ FIX: Filter items - compare as strings
+  const selectedItems = itemsArray.filter(item => {
+    const itemProductId = String(item.product_id);
+    return selectedProductIds.includes(itemProductId);
+  });
+  
+  // Debug: log selected items count
+  console.log(`Selected items count: ${selectedItems.length}`);
+  
+  if (selectedItems.length === 0) {
+    await showAlertModal('No Matching Items', 'Could not find matching items for the selected checkboxes. Please refresh and try again.');
+    return;
+  }
+  
+  const reason = await showInputModal('Rejection Reason', 'Enter reason for rejecting selected items');
+  if (reason === null) return; // User cancelled
+  
+  const confirmed = await showConfirmModal(
+    'Reject Selected Items',
+    `Reject ${selectedItems.length} item(s) out of ${itemsArray.length} total?\n\nThis will mark only the selected items as rejected.`
+  );
+  
+  if (!confirmed) return;
+  
+  showLoading('Rejecting selected items...');
+  
+  try {
+    const formData = new URLSearchParams();
+    formData.append('action', 'rejectStockTake');
+    formData.append('request_id', requestId);
+    formData.append('rejected_by', currentEmployee.id);
+    formData.append('rejected_by_name', currentEmployee.name);
+    formData.append('reason', reason || 'No reason provided');
+    // Only send the selected items
+    formData.append('items', JSON.stringify(selectedItems));
+    formData.append('partial_rejection', 'true');
+    formData.append('total_items', itemsArray.length);
+    formData.append('rejected_count', selectedItems.length);
+    
+    const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
+    const result = await response.json();
+    
+    // ✅ FIX: Calculate remainingItems HERE (outside the result.success check)
+    // This ensures it's defined regardless of whether result.success is true or false
+    const remainingItems = itemsArray.length - selectedItems.length;
+    console.log(`Remaining items: ${remainingItems}`);
+    
+    if (result.success) {
+      await showAlertModal('✅ Partial Rejection Successful', 
+        `<div style="text-align:left; padding:4px 0;">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+            <span style="font-size:2rem;">📋</span>
+            <div>
+              <div style="font-weight:600; color:#0f172a;">Selected Items Rejected</div>
+              <div style="font-size:0.9rem; color:#64748b;">Request ID: ${requestId}</div>
+            </div>
+          </div>
+          <div style="background:#fef2f2; border-radius:12px; padding:12px 16px; border-left:4px solid #ef4444; margin-top:8px;">
+            <div style="font-weight:500; color:#dc2626; margin-bottom:4px;">❌ Rejected: ${selectedItems.length} item(s)</div>
+            <div style="font-weight:500; color:#2c7a4b; margin-bottom:4px;">⏳ Remaining: ${remainingItems} item(s)</div>
+          </div>
+          <div style="background:#f8fafc; border-radius:8px; padding:8px 12px; margin-top:8px;">
+            <div style="font-weight:500; color:#1e293b; font-size:0.85rem;">📝 Reason:</div>
+            <div style="color:#475569; font-size:0.9rem;">${escapeHtml(reason)}</div>
+          </div>
+          <div style="margin-top:12px; font-size:0.85rem; color:#64748b;">
+            The remaining items are still pending review.
+          </div>
+        </div>`
+      );
+      // Refresh the list
+      await loadPendingStockTakeRequests(modal);
+    } else {
+      throw new Error(result.error || 'Unknown error');
+    }
+  } catch (err) {
+    console.error(err);
+    await showAlertModal('Error', 'Failed to reject selected items: ' + err.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+// --- Helper: Fetch request data by ID ---
+async function fetchRequestData(requestId) {
+  try {
+    // Get all pending requests and find the specific one
+    const url = `${APPS_SCRIPT_URL}?action=getPendingStockTakeRequests&store=all&_=${Date.now()}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    if (result.success && result.requests) {
+      const request = result.requests.find(r => r.request_id === requestId);
+      if (request) {
+        // ✅ FIX: Ensure items is an array
+        if (typeof request.items === 'string') {
+          try {
+            request.items = JSON.parse(request.items);
+          } catch (e) {
+            console.error('Failed to parse items in fetchRequestData:', e);
+            request.items = [];
+          }
+        }
+        // ✅ FIX: Ensure items is always an array
+        if (!Array.isArray(request.items)) {
+          request.items = [];
+        }
+        return request;
+      }
+    }
+    return null;
+  } catch (err) {
+    console.error('fetchRequestData error:', err);
+    return null;
+  }
+}
+
+async function approveStockTakeRequest(requestId, modal) {
+  const confirmed = await showConfirmModal(
+    'Approve Stock Take',
+    `Are you sure you want to approve request ${requestId}? This will update product stocks in the system.`
+  );
+  
+  if (!confirmed) return;
+  
+  showLoading('Approving stock take...');
+  
+  try {
+    const formData = new URLSearchParams();
+    formData.append('action', 'approveStockTake');
+    formData.append('request_id', requestId);
+    formData.append('approved_by', currentEmployee.id);
+    formData.append('approved_by_name', currentEmployee.name);
+    
+    const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
+    const result = await response.json();
+    
+    if (result.success) {
+      await showAlertModal('Approved', `Stock take approved! ${result.updated_count} product(s) updated.`);
+      // Refresh the list
+      await loadPendingStockTakeRequests(modal);
+      // Refresh product display
+      await fetchProductsFromSheet(true);
+      renderProductGrid();
+    } else {
+      throw new Error(result.error || 'Unknown error');
+    }
+  } catch (err) {
+    console.error(err);
+    await showAlertModal('Error', 'Failed to approve: ' + err.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+async function rejectStockTakeRequest(requestId, modal) {
+  // Create a custom modal with a textarea for rejection reason
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.style.display = 'flex';
+    overlay.style.zIndex = '9999';
+    overlay.style.background = 'rgba(0,0,0,0.7)';
+    overlay.style.backdropFilter = 'blur(4px)';
+    overlay.innerHTML = `
+      <div class="modal-container" style="max-width: 550px; border-radius: 24px; padding: 0; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+        <!-- Header - Red gradient -->
+        <div style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); padding: 24px 28px; display: flex; align-items: center; gap: 16px;">
+          <div style="background: rgba(255,255,255,0.2); border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; font-size: 2rem; flex-shrink: 0;">
+            ❌
+          </div>
+          <div>
+            <div style="color: white; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px;">Reject Stock Take</div>
+            <div style="color: rgba(255,255,255,0.8); font-size: 0.9rem; margin-top: 2px;">Request ID: ${escapeHtml(requestId)}</div>
+          </div>
+          <button id="closeRejectModalBtn" style="margin-left: auto; background: rgba(255,255,255,0.15); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; font-size: 1.5rem; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">✕</button>
+        </div>
+        
+        <!-- Body -->
+        <div style="padding: 28px 28px 20px 28px; background: #f8fafc;">
+          <div style="background: white; border-radius: 16px; padding: 16px 20px; margin-bottom: 20px; border-left: 4px solid #f59e0b; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="display: flex; align-items: center; gap: 8px; color: #92400e; font-weight: 500; font-size: 0.9rem;">
+              <span>💡</span> Please provide a reason for rejection. This will be sent to the staff member.
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 8px;">
+            <label style="display: block; font-weight: 600; color: #1e293b; font-size: 0.95rem; margin-bottom: 8px;">
+              📝 Rejection Reason <span style="color: #ef4444;">*</span>
+            </label>
+            <textarea id="rejectionReasonInput" rows="5" 
+              placeholder="e.g., Please recount the items as the quantities seem incorrect. Make sure to count all stock in the back room and display shelves. If the count is still the same, please explain the discrepancy in detail."
+              style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 2px solid #e2e8f0; font-size: 1rem; resize: vertical; min-height: 120px; font-family: inherit; transition: all 0.3s ease; background: white;"
+              onfocus="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 0 0 4px rgba(59,130,246,0.15)';"
+              onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';"></textarea>
+            <div style="display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 0.8rem; color: #94a3b8;">
+              <span>💡</span> Provide clear, actionable feedback to help staff correct the count.
+            </div>
+          </div>
+          
+          <!-- Quick reason buttons -->
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px;">
+            <button class="quick-reason-btn" style="background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 20px; padding: 6px 14px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; color: #334155;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">Count mismatch</button>
+            <button class="quick-reason-btn" style="background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 20px; padding: 6px 14px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; color: #334155;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">Missing items</button>
+            <button class="quick-reason-btn" style="background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 20px; padding: 6px 14px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; color: #334155;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">Incorrect count</button>
+            <button class="quick-reason-btn" style="background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 20px; padding: 6px 14px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; color: #334155;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">Please recount</button>
+            <button class="quick-reason-btn" style="background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 20px; padding: 6px 14px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; color: #334155;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">Check storage</button>
+          </div>
+        </div>
+        
+        <!-- Footer -->
+        <div style="padding: 16px 28px 24px 28px; background: white; border-top: 1px solid #e2e8f0; display: flex; gap: 12px; justify-content: flex-end;">
+          <button id="cancelRejectBtn" class="modal-btn modal-btn-secondary" style="padding: 12px 28px; font-size: 1rem; border-radius: 40px; background: #f1f5f9; color: #475569; border: none; cursor: pointer; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">Cancel</button>
+          <button id="confirmRejectBtn" class="modal-btn" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 12px 32px; font-size: 1rem; border-radius: 40px; border: none; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(239,68,68,0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(239,68,68,0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(239,68,68,0.3)'">
+            <span>🗑️</span> Confirm Reject
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    
+    const textarea = overlay.querySelector('#rejectionReasonInput');
+    const confirmBtn = overlay.querySelector('#confirmRejectBtn');
+    const cancelBtn = overlay.querySelector('#cancelRejectBtn');
+    const closeBtn = overlay.querySelector('#closeRejectModalBtn');
+    
+    // Quick reason buttons
+    document.querySelectorAll('.quick-reason-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const reasonText = this.textContent;
+        // Get the current text and add the quick reason
+        const currentText = textarea.value.trim();
+        if (currentText) {
+          textarea.value = `${currentText}\n\n${reasonText}: Please verify the count and resubmit.`;
+        } else {
+          textarea.value = `${reasonText}: Please verify the count and resubmit.`;
+        }
+        textarea.focus();
+        // Trigger onfocus event to show border
+        textarea.dispatchEvent(new Event('focus'));
+      });
+    });
+    
+    // Focus the textarea after a short delay
+    setTimeout(() => textarea.focus(), 300);
+    
+    const cleanup = () => {
+      overlay.remove();
+      resolve();
+    };
+    
+    const handleConfirm = async () => {
+      const reason = textarea.value.trim() || 'No reason provided';
+      cleanup();
+      
+      showLoading('Rejecting stock take...');
+      
+      try {
+        const formData = new URLSearchParams();
+        formData.append('action', 'rejectStockTake');
+        formData.append('request_id', requestId);
+        formData.append('rejected_by', currentEmployee.id);
+        formData.append('rejected_by_name', currentEmployee.name);
+        formData.append('reason', reason);
+        
+        const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
+        const result = await response.json();
+        
+        if (result.success) {
+          await showAlertModal('✅ Request Rejected', 
+            `<div style="text-align:left; padding:4px 0;">
+              <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                <span style="font-size:2rem;">📋</span>
+                <div>
+                  <div style="font-weight:600; color:#0f172a;">Stock Take Request Rejected</div>
+                  <div style="font-size:0.9rem; color:#64748b;">Request ID: ${escapeHtml(requestId)}</div>
+                </div>
+              </div>
+              <div style="background:#fef2f2; border-radius:12px; padding:12px 16px; border-left:4px solid #ef4444; margin-top:8px;">
+                <div style="font-weight:500; color:#dc2626; font-size:0.85rem; margin-bottom:4px;">📝 Rejection Reason:</div>
+                <div style="color:#1e293b; font-size:0.95rem;">${escapeHtml(reason)}</div>
+              </div>
+              <div style="margin-top:12px; font-size:0.85rem; color:#64748b;">
+                The staff member has been notified of this rejection.
+              </div>
+            </div>`
+          );
+          await loadPendingStockTakeRequests(modal);
+        } else {
+          throw new Error(result.error || 'Unknown error');
+        }
+      } catch (err) {
+        console.error(err);
+        await showAlertModal('Error', 'Failed to reject: ' + err.message);
+      } finally {
+        hideLoading();
+      }
+    };
+    
+    confirmBtn.addEventListener('click', handleConfirm);
+    cancelBtn.addEventListener('click', cleanup);
+    closeBtn.addEventListener('click', cleanup);
+    
+    // Allow Enter key (but not Shift+Enter for multi-line)
+    textarea.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleConfirm();
+      }
+    });
+    
+    // Close on overlay click
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) cleanup();
+    });
+  });
 }
   // ========== UPDATED RECEIPT RENDERING WITH DETAILED ITEMS, DISCOUNTS, FREE GIFTS ==========
 function renderReceiptsList(receipts) {
@@ -6810,6 +8786,7 @@ async function openSettlementModal() {
  async function refreshSettlementTotals(store, silent = false) {
   const todayStr = getUTCDateString(new Date());
   const report = await fetchSalesReport(store, 'all', todayStr, todayStr, true, silent);
+  
   if (report) {
     const cash = report.cashTotal !== undefined ? report.cashTotal : 0;
     const card = report.cardTotal !== undefined ? report.cardTotal : 0;
@@ -6835,19 +8812,65 @@ async function openSettlementModal() {
       const sysNetTotal = document.getElementById('sysNetTotal');
       if (sysNetTotal) sysNetTotal.innerText = `RM ${netTotal.toFixed(2)}`;
 
+      // ✅ CHECK FOR UNSETTLED BILLS FIRST
+      const unsettledCount = await getUnsettledBillCount(store);
+      console.log(`📊 Unsettled bills for ${store}: ${unsettledCount}`);
+      
       const alreadySettled = await checkSettlementStatus(store, todayStr);
-      if (alreadySettled) {
+      
+      // ✅ Only block if settlement exists AND no unsettled bills
+      if (alreadySettled && unsettledCount === 0) {
+        // ❌ BLOCK - Settlement exists and no unsettled bills
         const settlementError = document.getElementById('settlementError');
         if (settlementError) {
           settlementError.innerHTML = '⚠️ Settlement has already been recorded for today. No further settlement allowed.';
           settlementError.style.display = 'block';
+          settlementError.style.color = '#ef4444';
         }
         const checkBtn = document.getElementById('checkSettlementBtn');
-        if (checkBtn) checkBtn.disabled = true;
+        if (checkBtn) {
+          checkBtn.disabled = true;
+          checkBtn.style.display = 'block';
+        }
         const recordBtn = document.getElementById('recordSettlementBtn');
         if (recordBtn) recordBtn.style.display = 'none';
         setSettlementFieldsEnabled(false);
+        
+      } else if (alreadySettled && unsettledCount > 0) {
+        // ✅ ALLOW - Settlement exists but has unsettled bills
+        const settlementError = document.getElementById('settlementError');
+        if (settlementError) {
+          settlementError.innerHTML = `⚠️ Settlement already recorded but ${unsettledCount} unsettled bill(s) found. You can re-settle.`;
+          settlementError.style.display = 'block';
+          settlementError.style.color = '#f59e0b'; // Amber color for warning
+        }
+        // Enable everything
+        setSettlementFieldsEnabled(true);
+        const actualCash = document.getElementById('actualCash');
+        if (actualCash) actualCash.value = '';
+        const actualCard = document.getElementById('actualCard');
+        if (actualCard) actualCard.value = '';
+        const actualQR = document.getElementById('actualQR');
+        if (actualQR) actualQR.value = '';
+        const actualAlipay = document.getElementById('actualAlipay');
+        if (actualAlipay) actualAlipay.value = '';
+        const pettyCash = document.getElementById('pettyCashFloat');
+        if (pettyCash) pettyCash.value = '0.00';
+        const checkBtn = document.getElementById('checkSettlementBtn');
+        if (checkBtn) {
+          checkBtn.style.display = 'block';
+          checkBtn.disabled = false;
+        }
+        const recordBtn = document.getElementById('recordSettlementBtn');
+        if (recordBtn) recordBtn.style.display = 'none';
+        const errorFields = ['actualCash', 'actualCard', 'actualQR', 'actualAlipay'];
+        errorFields.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.remove('error-field');
+        });
+        
       } else {
+        // ✅ ALLOW - No settlement exists
         setSettlementFieldsEnabled(true);
         const actualCash = document.getElementById('actualCash');
         if (actualCash) actualCash.value = '';
@@ -6882,26 +8905,17 @@ async function openSettlementModal() {
     console.error('refreshSettlementTotals: report is null');
   }
 }
-
-  let currentSettlementTotals = null;
-
-  function setSettlementFieldsEnabled(enabled) {
-    const fields = ['settlementStoreSelect', 'pettyCashFloat', 'actualCash', 'actualCard', 'actualQR', 'actualAlipay'];
-    const isNonAdmin = !currentEmployee?.isAdmin;
-    fields.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        if (id === 'settlementStoreSelect' && isNonAdmin) {
-          el.disabled = true;
-        } else {
-          el.disabled = !enabled;
-        }
-      }
-    });
-    const checkBtn = document.getElementById('checkSettlementBtn');
-    if (checkBtn) checkBtn.disabled = !enabled;
+async function getUnsettledBillCount(store) {
+  try {
+    const url = `${APPS_SCRIPT_URL}?action=getUnsettledBillCount&store=${store}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    return result.success ? result.count : 0;
+  } catch (err) {
+    console.error('Error getting unsettled bill count:', err);
+    return 0;
   }
-
+}
 // ==================== PRINTER SETUP ====================
 let gattServer = null;
 let printerCharacteristic = null;
@@ -7301,7 +9315,10 @@ window.printerAPI = { isConnected: false, printReceipt: printReceipt, openDrawer
 function renderProductGrid() {
   const searchTerm = searchInput.value.toLowerCase();
   const selectedCategory = categorySelect.value;
-
+ if (stockTakeMode) {
+    renderStockTakeProductGrid();
+    return;
+  }
   if (selectedCategory === 'all' && !inventoryMode) {
     const categories = [...new Set(products.map(p => p.category))];
     let filteredCategories = categories;
@@ -7651,6 +9668,13 @@ if (applyHistoryBtn) {
     await loadCollectionHistory(from, to);
   });
 }
+// ==================== STOCK TAKE UI FUNCTIONS ====================
+function updateStockTakeUI() {
+  const approvalBtn = document.getElementById('sideStockTakeApprovalBtn');
+  if (approvalBtn) {
+    approvalBtn.style.display = currentEmployee?.isAdmin ? 'flex' : 'none';
+  }
+}
  async function verifyEmployeeByPin(pin) {
   // Prevent multiple verification attempts
   if (window.verifying) return;
@@ -7700,14 +9724,23 @@ if (applyHistoryBtn) {
   const gridBtn = document.getElementById('gridViewBtn');
   const listBtn = document.getElementById('listViewBtn');
   if (gridBtn && listBtn) {
-    gridBtn.addEventListener('click', () => setViewMode('grid'));
-    listBtn.addEventListener('click', () => setViewMode('list'));
+   
   }
 
   document.getElementById('lowStockToggleBtn')?.addEventListener('click', toggleLowStockFilter);
   document.getElementById('clearStockHistoryBtn')?.addEventListener('click', clearStockHistory);
   document.getElementById('saveStockHistoryBtn')?.addEventListener('click', saveStockHistoryToSheet);
+// ==================== STOCK TAKE EVENT LISTENERS ====================
+// Stock Take toggle
+document.getElementById('sideStockTakeBtn')?.addEventListener('click', wrapMenuAction(() => {
+  toggleStockTakeMode();
+}));
 
+// Submit stock take
+document.getElementById('submitStockTakeBtn')?.addEventListener('click', submitStockTake);
+
+// Stock Take Approval (Admin only)
+document.getElementById('sideStockTakeApprovalBtn')?.addEventListener('click', wrapMenuAction(openStockTakeApprovalModal));
   const pinInputEl = document.getElementById('pinInput');
   if (pinInputEl) {
     document.querySelectorAll('.keypad-btn').forEach(btn => {
@@ -7745,11 +9778,16 @@ if (applyHistoryBtn) {
   const closeSideMenuBtn = document.getElementById('closeSideMenuBtn');
 
   function openSideMenu() {
-    flushPendingStockChanges();
-    if (inventoryMode) toggleInventoryMode();
-    sideMenuOverlay.style.display = 'flex';
-    setTimeout(() => { sideMenuDiv.classList.add('open'); }, 10);
+  // ✅ Exit stock take mode if active
+  if (stockTakeMode) {
+    toggleStockTakeMode();  // This will exit stock take mode
   }
+  
+  flushPendingStockChanges();
+  if (inventoryMode) toggleInventoryMode();
+  sideMenuOverlay.style.display = 'flex';
+  setTimeout(() => { sideMenuDiv.classList.add('open'); }, 10);
+}
 
   function closeSideMenu() {
     sideMenuDiv.classList.remove('open');
@@ -7761,12 +9799,16 @@ if (applyHistoryBtn) {
   if (sideMenuOverlay) sideMenuOverlay.addEventListener('click', (e) => { if (e.target === sideMenuOverlay) closeSideMenu(); });
 
   function wrapMenuAction(actionFn) {
-    return async (...args) => {
-      if (inventoryMode && actionFn !== toggleInventoryMode) toggleInventoryMode();
-      await actionFn(...args);
-      closeSideMenu();
-    };
-  }
+  return async (...args) => {
+    // ✅ Exit stock take mode if active
+    if (stockTakeMode) {
+      toggleStockTakeMode();
+    }
+    if (inventoryMode && actionFn !== toggleInventoryMode) toggleInventoryMode();
+    await actionFn(...args);
+    closeSideMenu();
+  };
+}
 
   const sideReportBtn = document.getElementById('sideReportBtn');
   const sideSettlementBtn = document.getElementById('sideSettlementBtn');
@@ -8186,25 +10228,30 @@ document.getElementById('closeAdminReportModal')?.addEventListener('click', () =
     }
   });
 
- // Settlement Check button
+// Settlement Check button - COMPLETE VERSION WITH DUPLICATE PREVENTION
+// Settlement Check button - REMOVE the duplicate check
 document.getElementById('checkSettlementBtn')?.addEventListener('click', async () => {
+  // Clear any previous error styling
   const errorFields = ['actualCash', 'actualCard', 'actualQR', 'actualAlipay'];
   errorFields.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.remove('error-field');
   });
 
+  // Get actual values
   const actualCash = parseFloat(document.getElementById('actualCash').value);
   const actualCard = parseFloat(document.getElementById('actualCard').value);
   const actualQR = parseFloat(document.getElementById('actualQR').value);
   const actualAlipay = parseFloat(document.getElementById('actualAlipay').value);
 
+  // Validate all fields are filled
   if (isNaN(actualCash) || isNaN(actualCard) || isNaN(actualQR) || isNaN(actualAlipay)) {
     document.getElementById('settlementError').innerHTML = '❌ Please fill in all actual settlement amounts.';
     document.getElementById('settlementError').style.display = 'block';
     return;
   }
 
+  // Get system totals
   const sysCash = parseFloat(document.getElementById('sysCash').innerText.replace('RM ', '')) || 0;
   const sysCard = parseFloat(document.getElementById('sysCard').innerText.replace('RM ', '')) || 0;
   const sysQR = parseFloat(document.getElementById('sysQR').innerText.replace('RM ', '')) || 0;
@@ -8213,6 +10260,7 @@ document.getElementById('checkSettlementBtn')?.addEventListener('click', async (
   let errors = [];
   let wrongFields = [];
 
+  // Check discrepancies (admin vs non-admin)
   if (currentEmployee.isAdmin) {
     if (Math.abs(actualCash - sysCash) > 0.01) {
       errors.push(`Cash: system RM ${sysCash.toFixed(2)} vs actual RM ${actualCash.toFixed(2)}`);
@@ -8232,28 +10280,30 @@ document.getElementById('checkSettlementBtn')?.addEventListener('click', async (
     }
   } else {
     if (Math.abs(actualCash - sysCash) > 0.01) {
-      errors.push('Cash: WRONG , COUNT AGAIN');
+      errors.push('Cash: WRONG, COUNT AGAIN');
       wrongFields.push('actualCash');
     }
     if (Math.abs(actualCard - sysCard) > 0.01) {
-      errors.push('Card: WRONG , COUNT AGAIN');
+      errors.push('Card: WRONG, COUNT AGAIN');
       wrongFields.push('actualCard');
     }
     if (Math.abs(actualQR - sysQR) > 0.01) {
-      errors.push('QR Pay: WRONG , COUNT AGAIN');
+      errors.push('QR Pay: WRONG, COUNT AGAIN');
       wrongFields.push('actualQR');
     }
     if (Math.abs(actualAlipay - sysAlipay) > 0.01) {
-      errors.push('Alipay: WRONG , COUNT AGAIN');
+      errors.push('Alipay: WRONG, COUNT AGAIN');
       wrongFields.push('actualAlipay');
     }
   }
 
+  // Highlight error fields
   wrongFields.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.add('error-field');
   });
 
+  // Show errors if any
   if (errors.length > 0) {
     document.getElementById('settlementError').innerHTML = errors.join('<br>');
     document.getElementById('settlementError').style.display = 'block';
@@ -8261,14 +10311,22 @@ document.getElementById('checkSettlementBtn')?.addEventListener('click', async (
     document.getElementById('checkSettlementBtn').style.display = 'block';
     return;
   }
+
+  // ✅ REMOVED: Settlement duplicate check - Let backend handle it
+  
+  // If no errors, proceed to record
   setSettlementFieldsEnabled(false);
   document.getElementById('settlementError').style.display = 'none';
   document.getElementById('checkSettlementBtn').style.display = 'none';
   document.getElementById('recordSettlementBtn').style.display = 'block';
+  
+  console.log('✅ Settlement check passed. Ready to record.');
 });
-// Record Settlement button
+
+// Record Settlement button - HANDLE BACKEND DUPLICATE RESPONSE
 document.getElementById('recordSettlementBtn')?.addEventListener('click', async () => {
   showLoading('Recording settlement...');
+  
   const store = document.getElementById('settlementStoreSelect').value;
   const pettyCash = parseFloat(document.getElementById('pettyCashFloat').value) || 0;
   const actualCash = parseFloat(document.getElementById('actualCash').value);
@@ -8302,11 +10360,29 @@ document.getElementById('recordSettlementBtn')?.addEventListener('click', async 
 
     const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
     const result = await response.json();
+    
+    console.log('📥 Settlement Response:', result);
+
+    // ✅ Handle duplicate response from backend
+    if (result.duplicated) {
+      hideLoading();
+      await showAlertModal('Settlement Already Done', 
+        `⚠️ ${result.message || 'Settlement already recorded for today.'}\n\n` +
+        `If there are unsettled bills, please check with your manager.`);
+      document.getElementById('settlementModal').style.display = 'none';
+      await refreshSettlementTotals(store);
+      return;
+    }
 
     if (result.success) {
-      await showAlertModal('Settlement Recorded', `Settlement for ${store} on ${todayStr} has been saved.`);
+      let message = `✅ Settlement for ${store} on ${todayStr} has been saved.`;
+      if (result.unsettled_count !== undefined && result.unsettled_count > 0) {
+        message += `\n\n📊 ${result.unsettled_count} unsettled bill(s) were settled.`;
+        message += `\n💰 Total: RM ${result.unsettled_total.toFixed(2)}`;
+      }
+      await showAlertModal('Settlement Recorded', message);
 
-      // ✅ Check printer connection before printing
+      // Check printer connection
       if (!isPrinterConnected) {
         showLoading('Printer not connected. Opening Bluetooth selection...');
         try {
@@ -8314,14 +10390,15 @@ document.getElementById('recordSettlementBtn')?.addEventListener('click', async 
           hideLoading();
         } catch (err) {
           hideLoading();
-          await showAlertModal('Printer Connection Failed', 'Could not connect to printer. Settlement recorded but report not printed.');
+          await showAlertModal('Printer Connection Failed', 
+            '⚠️ Could not connect to printer.\nSettlement recorded but report not printed.');
           document.getElementById('settlementModal').style.display = 'none';
           await refreshSettlementTotals(store);
           return;
         }
       }
 
-      // ✅ Print settlement report – pass the captured pettyCash variable directly
+      // Print settlement report
       const totals = {
         cashSystem: sysCash,
         cardSystem: sysCard,
@@ -8332,7 +10409,7 @@ document.getElementById('recordSettlementBtn')?.addEventListener('click', async 
         cardActual: actualCard,
         qrActual: actualQR,
         alipayActual: actualAlipay,
-        pettyCash: pettyCash   // <-- use the captured value
+        pettyCash: pettyCash
       };
       await printSettlementReport(store, todayStr, totals);
 
@@ -8342,8 +10419,9 @@ document.getElementById('recordSettlementBtn')?.addEventListener('click', async 
       throw new Error(result.error || 'Unknown error');
     }
   } catch (err) {
-    console.error(err);
-    await showAlertModal('Error', 'Failed to record settlement: ' + err.message);
+    console.error('Settlement error:', err);
+    hideLoading();
+    await showAlertModal('Error', '❌ Failed to record settlement: ' + err.message);
   } finally {
     hideLoading();
   }
@@ -8624,18 +10702,10 @@ document.getElementById('closeAddProductModal')?.addEventListener('click', close
 
 document.getElementById('newProductCategorySelect')?.addEventListener('change', toggleNewCategoryInput);
   document.getElementById('clearCartBtn')?.addEventListener('click', clearCart);
-  document.getElementById('refreshProductsPanelBtn')?.addEventListener('click', () => {
-    localStorage.removeItem(`products_${currentStore}`);
-    fetchProductsFromSheet(true);
-  });
+  
 
-  if (searchInput) {
-    searchInput.addEventListener('input', () => {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(() => renderProductGrid(), 300);
-    });
-  }
-  if (categorySelect) categorySelect.addEventListener('change', renderProductGrid);
+  
+  
 
   document.getElementById('logoutHeaderBtn')?.addEventListener('click', () => {
     if (typeof stopReceiptPolling === 'function') stopReceiptPolling();
@@ -8665,7 +10735,51 @@ document.getElementById('newProductCategorySelect')?.addEventListener('change', 
  document.getElementById('closeLoginModal')?.addEventListener('click', () => {
   resetLoginBarcodeBuffer();
 });
+// Add this helper function near the top of your JavaScript
+function refreshProductDisplay() {
+  if (stockTakeMode) {
+    renderStockTakeProductGrid();
+  } else {
+    renderProductGrid();
+  }
+}
 
+// Then replace ALL these event listeners with the new one:
+// 1. Category select
+if (categorySelect) {
+  categorySelect.addEventListener('change', refreshProductDisplay);
+}
+
+// 2. Search input
+if (searchInput) {
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(refreshProductDisplay, 300);
+  });
+}
+
+// 3. View toggle buttons
+gridBtn.addEventListener('click', () => {
+  setViewMode('grid');
+  refreshProductDisplay();
+});
+listBtn.addEventListener('click', () => {
+  setViewMode('list');
+  refreshProductDisplay();
+});
+
+// 4. Refresh button
+document.getElementById('refreshProductsPanelBtn')?.addEventListener('click', async () => {
+  localStorage.removeItem(`products_${currentStore}`);
+  await fetchProductsFromSheet(true);
+  refreshProductDisplay();
+});
+
+// 5. Low stock toggle
+document.getElementById('lowStockToggleBtn')?.addEventListener('click', () => {
+  toggleLowStockFilter();
+  refreshProductDisplay();
+});
   function updateCategoryDropdown() {
     const previousSelected = categorySelect.value;
     const categories = [...new Set(products.map(p => p.category))].sort();
