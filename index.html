@@ -4738,11 +4738,17 @@ async function handleAutoConnect() {
   try {
     await connectPrinter();
     refreshPrinterModalStatus();
-    await showAlertModal('✅ Connected', 
+
+    // ✅ NEW: Force icon update multiple times to catch late state changes
+    updatePrinterStatusUI();
+    setTimeout(() => updatePrinterStatusUI(), 200);
+    setTimeout(() => updatePrinterStatusUI(), 1000);
+
+    await showAlertModal('✅ Connected',
       isPrinterConnected ? `Printer: ${wifiPrinterMac || 'Ready'}` : 'Connection failed');
   } catch (err) {
     setPrinterModalStatus('❌', 'Connection Failed', err.message, '#ef4444');
-    await showAlertModal('❌ Connection Failed', 
+    await showAlertModal('❌ Connection Failed',
       `Could not connect to printer.\n\n${err.message}\n\nMake sure ESP32 is powered and on the same WiFi.`);
   }
 }
@@ -7589,7 +7595,9 @@ async function connectPrinter() {
       };
 
       updatePrinterStatusUI();
-      startPrinterHealthCheck();
+setTimeout(() => updatePrinterStatusUI(), 150);
+setTimeout(() => updatePrinterStatusUI(), 800);
+startPrinterHealthCheck();
 
       if (statusEl) {
         statusEl.innerText = `✅ Ready (${wifiPrinterName || wifiPrinterMac || 'Printer'})`;
@@ -7794,6 +7802,7 @@ async function sendChunkedData(data, chunkSize = 500) {
     isPrinterConnected = true;
     if (window.printerAPI) window.printerAPI.isConnected = true;
     console.log(`✅ Printed ${result.bytes} bytes via ESP32`);
+	updatePrinterStatusUI();
     return true;
   } catch (err) {
     console.error('❌ Print error:', err);
@@ -7823,9 +7832,11 @@ async function tryAutoConnectPrinter() {
         printSettlementReport: printSettlementReport, isWifi: true, mac: wifiPrinterMac
       };
       updatePrinterStatusUI();
-      startPrinterHealthCheck();
-      console.log('✅ WiFi printer auto-connected:', wifiPrinterMac);
-      return true;
+setTimeout(() => updatePrinterStatusUI(), 150);
+setTimeout(() => updatePrinterStatusUI(), 800);
+startPrinterHealthCheck();
+console.log('✅ WiFi printer auto-connected:', wifiPrinterMac);
+return true;
     } else {
       const connRes = await fetch(`${ESP32_PRINTER_URL}/bt/connect`, {
         method: 'POST', cache: 'no-store', targetAddressSpace: 'private'
