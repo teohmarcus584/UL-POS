@@ -2390,6 +2390,58 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
   background: rgba(59, 130, 246, 0.1);
   color: #3b82f6;
 }
+/* Non-admin date navigation */
+.nonadmin-date-arrow-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  border-radius: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2c3e66;
+  transition: 0.2s;
+}
+.nonadmin-date-arrow-btn:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+.nonadmin-date-arrow-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.nonadmin-date-trigger-btn {
+  background: white;
+  border: 1px solid #e2e8f0;
+  padding: 10px 24px;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  transition: 0.15s;
+  color: #1e293b;
+  min-width: 180px;
+  justify-content: center;
+}
+.nonadmin-date-trigger-btn:hover {
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
+.nonadmin-date-trigger-btn:active {
+  transform: translateY(1px);
+}
+
+/* Preset picker for non-admin */
+#nonAdminPresetPickerModal .modal-container {
+  max-width: 420px;
+  border-radius: 24px;
+}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -2827,29 +2879,25 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
 </div>
 
 <!-- Non‑admin date range selector -->
+<!-- Non‑admin date range selector (Dashboard-style) -->
 <div id="nonAdminDateRange" style="margin: 15px 0;">
-  <div class="report-filters" style="justify-content: flex-end;">
+  <div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px; padding: 12px; background: #f8fafc; border-radius: 20px; border: 1px solid #e2e8f0;">
+    <button id="nonAdminPrevBtn" class="nonadmin-date-arrow-btn" title="Previous">←</button>
+    <button id="nonAdminDateTriggerBtn" class="nonadmin-date-trigger-btn">
+      📅 <span id="nonAdminDateLabel">Today</span>
+    </button>
+    <button id="nonAdminNextBtn" class="nonadmin-date-arrow-btn" title="Next">→</button>
+  </div>
+  <div id="nonAdminCustomDateRange" style="display: none; gap: 8px; margin-top: 12px; justify-content: center; align-items: flex-end; flex-wrap: wrap;">
     <div class="filter-group">
-      <label>📅 Date Range</label>
-      <select id="nonAdminDateRangeSelect">
-        <option value="today">Today</option>
-        <option value="week">This Week</option>
-        <option value="month">This Month</option>
-        <option value="year">This Year</option>
-        <option value="custom">Custom</option>
-      </select>
+      <label>From</label>
+      <input type="date" id="nonAdminFromDate">
     </div>
-    <div id="nonAdminCustomDateRange" style="display: none; gap: 8px; align-items: flex-end;">
-      <div class="filter-group">
-        <label>From</label>
-        <input type="date" id="nonAdminFromDate">
-      </div>
-      <div class="filter-group">
-        <label>To</label>
-        <input type="date" id="nonAdminToDate">
-      </div>
-      <button id="applyNonAdminDateBtn" class="cart-header-btn">Apply</button>
+    <div class="filter-group">
+      <label>To</label>
+      <input type="date" id="nonAdminToDate">
     </div>
+    <button id="applyNonAdminDateBtn" class="cart-header-btn">Apply</button>
   </div>
 </div>
     <div id="storeBreakdownContainer" style="margin: 20px 0; display: none;">
@@ -3251,6 +3299,22 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
     <div id="promoVoucherError" style="color:#ef4444; margin-top:12px; display:none;"></div>
   </div>
 </div>
+<!-- Non-Admin Preset Picker Modal -->
+<div id="nonAdminPresetPickerModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 420px;">
+    <span class="close-modal" id="closeNonAdminPresetPicker">×</span>
+    <div class="modal-title">📅 Select Range</div>
+    <div class="preset-option" data-napreset="today">Today</div>
+    <div class="preset-option" data-napreset="week">This Week</div>
+    <div class="preset-option" data-napreset="month">This Month</div>
+    <div class="preset-option" data-napreset="lastmonth">Last Month</div>
+    <div class="preset-option" data-napreset="year">This Year</div>
+    <div class="preset-option" data-napreset="lastyear">Last Year</div>
+    <div class="divider" style="height: 1px; background: #eef2f8; margin: 20px 0;"></div>
+    <div class="preset-option" data-napreset="custom">📆 Custom</div>
+    <button class="close-modal" id="cancelNonAdminPresetPicker" style="margin-top: 20px; background: none; border: 1px solid #cfdfed; padding: 14px; border-radius: 60px; width: 100%; font-weight: 600; cursor: pointer;">Close</button>
+  </div>
+</div>
 <script>
 // ==================== SUPABASE CONFIG ====================
 const SUPABASE_URL = "https://zhtfjvqmxbzeuukcinky.supabase.co";
@@ -3303,6 +3367,11 @@ let notificationsEnabled = false;
 let alertedOutOfStockProducts = new Set();
 let alertedLowStockProducts = new Set();
 let preloadedReportCache = null;
+// ✅ Non-admin report date navigation state
+let nonAdminPresetType = 'day';
+let nonAdminDayDate = null;
+let nonAdminFrom = '';
+let nonAdminTo = '';
 // ✅ ADD THESE LINES - For back-date settlement tracking
 let pendingSettlementDate = null;
 let pendingSettlementStore = null;
@@ -14438,48 +14507,99 @@ async function openReportsModal() {
       }
     }
 
-    const rangeSelect = document.getElementById('nonAdminDateRangeSelect');
+      // ✅ Wire up the new dashboard-style date navigation
+    const prevBtn = document.getElementById('nonAdminPrevBtn');
+    const nextBtn = document.getElementById('nonAdminNextBtn');
+    const triggerBtn = document.getElementById('nonAdminDateTriggerBtn');
     const customDiv = document.getElementById('nonAdminCustomDateRange');
     const fromDate = document.getElementById('nonAdminFromDate');
     const toDate = document.getElementById('nonAdminToDate');
     const applyBtn = document.getElementById('applyNonAdminDateBtn');
 
-    async function refreshNonAdmin() {
-      const range = rangeSelect.value;
-      const now = new Date();
-      let from, to;
-      if (range === 'today') {
-        const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-        from = to = getUTCDateString(todayUTC);
-      } else if (range === 'week') {
-        const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-        const day = todayUTC.getUTCDay();
-        const diff = day === 0 ? 6 : day - 1;
-        const start = new Date(todayUTC);
-        start.setUTCDate(todayUTC.getUTCDate() - diff);
-        from = getUTCDateString(start);
-        const end = new Date(start);
-        end.setUTCDate(start.getUTCDate() + 6);
-        to = getUTCDateString(end);
-      } else if (range === 'month') {
-        const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-        from = getUTCDateString(start);
-        const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
-        to = getUTCDateString(end);
-      } else if (range === 'year') {
-        const start = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
-        from = getUTCDateString(start);
-        const end = new Date(Date.UTC(now.getUTCFullYear(), 11, 31));
-        to = getUTCDateString(end);
-      } else if (range === 'custom') {
-        from = fromDate.value;
-        to = toDate.value;
-        if (!from || !to) return;
+    // Remove any old listeners by cloning (defensive)
+    ['nonAdminPrevBtn','nonAdminNextBtn','nonAdminDateTriggerBtn','applyNonAdminDateBtn'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        const clone = el.cloneNode(true);
+        el.parentNode.replaceChild(clone, el);
       }
-      await updateNonAdminReport(from, to);
-      await updateNonAdminStatsCards(from, to);
-      hidePaymentRowsForNonAdmin();
+    });
+
+    const prevBtnFresh = document.getElementById('nonAdminPrevBtn');
+    const nextBtnFresh = document.getElementById('nonAdminNextBtn');
+    const triggerBtnFresh = document.getElementById('nonAdminDateTriggerBtn');
+    const applyBtnFresh = document.getElementById('applyNonAdminDateBtn');
+
+    if (prevBtnFresh) {
+      prevBtnFresh.addEventListener('click', () => shiftNonAdminDateRange('left'));
     }
+    if (nextBtnFresh) {
+      nextBtnFresh.addEventListener('click', () => shiftNonAdminDateRange('right'));
+    }
+    if (triggerBtnFresh) {
+      triggerBtnFresh.addEventListener('click', () => {
+        // Prefill custom inputs with current range
+        if (fromDate) fromDate.value = nonAdminFrom || getNonAdminTodayYMD();
+        if (toDate) toDate.value = nonAdminTo || getNonAdminTodayYMD();
+        openNonAdminPresetPicker();
+      });
+    }
+    if (applyBtnFresh) {
+      applyBtnFresh.addEventListener('click', async () => {
+        const f = fromDate ? fromDate.value : '';
+        const t = toDate ? toDate.value : '';
+        if (!f || !t) {
+          showAlertModal('Invalid', 'Please select both From and To dates.');
+          return;
+        }
+        if (f > t) {
+          showAlertModal('Invalid', 'Start date must not be after end date.');
+          return;
+        }
+        if (isNonAdminFutureDate(f)) {
+          showAlertModal('Invalid', 'Start date cannot be in the future.');
+          return;
+        }
+        if (customDiv) customDiv.style.display = 'none';
+        closeNonAdminPresetPicker();
+        await applyNonAdminPreset('custom', f, t);
+      });
+    }
+
+    // Preset option handlers
+    document.querySelectorAll('[data-napreset]').forEach(opt => {
+      opt.addEventListener('click', async () => {
+        const preset = opt.getAttribute('data-napreset');
+        if (preset === 'custom') {
+          if (customDiv) customDiv.style.display = 'flex';
+          return;
+        }
+        closeNonAdminPresetPicker();
+        await applyNonAdminPreset(preset);
+      });
+    });
+
+    // Close picker handlers
+    const closePicker1 = document.getElementById('closeNonAdminPresetPicker');
+    const closePicker2 = document.getElementById('cancelNonAdminPresetPicker');
+    if (closePicker1) closePicker1.addEventListener('click', closeNonAdminPresetPicker);
+    if (closePicker2) closePicker2.addEventListener('click', closeNonAdminPresetPicker);
+
+    // Initialize with "Today"
+    const todayInitYMD = getNonAdminTodayYMD();
+    nonAdminPresetType = 'day';
+    nonAdminDayDate = new Date();
+    nonAdminFrom = todayInitYMD;
+    nonAdminTo = todayInitYMD;
+    updateNonAdminDateLabel();
+    updateNonAdminArrowState();
+
+    const now = new Date();
+    const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const todayStrUTC = getUTCDateString(todayUTC);
+    await updateNonAdminReport(todayStrUTC, todayStrUTC);
+    await updateNonAdminStatsCards(todayStrUTC, todayStrUTC);
+    hidePaymentRowsForNonAdmin();
 
     rangeSelect.addEventListener('change', () => {
       const isCustom = rangeSelect.value === 'custom';
@@ -14632,7 +14752,254 @@ async function openReportsModal() {
   const finalLoadingMsg = document.getElementById('adminReportLoadingMsg');
   if (finalLoadingMsg) finalLoadingMsg.style.display = 'none';
 }
+// ============================================================
+// ✅ NON-ADMIN REPORT DATE NAVIGATION
+// ============================================================
 
+function getNonAdminTodayYMD() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function formatYMDNonAdmin(date) {
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+
+function parseYMDNonAdmin(ymd) {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function getNonAdminWeekStart(d) {
+  const nd = new Date(d);
+  const day = nd.getDay();
+  nd.setDate(nd.getDate() + (day === 0 ? -6 : 1 - day));
+  return nd;
+}
+
+function isNonAdminFutureDate(ymd) {
+  return ymd > getNonAdminTodayYMD();
+}
+
+function isNonAdminToday(ymd) {
+  return ymd === getNonAdminTodayYMD();
+}
+
+function updateNonAdminDateLabel() {
+  const labelEl = document.getElementById('nonAdminDateLabel');
+  if (!labelEl) return;
+  let label = '';
+  if (nonAdminPresetType === 'custom') {
+    label = `${nonAdminFrom} → ${nonAdminTo}`;
+  } else if (nonAdminPresetType === 'day') {
+    label = isNonAdminToday(nonAdminFrom) ? "Today" : nonAdminFrom;
+  } else if (nonAdminPresetType === 'week') {
+    label = `Week of ${nonAdminFrom}`;
+  } else if (nonAdminPresetType === 'month') {
+    try {
+      label = parseYMDNonAdmin(nonAdminFrom).toLocaleString('default', { month: 'long', year: 'numeric' });
+    } catch(e) { label = nonAdminFrom; }
+  } else if (nonAdminPresetType === 'year') {
+    label = `${parseYMDNonAdmin(nonAdminFrom).getFullYear()}`;
+  }
+  labelEl.innerText = label;
+}
+
+function getAdjacentNonAdminRange(dir) {
+  const delta = dir === 'next' ? 1 : -1;
+  if (nonAdminPresetType === 'day') {
+    const d = nonAdminDayDate ? new Date(nonAdminDayDate) : new Date();
+    const nd = new Date(d);
+    nd.setDate(d.getDate() + delta);
+    return { from: formatYMDNonAdmin(nd), to: formatYMDNonAdmin(nd) };
+  }
+  if (nonAdminPresetType === 'week') {
+    let start = parseYMDNonAdmin(nonAdminFrom);
+    if (isNaN(start)) start = getNonAdminWeekStart(new Date());
+    const ns = new Date(start);
+    ns.setDate(start.getDate() + delta * 7);
+    const ne = new Date(ns);
+    ne.setDate(ns.getDate() + 6);
+    return { from: formatYMDNonAdmin(ns), to: formatYMDNonAdmin(ne) };
+  }
+  if (nonAdminPresetType === 'month') {
+    const start = nonAdminFrom ? parseYMDNonAdmin(nonAdminFrom) : new Date();
+    const ns = new Date(start);
+    ns.setMonth(start.getMonth() + delta);
+    const ne = new Date(ns.getFullYear(), ns.getMonth() + 1, 0);
+    return { from: formatYMDNonAdmin(ns), to: formatYMDNonAdmin(ne) };
+  }
+  if (nonAdminPresetType === 'year') {
+    const start = nonAdminFrom ? parseYMDNonAdmin(nonAdminFrom) : new Date();
+    const ny = start.getFullYear() + delta;
+    return {
+      from: formatYMDNonAdmin(new Date(ny, 0, 1)),
+      to: formatYMDNonAdmin(new Date(ny, 11, 31))
+    };
+  }
+  return null;
+}
+
+function updateNonAdminArrowState() {
+  const prevBtn = document.getElementById('nonAdminPrevBtn');
+  const nextBtn = document.getElementById('nonAdminNextBtn');
+  if (!prevBtn || !nextBtn) return;
+  if (nonAdminPresetType === 'custom') {
+    nextBtn.disabled = true;
+    prevBtn.disabled = false;
+    return;
+  }
+  const nextRange = getAdjacentNonAdminRange('next');
+  prevBtn.disabled = false;
+  nextBtn.disabled = !nextRange || isNonAdminFutureDate(nextRange.from);
+}
+
+async function applyNonAdminPreset(preset, customFrom, customTo) {
+  const t = new Date();
+  const today = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+
+  if (preset === 'custom' && customFrom && customTo) {
+    nonAdminPresetType = 'custom';
+    nonAdminFrom = customFrom;
+    nonAdminTo = customTo;
+  } else if (preset === 'today') {
+    nonAdminPresetType = 'day';
+    nonAdminDayDate = new Date(today);
+    nonAdminFrom = formatYMDNonAdmin(nonAdminDayDate);
+    nonAdminTo = nonAdminFrom;
+  } else if (preset === 'week') {
+    const start = getNonAdminWeekStart(today);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    nonAdminPresetType = 'week';
+    nonAdminFrom = formatYMDNonAdmin(start);
+    nonAdminTo = formatYMDNonAdmin(end);
+  } else if (preset === 'month') {
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    nonAdminPresetType = 'month';
+    nonAdminFrom = formatYMDNonAdmin(start);
+    nonAdminTo = formatYMDNonAdmin(end);
+  } else if (preset === 'lastmonth') {
+    const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const end = new Date(today.getFullYear(), today.getMonth(), 0);
+    nonAdminPresetType = 'month';
+    nonAdminFrom = formatYMDNonAdmin(start);
+    nonAdminTo = formatYMDNonAdmin(end);
+  } else if (preset === 'year') {
+    nonAdminPresetType = 'year';
+    nonAdminFrom = formatYMDNonAdmin(new Date(today.getFullYear(), 0, 1));
+    nonAdminTo = formatYMDNonAdmin(new Date(today.getFullYear(), 11, 31));
+  } else if (preset === 'lastyear') {
+    const ly = today.getFullYear() - 1;
+    nonAdminPresetType = 'year';
+    nonAdminFrom = formatYMDNonAdmin(new Date(ly, 0, 1));
+    nonAdminTo = formatYMDNonAdmin(new Date(ly, 11, 31));
+  }
+
+  updateNonAdminDateLabel();
+  updateNonAdminArrowState();
+
+  // Fetch report using UTC boundaries like the dashboard
+  const utcFrom = new Date(nonAdminFrom + 'T00:00:00Z').toISOString().split('T')[0];
+  const utcTo = new Date(nonAdminTo + 'T00:00:00Z').toISOString().split('T')[0];
+  await updateNonAdminReport(utcFrom, utcTo);
+  await updateNonAdminStatsCards(utcFrom, utcTo);
+  hidePaymentRowsForNonAdmin();
+
+  if (productDetailsVisible) {
+    const productData = await fetchProductSalesReport('all', currentEmployee.id, utcFrom, utcTo);
+    renderProductDetails(productData);
+  }
+}
+
+function shiftNonAdminDateRange(dir) {
+  if (nonAdminPresetType === 'custom') {
+    showAlertModal('Custom Range', 'Custom range cannot be shifted. Pick a preset.');
+    return;
+  }
+
+  const delta = dir === 'left' ? -1 : 1;
+  if (delta === 1) {
+    const next = getAdjacentNonAdminRange('next');
+    if (next && isNonAdminFutureDate(next.from)) {
+      showAlertModal('Notice', "Cannot go beyond today's date.");
+      return;
+    }
+  }
+
+  if (nonAdminPresetType === 'day') {
+    if (!nonAdminDayDate) nonAdminDayDate = new Date();
+    const nd = new Date(nonAdminDayDate);
+    nd.setDate(nonAdminDayDate.getDate() + delta);
+    const newYMD = formatYMDNonAdmin(nd);
+    if (delta === 1 && isNonAdminFutureDate(newYMD)) {
+      showAlertModal('Notice', 'No future data.');
+      return;
+    }
+    nonAdminDayDate = nd;
+    nonAdminFrom = newYMD;
+    nonAdminTo = newYMD;
+  } else if (nonAdminPresetType === 'week') {
+    let start = parseYMDNonAdmin(nonAdminFrom);
+    if (isNaN(start)) start = getNonAdminWeekStart(new Date());
+    const ns = new Date(start);
+    ns.setDate(start.getDate() + delta * 7);
+    const ne = new Date(ns);
+    ne.setDate(ns.getDate() + 6);
+    const nf = formatYMDNonAdmin(ns);
+    if (delta === 1 && isNonAdminFutureDate(nf)) {
+      showAlertModal('Notice', 'Cannot shift week into future.');
+      return;
+    }
+    nonAdminFrom = nf;
+    nonAdminTo = formatYMDNonAdmin(ne);
+  } else if (nonAdminPresetType === 'month') {
+    const start = parseYMDNonAdmin(nonAdminFrom);
+    const ns = new Date(start);
+    ns.setMonth(start.getMonth() + delta);
+    const ne = new Date(ns.getFullYear(), ns.getMonth() + 1, 0);
+    const nf = formatYMDNonAdmin(ns);
+    if (delta === 1 && isNonAdminFutureDate(nf)) {
+      showAlertModal('Notice', 'Cannot shift month into future.');
+      return;
+    }
+    nonAdminFrom = nf;
+    nonAdminTo = formatYMDNonAdmin(ne);
+  } else if (nonAdminPresetType === 'year') {
+    const start = parseYMDNonAdmin(nonAdminFrom);
+    const ny = start.getFullYear() + delta;
+    const nf = formatYMDNonAdmin(new Date(ny, 0, 1));
+    if (delta === 1 && isNonAdminFutureDate(nf)) {
+      showAlertModal('Notice', 'Cannot shift year into future.');
+      return;
+    }
+    nonAdminFrom = nf;
+    nonAdminTo = formatYMDNonAdmin(new Date(ny, 11, 31));
+  }
+
+  updateNonAdminDateLabel();
+  updateNonAdminArrowState();
+
+  const utcFrom = new Date(nonAdminFrom + 'T00:00:00Z').toISOString().split('T')[0];
+  const utcTo = new Date(nonAdminTo + 'T00:00:00Z').toISOString().split('T')[0];
+  updateNonAdminReport(utcFrom, utcTo);
+  updateNonAdminStatsCards(utcFrom, utcTo);
+  hidePaymentRowsForNonAdmin();
+
+  if (productDetailsVisible) {
+    fetchProductSalesReport('all', currentEmployee.id, utcFrom, utcTo).then(renderProductDetails);
+  }
+}
+
+function openNonAdminPresetPicker() {
+  document.getElementById('nonAdminPresetPickerModal').style.display = 'flex';
+  document.getElementById('nonAdminCustomDateRange').style.display = 'none';
+}
+
+function closeNonAdminPresetPicker() {
+  document.getElementById('nonAdminPresetPickerModal').style.display = 'none';
+}
 async function updateNonAdminReport(from, to) {
   if (!currentEmployee || currentEmployee.isAdmin) return;
   
