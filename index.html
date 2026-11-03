@@ -2436,11 +2436,85 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
 .nonadmin-date-trigger-btn:active {
   transform: translateY(1px);
 }
+/* Non-admin preset picker - Dashboard style */
+#nonAdminPresetPickerModal {
+  align-items: flex-end;
+  justify-content: center;
+}
+#nonAdminPresetPickerModal .modal-bottom {
+  background: white;
+  width: 100%;
+  max-width: 520px;
+  border-radius: 32px 32px 0 0;
+  padding: 24px 20px 32px;
+  transform: translateY(100%);
+  transition: transform 0.25s ease-out;
+  max-height: 85vh;
+  overflow-y: auto;
+  position: relative;
+}
+#nonAdminPresetPickerModal.active .modal-bottom {
+  transform: translateY(0);
+}
 
-/* Preset picker for non-admin */
-#nonAdminPresetPickerModal .modal-container {
-  max-width: 420px;
-  border-radius: 24px;
+.na-preset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.na-preset-option {
+  background: #f8fafd;
+  padding: 16px 18px;
+  border-radius: 60px;
+  font-weight: 600;
+  font-size: 1rem;
+  text-align: center;
+  cursor: pointer;
+  border: 1px solid #eef2f8;
+  transition: all 0.2s ease;
+  color: #1e293b;
+}
+.na-preset-option:hover {
+  background: #eef2ff;
+  border-color: #2b6e9e;
+  transform: translateY(-1px);
+}
+.na-preset-option:active {
+  transform: scale(0.98);
+}
+.na-preset-option.active {
+  background: #eef2ff;
+  border-color: #2b6e9e;
+  color: #0f172a;
+  box-shadow: 0 2px 8px rgba(43,110,158,0.15);
+}
+
+.na-divider {
+  height: 1px;
+  background: #eef2f8;
+  margin: 12px 0;
+}
+
+.na-close-btn {
+  margin-top: 8px;
+  background: none;
+  border: 1px solid #cfdfed;
+  padding: 14px;
+  border-radius: 60px;
+  width: 100%;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  color: #1e293b;
+  transition: all 0.2s;
+}
+.na-close-btn:hover {
+  background: #f8fafc;
+}
+.na-close-btn:active {
+  transform: scale(0.98);
 }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -3301,18 +3375,22 @@ body:not(.admin-mode) #adminReportModal .stat-item.breakdown {
 </div>
 <!-- Non-Admin Preset Picker Modal -->
 <div id="nonAdminPresetPickerModal" class="modal-overlay">
-  <div class="modal-container" style="max-width: 420px;">
-    <span class="close-modal" id="closeNonAdminPresetPicker">×</span>
-    <div class="modal-title">📅 Select Range</div>
-    <div class="preset-option" data-napreset="today">Today</div>
-    <div class="preset-option" data-napreset="week">This Week</div>
-    <div class="preset-option" data-napreset="month">This Month</div>
-    <div class="preset-option" data-napreset="lastmonth">Last Month</div>
-    <div class="preset-option" data-napreset="year">This Year</div>
-    <div class="preset-option" data-napreset="lastyear">Last Year</div>
-    <div class="divider" style="height: 1px; background: #eef2f8; margin: 20px 0;"></div>
-    <div class="preset-option" data-napreset="custom">📆 Custom</div>
-    <button class="close-modal" id="cancelNonAdminPresetPicker" style="margin-top: 20px; background: none; border: 1px solid #cfdfed; padding: 14px; border-radius: 60px; width: 100%; font-weight: 600; cursor: pointer;">Close</button>
+  <div class="modal-bottom" style="max-width: 520px; border-radius: 32px 32px 0 0; padding: 24px 20px 32px;">
+    <span class="close-modal" id="closeNonAdminPresetPicker" style="position: absolute; top: 16px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; color: #64748b; line-height: 1; z-index: 10;">×</span>
+    <div style="font-weight: 700; font-size: 1.3rem; margin-bottom: 20px; text-align: center;">📅 Select Range</div>
+
+    <div class="na-preset-list">
+      <div class="na-preset-option" data-napreset="today">Today</div>
+      <div class="na-preset-option" data-napreset="week">This Week</div>
+      <div class="na-preset-option" data-napreset="month">This Month</div>
+      <div class="na-preset-option" data-napreset="lastmonth">Last Month</div>
+      <div class="na-preset-option" data-napreset="year">This Year</div>
+      <div class="na-preset-option" data-napreset="lastyear">Last Year</div>
+      <div class="na-divider"></div>
+      <div class="na-preset-option" data-napreset="custom">📆 Custom</div>
+    </div>
+
+    <button class="na-close-btn" id="cancelNonAdminPresetPicker">Close</button>
   </div>
 </div>
 <script>
@@ -3368,10 +3446,12 @@ let alertedOutOfStockProducts = new Set();
 let alertedLowStockProducts = new Set();
 let preloadedReportCache = null;
 // ✅ Non-admin report date navigation state
+// ✅ Non-admin report date navigation state
 let nonAdminPresetType = 'day';
 let nonAdminDayDate = null;
 let nonAdminFrom = '';
 let nonAdminTo = '';
+let nonAdminLastPreset = 'today';  // ← remembers exact preset (today/week/month/lastmonth/year/lastyear/custom)
 // ✅ ADD THESE LINES - For back-date settlement tracking
 let pendingSettlementDate = null;
 let pendingSettlementStore = null;
@@ -14885,7 +14965,7 @@ async function applyNonAdminPreset(preset, customFrom, customTo) {
 
   updateNonAdminDateLabel();
   updateNonAdminArrowState();
-
+nonAdminLastPreset = preset; 
   // Fetch report using UTC boundaries like the dashboard
   const utcFrom = new Date(nonAdminFrom + 'T00:00:00Z').toISOString().split('T')[0];
   const utcTo = new Date(nonAdminTo + 'T00:00:00Z').toISOString().split('T')[0];
@@ -14979,12 +15059,37 @@ function shiftNonAdminDateRange(dir) {
 }
 
 function openNonAdminPresetPicker() {
-  document.getElementById('nonAdminPresetPickerModal').style.display = 'flex';
-  document.getElementById('nonAdminCustomDateRange').style.display = 'none';
+  const modal = document.getElementById('nonAdminPresetPickerModal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  // Trigger slide-up animation
+  requestAnimationFrame(() => {
+    modal.classList.add('active');
+  });
+  const customDiv = document.getElementById('nonAdminCustomDateRange');
+  if (customDiv) customDiv.style.display = 'none';
+
+  // Highlight the currently active preset
+  highlightActivePreset();
 }
 
 function closeNonAdminPresetPicker() {
-  document.getElementById('nonAdminPresetPickerModal').style.display = 'none';
+  const modal = document.getElementById('nonAdminPresetPickerModal');
+  if (!modal) return;
+  modal.classList.remove('active');
+  // Wait for the animation to finish before hiding
+  setTimeout(() => {
+    modal.style.display = 'none';
+  }, 250);
+}
+
+function highlightActivePreset() {
+  document.querySelectorAll('.na-preset-option').forEach(el => {
+    el.classList.remove('active');
+    if (el.getAttribute('data-napreset') === nonAdminLastPreset) {
+      el.classList.add('active');
+    }
+  });
 }
 async function updateNonAdminReport(from, to) {
   if (!currentEmployee || currentEmployee.isAdmin) return;
