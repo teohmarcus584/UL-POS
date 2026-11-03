@@ -14585,7 +14585,7 @@ async function openReportsModal() {
     if (closePicker1) closePicker1.addEventListener('click', closeNonAdminPresetPicker);
     if (closePicker2) closePicker2.addEventListener('click', closeNonAdminPresetPicker);
 
-    // Initialize with "Today"
+       // Initialize with "Today"
     const todayInitYMD = getNonAdminTodayYMD();
     nonAdminPresetType = 'day';
     nonAdminDayDate = new Date();
@@ -14593,20 +14593,6 @@ async function openReportsModal() {
     nonAdminTo = todayInitYMD;
     updateNonAdminDateLabel();
     updateNonAdminArrowState();
-
-    const now = new Date();
-    const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-    const todayStrUTC = getUTCDateString(todayUTC);
-    await updateNonAdminReport(todayStrUTC, todayStrUTC);
-    await updateNonAdminStatsCards(todayStrUTC, todayStrUTC);
-    hidePaymentRowsForNonAdmin();
-
-    rangeSelect.addEventListener('change', () => {
-      const isCustom = rangeSelect.value === 'custom';
-      customDiv.style.display = isCustom ? 'flex' : 'none';
-      if (!isCustom) refreshNonAdmin();
-    });
-    if (applyBtn) applyBtn.addEventListener('click', refreshNonAdmin);
 
     const now = new Date();
     const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
